@@ -1,0 +1,503 @@
+import Dexie, { type Table } from 'dexie';
+import { createDemoData } from '../data/demoData';
+import type {
+  ActividadLote,
+  ActividadProgramada,
+  Alerta,
+  CierreLote,
+  CierreSemanal,
+  Cliente,
+  ConsumoAlimentoLote,
+  ControlAgua,
+  CostoLote,
+  CurvaEstandar,
+  DetalleFacturaCompra,
+  DetalleFacturaVenta,
+  EntradaAlimento,
+  EventoSanitario,
+  FacturaCompra,
+  FacturaVenta,
+  Galpon,
+  HistorialCambio,
+  InventarioAlimento,
+  Lote,
+  LoteGalpon,
+  MaterialLote,
+  MovimientoEntreGalpones,
+  MovimientoInventarioAlimento,
+  Pesaje,
+  PesajeDetalle,
+  PlanVacunalBase,
+  Proveedor,
+  RegistroDiarioLote,
+  ReportePDF,
+  SalidaPollo,
+  SyncEntityTable,
+  SyncQueueItem,
+  TipoAlimento,
+  TratamientoVeterinario,
+  Usuario,
+  VacunaLote,
+} from '../types/entities';
+
+export const POLLOS_DB_NAME = 'pollos-offline-db';
+
+const REQUIRED_STORE_NAMES = [
+  'usuarios',
+  'galpones',
+  'lotes',
+  'loteGalpones',
+  'movimientosEntreGalpones',
+  'registroDiarioLote',
+  'pesajes',
+  'pesajeDetalle',
+  'salidasPollo',
+  'actividadesProgramadas',
+  'actividadesLote',
+  'planVacunalBase',
+  'vacunasLote',
+  'entradasAlimento',
+  'consumosAlimentoLote',
+  'materialesLote',
+  'controlesAgua',
+  'eventosSanitarios',
+  'tratamientosVeterinarios',
+  'proveedores',
+  'clientes',
+  'tiposAlimento',
+  'facturasCompra',
+  'detalleFacturasCompra',
+  'facturasVenta',
+  'detalleFacturasVenta',
+  'costosLote',
+  'inventarioAlimento',
+  'movimientosInventarioAlimento',
+  'curvasEstandar',
+  'cierresSemanales',
+  'cierreLote',
+  'alertas',
+  'historialCambios',
+  'reportesPDF',
+  'syncQueue',
+] as const;
+
+export class PollosDb extends Dexie {
+  usuarios!: Table<Usuario, string>;
+  galpones!: Table<Galpon, string>;
+  lotes!: Table<Lote, string>;
+  loteGalpones!: Table<LoteGalpon, string>;
+  movimientosEntreGalpones!: Table<MovimientoEntreGalpones, string>;
+  registroDiarioLote!: Table<RegistroDiarioLote, string>;
+  pesajes!: Table<Pesaje, string>;
+  pesajeDetalle!: Table<PesajeDetalle, string>;
+  salidasPollo!: Table<SalidaPollo, string>;
+  actividadesProgramadas!: Table<ActividadProgramada, string>;
+  actividadesLote!: Table<ActividadLote, string>;
+  planVacunalBase!: Table<PlanVacunalBase, string>;
+  vacunasLote!: Table<VacunaLote, string>;
+  entradasAlimento!: Table<EntradaAlimento, string>;
+  consumosAlimentoLote!: Table<ConsumoAlimentoLote, string>;
+  materialesLote!: Table<MaterialLote, string>;
+  controlesAgua!: Table<ControlAgua, string>;
+  eventosSanitarios!: Table<EventoSanitario, string>;
+  tratamientosVeterinarios!: Table<TratamientoVeterinario, string>;
+  proveedores!: Table<Proveedor, string>;
+  clientes!: Table<Cliente, string>;
+  tiposAlimento!: Table<TipoAlimento, string>;
+  facturasCompra!: Table<FacturaCompra, string>;
+  detalleFacturasCompra!: Table<DetalleFacturaCompra, string>;
+  facturasVenta!: Table<FacturaVenta, string>;
+  detalleFacturasVenta!: Table<DetalleFacturaVenta, string>;
+  costosLote!: Table<CostoLote, string>;
+  inventarioAlimento!: Table<InventarioAlimento, string>;
+  movimientosInventarioAlimento!: Table<MovimientoInventarioAlimento, string>;
+  curvasEstandar!: Table<CurvaEstandar, string>;
+  cierresSemanales!: Table<CierreSemanal, string>;
+  cierreLote!: Table<CierreLote, string>;
+  alertas!: Table<Alerta, string>;
+  historialCambios!: Table<HistorialCambio, string>;
+  reportesPDF!: Table<ReportePDF, string>;
+  syncQueue!: Table<SyncQueueItem, string>;
+
+  constructor() {
+    super(POLLOS_DB_NAME);
+    this.version(2).stores({
+      usuarios: '&UsuarioID, Rol, Activo',
+      galpones: '&GalponID, EstadoActual, Activo',
+      lotes: '&LoteID, CodigoLote, EstadoLote, FechaLlegada',
+      loteGalpones: '&LoteGalponID, LoteID, GalponID, Estado',
+      movimientosEntreGalpones: '&MovimientoID, LoteID, Fecha',
+      registroDiarioLote: '&RegistroDiarioID, LoteID, Fecha, EstadoSync, FechaHoraRegistro',
+      pesajes: '&PesajeID, LoteID, Fecha, EstadoSync',
+      pesajeDetalle: '&PesajeDetalleID, PesajeID, LoteID, Sexo, EstadoSync',
+      salidasPollo: '&SalidaID, LoteID, Fecha, TipoSalida, EstadoSync',
+      actividadesProgramadas: '&ActividadProgramadaID, TipoFrecuencia, DiaLote, Activa',
+      actividadesLote: '&ActividadLoteID, LoteID, GalponID, FechaProgramada, Estado, EstadoSync',
+      planVacunalBase: '&VacunaBaseID, DiaProgramado, Activa',
+      vacunasLote: '&VacunaLoteID, LoteID, FechaProgramada, Estado, EstadoSync',
+      entradasAlimento: '&EntradaAlimentoID, TipoAlimentoID, Fecha, EstadoSync, EstadoAdmin',
+      consumosAlimentoLote: '&ConsumoID, LoteID, TipoAlimentoID, Fecha, EstadoSync',
+      materialesLote: '&MaterialLoteID, LoteID, GalponID, TipoMaterial, Fecha, EstadoSync',
+      controlesAgua: '&ControlAguaID, LoteID, GalponID, Fecha, EstadoSync',
+      eventosSanitarios: '&EventoSanitarioID, LoteID, GalponID, Fecha, Severidad, EstadoSync',
+      tratamientosVeterinarios: '&TratamientoID, LoteID, Estado',
+      proveedores: '&ProveedorID, TipoProveedor, Activo',
+      clientes: '&ClienteID, Activo',
+      tiposAlimento: '&TipoAlimentoID, Activo',
+      facturasCompra: '&FacturaCompraID, ProveedorID, FechaFactura, EstadoPago',
+      detalleFacturasCompra: '&DetalleID, FacturaCompraID, LoteID',
+      facturasVenta: '&FacturaVentaID, ClienteID, FechaFactura, EstadoCobro',
+      detalleFacturasVenta: '&DetalleVentaID, FacturaVentaID, LoteID',
+      costosLote: '&CostoID, LoteID, CategoriaCosto, Estado',
+      inventarioAlimento: '&InventarioID, TipoAlimentoID',
+      movimientosInventarioAlimento: '&MovimientoInventarioID, TipoAlimentoID, LoteID, Fecha, TipoMovimiento',
+      curvasEstandar: '&CurvaID, [LineaGenetica+Sexo+DiaLote], DiaLote',
+      cierresSemanales: '&CierreSemanalID, LoteID, SemanaLote, EstadoCierre',
+      cierreLote: '&CierreLoteID, LoteID, EstadoCierre',
+      alertas: '&AlertaID, LoteID, Fecha, Estado, Nivel',
+      historialCambios: '&CambioID, Tabla, RegistroID, FechaHoraCambio',
+      reportesPDF: '&ReporteID, LoteID, FechaGeneracion, TipoReporte',
+      syncQueue: '&SyncID, Tabla, RegistroID, EstadoSync, CreadoEn',
+    });
+  }
+}
+
+export const db = new PollosDb();
+
+async function getExistingStoreNames(): Promise<string[]> {
+  const databaseInfo = indexedDB as IDBFactory & { databases?: () => Promise<Array<{ name?: string | null }>> };
+  const databases = await databaseInfo.databases?.();
+  if (databases && !databases.some((database) => database.name === POLLOS_DB_NAME)) return [];
+
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(POLLOS_DB_NAME);
+    request.onsuccess = () => {
+      const database = request.result;
+      const storeNames = Array.from(database.objectStoreNames);
+      database.close();
+      resolve(storeNames);
+    };
+    request.onerror = () => reject(request.error ?? new Error('No se pudo revisar la base local.'));
+  });
+}
+
+async function ensurePollosSchemaBeforeOpen(): Promise<void> {
+  if (db.isOpen()) return;
+
+  const storeNames = await getExistingStoreNames();
+  if (storeNames.length === 0) {
+    await deletePollosDatabaseRaw();
+    await db.open();
+    return;
+  }
+
+  const existing = new Set(storeNames);
+  const missingStore = REQUIRED_STORE_NAMES.some((storeName) => !existing.has(storeName));
+  if (missingStore) {
+    await deletePollosDatabaseRaw();
+    await db.open();
+  }
+}
+
+function formatDbError(stage: string, error: unknown): Error {
+  if (error instanceof Error) {
+    return new Error(`${stage}: ${error.name}: ${error.message}`);
+  }
+  return new Error(`${stage}: error desconocido.`);
+}
+
+async function runDbStage<T>(stage: string, operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    throw formatDbError(stage, error);
+  }
+}
+
+export async function deletePollosDatabaseRaw(): Promise<void> {
+  db.close();
+  await new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const timer = window.setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        reject(new Error('La base local esta bloqueada por otra pestana. Cierra otras ventanas de POLLOS y vuelve a cargar.'));
+      }
+    }, 5000);
+
+    const request = indexedDB.deleteDatabase(POLLOS_DB_NAME);
+    request.onsuccess = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      resolve();
+    };
+    request.onerror = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      reject(request.error ?? new Error('No se pudo borrar IndexedDB.'));
+    };
+  });
+}
+
+const DEFAULT_GALPONES: Galpon[] = [
+  {
+    GalponID: 'galpon_1A',
+    NombreGalpon: '1A',
+    Capacidad: 750,
+    EstadoActual: 'ENGORDE',
+    Observaciones: 'Galpón 1 superior',
+    Activo: true,
+  },
+  {
+    GalponID: 'galpon_1B',
+    NombreGalpon: '1B',
+    Capacidad: 750,
+    EstadoActual: 'ENGORDE',
+    Observaciones: 'Galpón 1 inferior',
+    Activo: true,
+  },
+  {
+    GalponID: 'galpon_2A',
+    NombreGalpon: '2A',
+    Capacidad: 750,
+    EstadoActual: 'ENGORDE',
+    Observaciones: 'Galpón 2 superior',
+    Activo: true,
+  },
+  {
+    GalponID: 'galpon_2B',
+    NombreGalpon: '2B',
+    Capacidad: 750,
+    EstadoActual: 'ENGORDE',
+    Observaciones: 'Galpón 2 inferior',
+    Activo: true,
+  },
+  {
+    GalponID: 'galpon_3A',
+    NombreGalpon: '3A',
+    Capacidad: 2500,
+    EstadoActual: 'ENGORDE',
+    Observaciones: 'Galpón 3 superior',
+    Activo: true,
+  },
+  {
+    GalponID: 'galpon_3B',
+    NombreGalpon: '3B',
+    Capacidad: 2500,
+    EstadoActual: 'ENGORDE',
+    Observaciones: 'Galpón 3 inferior',
+    Activo: true,
+  },
+];
+
+export async function seedDemoDataIfNeeded(): Promise<void> {
+  await runDbStage('Validar esquema local', ensurePollosSchemaBeforeOpen);
+
+  const lotesCount = await runDbStage('Contar lotes locales', () => db.lotes.count());
+  if (lotesCount === 0) {
+    const demo = createDemoData();
+    await runDbStage('Insertar datos demo', () => db.transaction(
+      'rw',
+      [
+        db.usuarios,
+        db.galpones,
+        db.proveedores,
+        db.clientes,
+        db.tiposAlimento,
+        db.lotes,
+        db.loteGalpones,
+        db.registroDiarioLote,
+        db.consumosAlimentoLote,
+        db.pesajes,
+        db.pesajeDetalle,
+        db.actividadesProgramadas,
+        db.actividadesLote,
+        db.planVacunalBase,
+        db.vacunasLote,
+        db.inventarioAlimento,
+        db.curvasEstandar,
+        db.alertas,
+      ],
+      async () => {
+        await db.usuarios.bulkPut(demo.usuarios);
+        await db.galpones.bulkPut(demo.galpones);
+        await db.proveedores.bulkPut(demo.proveedores);
+        await db.clientes.bulkPut(demo.clientes);
+        await db.tiposAlimento.bulkPut(demo.tiposAlimento);
+        await db.lotes.bulkPut(demo.lotes);
+        await db.loteGalpones.bulkPut(demo.loteGalpones);
+        await db.registroDiarioLote.bulkPut(demo.registroDiarioLote);
+        await db.consumosAlimentoLote.bulkPut(demo.consumosAlimentoLote);
+        await db.pesajes.bulkPut(demo.pesajes);
+        await db.pesajeDetalle.bulkPut(demo.pesajeDetalle);
+        await db.actividadesProgramadas.bulkPut(demo.actividadesProgramadas);
+        await db.actividadesLote.bulkPut(demo.actividadesLote);
+        await db.planVacunalBase.bulkPut(demo.planVacunalBase);
+        await db.vacunasLote.bulkPut(demo.vacunasLote);
+        await db.inventarioAlimento.bulkPut(demo.inventarioAlimento);
+        await db.curvasEstandar.bulkPut(demo.curvasEstandar);
+        await db.alertas.bulkPut(demo.alertas);
+      },
+    ));
+  }
+
+  await runDbStage('Asegurar galpones demo', ensureDefaultGalponLayout);
+}
+
+async function ensureDefaultGalponLayout(): Promise<void> {
+  const remap: Record<string, string> = {
+    galpon_01: 'galpon_1A',
+    galpon_02: 'galpon_1B',
+    galpon_03: 'galpon_2A',
+    galpon_04: 'galpon_2B',
+    galpon_05: 'galpon_3A',
+    galpon_06: 'galpon_3B',
+  };
+
+  await db.transaction('rw', [db.galpones, db.lotes, db.loteGalpones, db.actividadesLote], async () => {
+    for (const galpon of DEFAULT_GALPONES) {
+      const existing = await db.galpones.get(galpon.GalponID);
+      await db.galpones.put({
+        ...galpon,
+        EstadoActual: existing?.EstadoActual ?? galpon.EstadoActual,
+        Observaciones: existing?.Observaciones ?? galpon.Observaciones,
+        Activo: existing?.Activo ?? true,
+      });
+    }
+
+    const oldIds = Object.keys(remap);
+    const oldAssignments = await db.loteGalpones.where('GalponID').anyOf(oldIds).toArray();
+    await Promise.all(
+      oldAssignments.map((assignment) => db.loteGalpones.update(assignment.LoteGalponID, { GalponID: remap[assignment.GalponID] })),
+    );
+
+    const oldActivities = await db.actividadesLote.where('GalponID').anyOf(oldIds).toArray();
+    await Promise.all(
+      oldActivities.map((activity) => db.actividadesLote.update(activity.ActividadLoteID, { GalponID: remap[activity.GalponID] })),
+    );
+
+    await db.galpones.bulkDelete(oldIds);
+
+    const demoLote = await db.lotes.get('lote_demo_001');
+    if (!demoLote) return;
+
+    const demoAssignments = await db.loteGalpones.where('LoteID').equals('lote_demo_001').toArray();
+    const hasFullLayout = DEFAULT_GALPONES.every((galpon) =>
+      demoAssignments.some((assignment) => assignment.GalponID === galpon.GalponID && assignment.Estado === 'ACTIVO'),
+    );
+    if (hasFullLayout) return;
+
+    await db.loteGalpones.bulkDelete(demoAssignments.map((assignment) => assignment.LoteGalponID));
+    await db.loteGalpones.bulkPut(
+      [
+        ['galpon_1A', 750],
+        ['galpon_1B', 750],
+        ['galpon_2A', 750],
+        ['galpon_2B', 750],
+        ['galpon_3A', 2250],
+        ['galpon_3B', 2250],
+      ].map(([GalponID, CantidadEntrada], index) => ({
+        LoteGalponID: `lote_galpon_demo_${index + 1}`,
+        LoteID: 'lote_demo_001',
+        GalponID: String(GalponID),
+        Sexo: 'MIXTO' as const,
+        FechaInicio: demoLote.FechaLlegada,
+        FechaFin: '',
+        DiaInicio: 1,
+        DiaFin: 0,
+        CantidadEntrada: Number(CantidadEntrada),
+        CantidadSalida: 0,
+        Estado: 'ACTIVO' as const,
+        Observaciones: 'Machos y hembras juntos',
+      })),
+    );
+  });
+}
+
+export async function resetLocalDemoData(): Promise<void> {
+  await deletePollosDatabaseRaw();
+  await db.open();
+  await seedDemoDataIfNeeded();
+}
+
+export function getTableForSync(table: SyncEntityTable): Table<object, string> {
+  const map: Record<SyncEntityTable, Table<object, string>> = {
+    Usuarios: db.usuarios as unknown as Table<object, string>,
+    Galpones: db.galpones as unknown as Table<object, string>,
+    Lotes: db.lotes as unknown as Table<object, string>,
+    LoteGalpones: db.loteGalpones as unknown as Table<object, string>,
+    MovimientosEntreGalpones: db.movimientosEntreGalpones as unknown as Table<object, string>,
+    RegistroDiarioLote: db.registroDiarioLote as unknown as Table<object, string>,
+    Pesajes: db.pesajes as unknown as Table<object, string>,
+    PesajeDetalle: db.pesajeDetalle as unknown as Table<object, string>,
+    SalidasPollo: db.salidasPollo as unknown as Table<object, string>,
+    ActividadesLote: db.actividadesLote as unknown as Table<object, string>,
+    VacunasLote: db.vacunasLote as unknown as Table<object, string>,
+    EntradasAlimento: db.entradasAlimento as unknown as Table<object, string>,
+    ConsumoAlimentoLote: db.consumosAlimentoLote as unknown as Table<object, string>,
+    MaterialesLote: db.materialesLote as unknown as Table<object, string>,
+    ControlesAgua: db.controlesAgua as unknown as Table<object, string>,
+    EventosSanitarios: db.eventosSanitarios as unknown as Table<object, string>,
+    TratamientosVeterinarios: db.tratamientosVeterinarios as unknown as Table<object, string>,
+    Proveedores: db.proveedores as unknown as Table<object, string>,
+    Clientes: db.clientes as unknown as Table<object, string>,
+    TiposAlimento: db.tiposAlimento as unknown as Table<object, string>,
+    FacturasCompra: db.facturasCompra as unknown as Table<object, string>,
+    DetalleFacturasCompra: db.detalleFacturasCompra as unknown as Table<object, string>,
+    FacturasVenta: db.facturasVenta as unknown as Table<object, string>,
+    DetalleFacturasVenta: db.detalleFacturasVenta as unknown as Table<object, string>,
+    CostosLote: db.costosLote as unknown as Table<object, string>,
+    InventarioAlimento: db.inventarioAlimento as unknown as Table<object, string>,
+    MovimientosInventarioAlimento: db.movimientosInventarioAlimento as unknown as Table<object, string>,
+    CurvasEstandar: db.curvasEstandar as unknown as Table<object, string>,
+    CierresSemanales: db.cierresSemanales as unknown as Table<object, string>,
+    CierreLote: db.cierreLote as unknown as Table<object, string>,
+    Alertas: db.alertas as unknown as Table<object, string>,
+    HistorialCambios: db.historialCambios as unknown as Table<object, string>,
+    ReportesPDF: db.reportesPDF as unknown as Table<object, string>,
+  };
+  return map[table];
+}
+
+export function getLocalTableBySheetName(table: string): Table<object, string> | undefined {
+  const map: Record<string, Table<object, string>> = {
+    Usuarios: db.usuarios as unknown as Table<object, string>,
+    Galpones: db.galpones as unknown as Table<object, string>,
+    Lotes: db.lotes as unknown as Table<object, string>,
+    LoteGalpones: db.loteGalpones as unknown as Table<object, string>,
+    MovimientosEntreGalpones: db.movimientosEntreGalpones as unknown as Table<object, string>,
+    RegistroDiarioLote: db.registroDiarioLote as unknown as Table<object, string>,
+    Pesajes: db.pesajes as unknown as Table<object, string>,
+    PesajeDetalle: db.pesajeDetalle as unknown as Table<object, string>,
+    SalidasPollo: db.salidasPollo as unknown as Table<object, string>,
+    ActividadesProgramadas: db.actividadesProgramadas as unknown as Table<object, string>,
+    ActividadesLote: db.actividadesLote as unknown as Table<object, string>,
+    PlanVacunalBase: db.planVacunalBase as unknown as Table<object, string>,
+    VacunasLote: db.vacunasLote as unknown as Table<object, string>,
+    EntradasAlimento: db.entradasAlimento as unknown as Table<object, string>,
+    ConsumoAlimentoLote: db.consumosAlimentoLote as unknown as Table<object, string>,
+    MaterialesLote: db.materialesLote as unknown as Table<object, string>,
+    ControlesAgua: db.controlesAgua as unknown as Table<object, string>,
+    EventosSanitarios: db.eventosSanitarios as unknown as Table<object, string>,
+    TratamientosVeterinarios: db.tratamientosVeterinarios as unknown as Table<object, string>,
+    Proveedores: db.proveedores as unknown as Table<object, string>,
+    Clientes: db.clientes as unknown as Table<object, string>,
+    TiposAlimento: db.tiposAlimento as unknown as Table<object, string>,
+    FacturasCompra: db.facturasCompra as unknown as Table<object, string>,
+    DetalleFacturasCompra: db.detalleFacturasCompra as unknown as Table<object, string>,
+    FacturasVenta: db.facturasVenta as unknown as Table<object, string>,
+    DetalleFacturasVenta: db.detalleFacturasVenta as unknown as Table<object, string>,
+    CostosLote: db.costosLote as unknown as Table<object, string>,
+    InventarioAlimento: db.inventarioAlimento as unknown as Table<object, string>,
+    MovimientosInventarioAlimento: db.movimientosInventarioAlimento as unknown as Table<object, string>,
+    CurvasEstandar: db.curvasEstandar as unknown as Table<object, string>,
+    CierresSemanales: db.cierresSemanales as unknown as Table<object, string>,
+    CierreLote: db.cierreLote as unknown as Table<object, string>,
+    Alertas: db.alertas as unknown as Table<object, string>,
+    HistorialCambios: db.historialCambios as unknown as Table<object, string>,
+    ReportesPDF: db.reportesPDF as unknown as Table<object, string>,
+  };
+  return map[table];
+}

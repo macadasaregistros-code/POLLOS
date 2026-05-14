@@ -1,0 +1,195 @@
+import type { SyncEntityTable, SyncQueueItem, Usuario } from '../types/entities';
+import type { ApiResponse, BootstrapResponse, SyncResponse } from './sheetsApiService';
+import { getSupabaseAccessToken } from './supabaseAuthService';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const SYNC_MODE = import.meta.env.VITE_SYNC_MODE as string | undefined;
+
+type SchemaName = 'core' | 'pollos';
+
+interface RemoteTable {
+  schema: SchemaName;
+  table: string;
+  idField: string;
+  readonly?: boolean;
+}
+
+const BOOTSTRAP_TABLES: Array<{ localName: string } & RemoteTable> = [
+  { localName: 'Usuarios', schema: 'core', table: 'usuarios', idField: 'UsuarioID', readonly: true },
+  { localName: 'Proveedores', schema: 'core', table: 'proveedores', idField: 'ProveedorID', readonly: true },
+  { localName: 'Clientes', schema: 'core', table: 'clientes', idField: 'ClienteID', readonly: true },
+  { localName: 'TiposAlimento', schema: 'core', table: 'alimentos', idField: 'TipoAlimentoID', readonly: true },
+  { localName: 'FacturasCompra', schema: 'core', table: 'facturas_compra', idField: 'FacturaCompraID', readonly: true },
+  { localName: 'FacturasVenta', schema: 'core', table: 'facturas_venta', idField: 'FacturaVentaID', readonly: true },
+  { localName: 'Galpones', schema: 'pollos', table: 'galpones', idField: 'GalponID' },
+  { localName: 'Lotes', schema: 'pollos', table: 'lotes', idField: 'LoteID' },
+  { localName: 'LoteGalpones', schema: 'pollos', table: 'lote_galpones', idField: 'LoteGalponID' },
+  { localName: 'MovimientosEntreGalpones', schema: 'pollos', table: 'movimientos_entre_galpones', idField: 'MovimientoID' },
+  { localName: 'RegistroDiarioLote', schema: 'pollos', table: 'registro_diario_lote', idField: 'RegistroDiarioID' },
+  { localName: 'Pesajes', schema: 'pollos', table: 'pesajes', idField: 'PesajeID' },
+  { localName: 'PesajeDetalle', schema: 'pollos', table: 'pesaje_detalle', idField: 'PesajeDetalleID' },
+  { localName: 'SalidasPollo', schema: 'pollos', table: 'salidas_pollo', idField: 'SalidaID' },
+  { localName: 'ActividadesProgramadas', schema: 'pollos', table: 'actividades_programadas', idField: 'ActividadProgramadaID' },
+  { localName: 'ActividadesLote', schema: 'pollos', table: 'actividades_lote', idField: 'ActividadLoteID' },
+  { localName: 'PlanVacunalBase', schema: 'pollos', table: 'plan_vacunal_base', idField: 'VacunaBaseID' },
+  { localName: 'VacunasLote', schema: 'pollos', table: 'vacunas_lote', idField: 'VacunaLoteID' },
+  { localName: 'EntradasAlimento', schema: 'pollos', table: 'entradas_alimento', idField: 'EntradaAlimentoID' },
+  { localName: 'ConsumoAlimentoLote', schema: 'pollos', table: 'consumo_alimento_lote', idField: 'ConsumoID' },
+  { localName: 'MaterialesLote', schema: 'pollos', table: 'materiales_lote', idField: 'MaterialLoteID' },
+  { localName: 'ControlesAgua', schema: 'pollos', table: 'controles_agua', idField: 'ControlAguaID' },
+  { localName: 'EventosSanitarios', schema: 'pollos', table: 'eventos_sanitarios', idField: 'EventoSanitarioID' },
+  { localName: 'TratamientosVeterinarios', schema: 'pollos', table: 'tratamientos_veterinarios', idField: 'TratamientoID' },
+  { localName: 'CostosLote', schema: 'pollos', table: 'costos_lote', idField: 'CostoID' },
+  { localName: 'InventarioAlimento', schema: 'pollos', table: 'inventario_alimento', idField: 'InventarioID' },
+  { localName: 'MovimientosInventarioAlimento', schema: 'pollos', table: 'movimientos_inventario_alimento', idField: 'MovimientoInventarioID' },
+  { localName: 'CurvasEstandar', schema: 'pollos', table: 'curvas_estandar', idField: 'CurvaID' },
+  { localName: 'CierresSemanales', schema: 'pollos', table: 'cierres_semanales', idField: 'CierreSemanalID' },
+  { localName: 'CierreLote', schema: 'pollos', table: 'cierre_lote', idField: 'CierreLoteID' },
+  { localName: 'Alertas', schema: 'pollos', table: 'alertas', idField: 'AlertaID' },
+  { localName: 'HistorialCambios', schema: 'pollos', table: 'historial_cambios', idField: 'CambioID' },
+  { localName: 'ReportesPDF', schema: 'pollos', table: 'reportes_pdf', idField: 'ReporteID' },
+];
+
+const SYNC_TABLES: Partial<Record<SyncEntityTable, RemoteTable>> = Object.fromEntries(
+  BOOTSTRAP_TABLES.map((table) => [table.localName, table]),
+);
+
+const NULLABLE_DATE_FIELDS = new Set([
+  'FechaFin',
+  'FechaRealizada',
+  'FechaAplicacion',
+  'FechaResuelta',
+  'FechaHoraUltimaEdicion',
+]);
+
+export function isSupabaseConfigured(): boolean {
+  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && SYNC_MODE !== 'mock');
+}
+
+function getBaseUrl(): string {
+  if (!SUPABASE_URL) throw new Error('Falta VITE_SUPABASE_URL.');
+  return SUPABASE_URL.replace(/\/+$/, '');
+}
+
+async function request<T>(schema: SchemaName, table: string, init?: RequestInit, query = 'select=*'): Promise<T> {
+  if (!SUPABASE_ANON_KEY) throw new Error('Falta VITE_SUPABASE_ANON_KEY.');
+  const accessToken = await getSupabaseAccessToken();
+  if (!accessToken) throw new Error('Inicia sesion en Supabase para sincronizar.');
+
+  const url = new URL(`${getBaseUrl()}/rest/v1/${table}`);
+  query.split('&').filter(Boolean).forEach((part) => {
+    const [key, value = ''] = part.split('=');
+    url.searchParams.set(decodeURIComponent(key), decodeURIComponent(value));
+  });
+
+  const method = (init?.method ?? 'GET').toUpperCase();
+  const profileHeader = method === 'GET' || method === 'HEAD' ? 'Accept-Profile' : 'Content-Profile';
+  const response = await fetch(url.toString(), {
+    ...init,
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${accessToken}`,
+      [profileHeader]: schema,
+      'Content-Type': 'application/json',
+      ...(init?.headers ?? {}),
+    },
+  });
+
+  const text = await response.text();
+  const payload = text ? JSON.parse(text) : null;
+  if (!response.ok) {
+    const message = payload?.message ?? payload?.hint ?? `Error HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return payload as T;
+}
+
+function normalizeForSupabase(payload: unknown): Record<string, unknown> {
+  const record = { ...((payload ?? {}) as Record<string, unknown>) };
+  Object.entries(record).forEach(([key, value]) => {
+    if (value === undefined) delete record[key];
+    if (value === '' && NULLABLE_DATE_FIELDS.has(key)) record[key] = null;
+  });
+  if ('EstadoSync' in record) record.EstadoSync = 'SINCRONIZADO';
+  return record;
+}
+
+async function listRemoteRows(table: RemoteTable): Promise<object[]> {
+  return request<object[]>(table.schema, table.table);
+}
+
+async function upsertRemoteRecord(table: RemoteTable, payload: unknown): Promise<void> {
+  if (table.readonly) throw new Error(`La tabla ${table.table} pertenece a core y es solo lectura para POLLOS.`);
+
+  const record = normalizeForSupabase(payload);
+  if (!record[table.idField]) throw new Error(`Falta ID ${table.idField}.`);
+
+  await request(table.schema, table.table, {
+    method: 'POST',
+    body: JSON.stringify(record),
+    headers: {
+      Prefer: 'resolution=merge-duplicates,return=minimal',
+    },
+  }, `on_conflict=${encodeURIComponent(table.idField)}`);
+}
+
+async function updateRemoteRecord(table: RemoteTable, id: string, payload: unknown): Promise<void> {
+  if (table.readonly) throw new Error(`La tabla ${table.table} pertenece a core y es solo lectura para POLLOS.`);
+
+  const record = normalizeForSupabase(payload);
+  await request(table.schema, table.table, {
+    method: 'PATCH',
+    body: JSON.stringify(record),
+    headers: {
+      Prefer: 'return=minimal',
+    },
+  }, `${encodeURIComponent(table.idField)}=eq.${encodeURIComponent(id)}`);
+}
+
+export async function bootstrap(user: Usuario): Promise<ApiResponse<BootstrapResponse>> {
+  if (!isSupabaseConfigured()) return { ok: true, data: undefined };
+
+  try {
+    const entries = await Promise.all(
+      BOOTSTRAP_TABLES.map(async (table) => [table.localName, await listRemoteRows(table)] as const),
+    );
+    return {
+      ok: true,
+      data: {
+        tables: Object.fromEntries(entries),
+        role: user.Rol,
+        sheetId: 'supabase',
+      },
+    };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Error leyendo datos desde Supabase' };
+  }
+}
+
+export async function sync(items: SyncQueueItem[], _user: Usuario): Promise<ApiResponse<SyncResponse>> {
+  if (!isSupabaseConfigured()) return { ok: true, data: undefined };
+
+  const syncedIds: string[] = [];
+  const failedItems: SyncResponse['failedItems'] = [];
+  const results: SyncResponse['results'] = [];
+
+  for (const item of items) {
+    const table = SYNC_TABLES[item.Tabla];
+    try {
+      if (!table) throw new Error(`Tabla no configurada en Supabase: ${item.Tabla}`);
+      if (item.Operacion === 'CREATE') await upsertRemoteRecord(table, item.Payload);
+      else if (item.Operacion === 'UPDATE') await updateRemoteRecord(table, item.RegistroID, item.Payload);
+      else throw new Error(`Operacion no soportada: ${item.Operacion}`);
+
+      syncedIds.push(item.SyncID);
+      results.push({ syncId: item.SyncID, recordId: item.RegistroID, table: item.Tabla, ok: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo sincronizar con Supabase';
+      failedItems.push({ syncId: item.SyncID, recordId: item.RegistroID, table: item.Tabla, error: message });
+      results.push({ syncId: item.SyncID, recordId: item.RegistroID, table: item.Tabla, ok: false, error: message });
+    }
+  }
+
+  return { ok: true, data: { syncedIds, failedItems, results } };
+}
