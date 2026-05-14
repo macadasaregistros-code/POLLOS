@@ -8,6 +8,7 @@ import type {
   ControlAgua,
   EntradaAlimento,
   EventoSanitario,
+  Galpon,
   Lote,
   LoteGalpon,
   MaterialLote,
@@ -182,6 +183,8 @@ export async function crearLote(input: CreateLoteInput, user: Usuario): Promise<
 
   const actividades = await buildActivitiesForLote(lote, input.GalponID);
   const vacunas = await buildVacunasForLote(lote);
+  const currentGalpon = await db.galpones.get(input.GalponID);
+  const updatedGalpon: Galpon | undefined = currentGalpon ? { ...currentGalpon, EstadoActual: 'ENGORDE' } : undefined;
 
   await db.transaction('rw', [db.lotes, db.loteGalpones, db.galpones, db.actividadesLote, db.vacunasLote, db.syncQueue], async () => {
     await db.lotes.add(lote);
@@ -191,6 +194,7 @@ export async function crearLote(input: CreateLoteInput, user: Usuario): Promise<
     await db.vacunasLote.bulkAdd(vacunas);
     await enqueueSync('Lotes', lote.LoteID, 'CREATE', lote);
     await enqueueSync('LoteGalpones', loteGalpon.LoteGalponID, 'CREATE', loteGalpon);
+    if (updatedGalpon) await enqueueSync('Galpones', input.GalponID, 'UPDATE', updatedGalpon);
     await Promise.all(actividades.map((actividad) => enqueueSync('ActividadesLote', actividad.ActividadLoteID, 'CREATE', actividad)));
     await Promise.all(vacunas.map((vacuna) => enqueueSync('VacunasLote', vacuna.VacunaLoteID, 'CREATE', vacuna)));
   });

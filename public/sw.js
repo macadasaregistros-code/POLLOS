@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pollos-shell-v1';
+const CACHE_NAME = 'pollos-shell-v2';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon.svg'];
 
 self.addEventListener('install', (event) => {

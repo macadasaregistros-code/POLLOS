@@ -6,6 +6,8 @@ const SESSION_KEY = 'pollos.supabaseSession';
 interface AuthUser {
   id: string;
   email?: string;
+  app_metadata?: Record<string, unknown>;
+  user_metadata?: Record<string, unknown>;
 }
 
 export interface SupabaseSession {

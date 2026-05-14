@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { LogOut, RefreshCcw, Shield, UserRound } from 'lucide-react';
@@ -7,8 +7,8 @@ import { SyncStatusBadge } from './components/SyncStatusBadge';
 import { AdminDashboard } from './features/admin/AdminDashboard';
 import { GalponeroHome } from './features/galponero/GalponeroHome';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
-import { getCurrentUser, switchRole } from './services/authService';
-import { db, resetLocalDemoData, seedDemoDataIfNeeded } from './services/localDbService';
+import { getCurrentUser, getOrCreateSupabaseUser, switchRole } from './services/authService';
+import { db, prepareRemoteLocalData, resetLocalDemoData, seedDemoDataIfNeeded } from './services/localDbService';
 import { getSupabaseSession, isSupabaseAuthRequired, signInSupabase, signOutSupabase, type SupabaseSession } from './services/supabaseAuthService';
 import { bootstrapFromRemote, processSyncQueue } from './services/syncService';
 import type { Role, Usuario } from './types/entities';
@@ -27,17 +27,29 @@ export function App() {
   const [bootError, setBootError] = useState('');
   const [repairing, setRepairing] = useState(false);
   const [supabaseSession, setSupabaseSession] = useState<SupabaseSession | undefined>(() => getSupabaseSession());
-  const bootStartedRef = useRef(false);
+  const supabaseRequired = isSupabaseAuthRequired();
 
   useEffect(() => {
-    if (bootStartedRef.current) return;
-    bootStartedRef.current = true;
+    let cancelled = false;
 
     async function boot() {
+      if (supabaseRequired && !supabaseSession) {
+        setUser(undefined);
+        setBooting(false);
+        return;
+      }
+
+      setBooting(true);
       setBootError('');
       try {
-        await seedDemoDataIfNeeded();
-        setUser(await getCurrentUser());
+        if (supabaseRequired) {
+          await prepareRemoteLocalData();
+          if (!supabaseSession) throw new Error('Inicia sesion en Supabase.');
+          if (!cancelled) setUser(await getOrCreateSupabaseUser(supabaseSession));
+        } else {
+          await seedDemoDataIfNeeded();
+          if (!cancelled) setUser(await getCurrentUser());
+        }
         localStorage.removeItem(RESET_ATTEMPTED_KEY);
       } catch (error) {
         if (localStorage.getItem(RESET_ATTEMPTED_KEY) !== '1') {
@@ -46,13 +58,16 @@ export function App() {
           window.location.reload();
           return;
         }
-        setBootError(getErrorMessage(error));
+        if (!cancelled) setBootError(getErrorMessage(error));
       } finally {
-        setBooting(false);
+        if (!cancelled) setBooting(false);
       }
     }
     void boot();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [supabaseRequired, supabaseSession]);
 
   async function handleEmergencyReset() {
     setRepairing(true);
@@ -80,22 +95,24 @@ export function App() {
     );
   }
 
-  if (booting || !user) {
-    return <div className="boot-screen">Cargando POLLOS...</div>;
+  if (supabaseRequired && !supabaseSession) {
+    return <SupabaseLogin onSignedIn={setSupabaseSession} />;
   }
 
-  if (isSupabaseAuthRequired() && !supabaseSession) {
-    return <SupabaseLogin onSignedIn={setSupabaseSession} />;
+  if (booting || !user) {
+    return <div className="boot-screen">Cargando POLLOS...</div>;
   }
 
   return (
     <AuthenticatedApp
       user={user}
       setUser={setUser}
+      allowDemoReset={!supabaseRequired}
       onSignOut={
-        isSupabaseAuthRequired()
+        supabaseRequired
           ? () => {
               signOutSupabase();
+              setUser(undefined);
               setSupabaseSession(undefined);
             }
           : undefined
@@ -148,10 +165,12 @@ function AuthenticatedApp({
   user,
   setUser,
   onSignOut,
+  allowDemoReset,
 }: {
   user: Usuario;
   setUser: (user: Usuario) => void;
   onSignOut?: () => void;
+  allowDemoReset: boolean;
 }) {
   const [toast, setToast] = useState('');
   const [syncing, setSyncing] = useState(false);
@@ -221,10 +240,12 @@ function AuthenticatedApp({
         </div>
         <div className="top-bar__actions">
           <SyncStatusBadge pendingCount={pendingCount ?? 0} online={online} syncing={syncing} onSync={handleSync} />
-          <button className="icon-text-button" type="button" onClick={handleResetDemo}>
-            <RefreshCcw size={17} />
-            Demo
-          </button>
+          {allowDemoReset && (
+            <button className="icon-text-button" type="button" onClick={handleResetDemo}>
+              <RefreshCcw size={17} />
+              Demo
+            </button>
+          )}
           {onSignOut && (
             <button className="icon-text-button" type="button" onClick={onSignOut}>
               <LogOut size={17} />

@@ -164,6 +164,35 @@ export class PollosDb extends Dexie {
 
 export const db = new PollosDb();
 
+const DEMO_PRIMARY_KEYS = new Set([
+  'user_admin',
+  'user_galponero',
+  'prov_pollito_001',
+  'prov_alimento_001',
+  'cliente_demo_001',
+  'alimento_preiniciador',
+  'alimento_iniciador',
+  'alimento_engorde',
+  'pesaje_demo_001',
+  'alerta_demo_vacuna',
+]);
+
+function isDemoPrimaryKey(key: unknown): boolean {
+  if (typeof key !== 'string') return false;
+  if (DEMO_PRIMARY_KEYS.has(key)) return true;
+  return [
+    'lote_demo_',
+    'lote_galpon_demo_',
+    'reg_demo_',
+    'consumo_reg_demo_',
+    'peso_m_',
+    'peso_h_',
+    'act_lote_',
+    'vac_lote_',
+    'inv_alimento_',
+  ].some((prefix) => key.startsWith(prefix));
+}
+
 async function getExistingStoreNames(): Promise<string[]> {
   const databaseInfo = indexedDB as IDBFactory & { databases?: () => Promise<Array<{ name?: string | null }>> };
   const databases = await databaseInfo.databases?.();
@@ -292,6 +321,18 @@ const DEFAULT_GALPONES: Galpon[] = [
   },
 ];
 
+const REMOTE_DEFAULT_GALPONES: Galpon[] = DEFAULT_GALPONES.map((galpon) => ({
+  ...galpon,
+  EstadoActual: 'VACIO',
+  Observaciones: '',
+}));
+
+async function deleteDemoRows(table: Table<object, string>): Promise<void> {
+  const keys = await table.toCollection().primaryKeys();
+  const demoKeys = keys.filter(isDemoPrimaryKey) as string[];
+  if (demoKeys.length > 0) await table.bulkDelete(demoKeys);
+}
+
 export async function seedDemoDataIfNeeded(): Promise<void> {
   await runDbStage('Validar esquema local', ensurePollosSchemaBeforeOpen);
 
@@ -344,6 +385,46 @@ export async function seedDemoDataIfNeeded(): Promise<void> {
   }
 
   await runDbStage('Asegurar galpones demo', ensureDefaultGalponLayout);
+}
+
+export async function prepareRemoteLocalData(): Promise<void> {
+  await runDbStage('Validar esquema local', ensurePollosSchemaBeforeOpen);
+  await runDbStage('Limpiar datos demo locales', async () => {
+    await Promise.all([
+      deleteDemoRows(db.usuarios as unknown as Table<object, string>),
+      deleteDemoRows(db.proveedores as unknown as Table<object, string>),
+      deleteDemoRows(db.clientes as unknown as Table<object, string>),
+      deleteDemoRows(db.tiposAlimento as unknown as Table<object, string>),
+      deleteDemoRows(db.lotes as unknown as Table<object, string>),
+      deleteDemoRows(db.loteGalpones as unknown as Table<object, string>),
+      deleteDemoRows(db.registroDiarioLote as unknown as Table<object, string>),
+      deleteDemoRows(db.consumosAlimentoLote as unknown as Table<object, string>),
+      deleteDemoRows(db.pesajes as unknown as Table<object, string>),
+      deleteDemoRows(db.pesajeDetalle as unknown as Table<object, string>),
+      deleteDemoRows(db.actividadesLote as unknown as Table<object, string>),
+      deleteDemoRows(db.vacunasLote as unknown as Table<object, string>),
+      deleteDemoRows(db.inventarioAlimento as unknown as Table<object, string>),
+      deleteDemoRows(db.alertas as unknown as Table<object, string>),
+    ]);
+  });
+
+  const reference = createDemoData();
+  await runDbStage('Preparar catalogos locales remotos', async () => {
+    await db.transaction('rw', [db.galpones, db.actividadesProgramadas, db.planVacunalBase, db.curvasEstandar], async () => {
+      for (const galpon of REMOTE_DEFAULT_GALPONES) {
+        const existing = await db.galpones.get(galpon.GalponID);
+        await db.galpones.put({
+          ...galpon,
+          EstadoActual: existing && !existing.Observaciones.toLowerCase().includes('demo') ? existing.EstadoActual : galpon.EstadoActual,
+          Observaciones: existing && !existing.Observaciones.toLowerCase().includes('demo') ? existing.Observaciones : galpon.Observaciones,
+          Activo: existing?.Activo ?? true,
+        });
+      }
+      if ((await db.actividadesProgramadas.count()) === 0) await db.actividadesProgramadas.bulkPut(reference.actividadesProgramadas);
+      if ((await db.planVacunalBase.count()) === 0) await db.planVacunalBase.bulkPut(reference.planVacunalBase);
+      if ((await db.curvasEstandar.count()) === 0) await db.curvasEstandar.bulkPut(reference.curvasEstandar);
+    });
+  });
 }
 
 async function ensureDefaultGalponLayout(): Promise<void> {
