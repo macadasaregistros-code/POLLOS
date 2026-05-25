@@ -2,11 +2,15 @@
   "name": "POLLOS",
   "short_name": "POLLOS",
   "description": "Operación offline-first para lotes de pollo de engorde.",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#f7faf8",
   "theme_color": "#136f63",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity"],
   "icons": [
     {
       "src": "/icons/icon.svg",

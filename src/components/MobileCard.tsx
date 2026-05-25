@@ -8,9 +8,8 @@ interface MobileCardProps extends PropsWithChildren {
 }
 
 export function MobileCard({ title, subtitle, className = '', onClick, children }: MobileCardProps) {
-  const Element = onClick ? 'button' : 'section';
-  return (
-    <Element className={`mobile-card ${onClick ? 'mobile-card--button' : ''} ${className}`} onClick={onClick}>
+  const content = (
+    <>
       {(title || subtitle) && (
         <header className="mobile-card__header">
           {title && <h2>{title}</h2>}
@@ -18,6 +17,20 @@ export function MobileCard({ title, subtitle, className = '', onClick, children 
         </header>
       )}
       {children}
-    </Element>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" className={`mobile-card mobile-card--button ${className}`} onClick={onClick}>
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <section className={`mobile-card ${className}`}>
+      {content}
+    </section>
   );
 }

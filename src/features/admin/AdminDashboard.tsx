@@ -160,17 +160,17 @@ export function AdminDashboard({ user, onToast }: AdminDashboardProps) {
                   const lote = lotes?.find((item) => item.LoteID === summary.LoteID);
                   return (
                     <tr key={summary.LoteID}>
-                      <td>
+                      <td data-label="Lote">
                         <button className="text-button" type="button" onClick={() => setSelectedLoteId(summary.LoteID)}>
                           {summary.CodigoLote}
                         </button>
                       </td>
-                      <td>{summary.DiaLote}</td>
-                      <td>{fmtNumber(summary.AvesVivasTotal)}</td>
-                      <td>{fmtPercent(summary.MortalidadAcumulada)}</td>
-                      <td>{fmtKg(summary.ConsumoAcumuladoKg)}</td>
-                      <td>{fmtNumber(summary.ConversionAlimenticia, 2)}</td>
-                      <td>
+                      <td data-label="Día">{summary.DiaLote}</td>
+                      <td data-label="Aves vivas">{fmtNumber(summary.AvesVivasTotal)}</td>
+                      <td data-label="Mortalidad">{fmtPercent(summary.MortalidadAcumulada)}</td>
+                      <td data-label="Consumo">{fmtKg(summary.ConsumoAcumuladoKg)}</td>
+                      <td data-label="Conversión">{fmtNumber(summary.ConversionAlimenticia, 2)}</td>
+                      <td data-label="Acción">
                         {lote && (
                           <button className="small-button" type="button" onClick={() => handleGeneratePdf(lote)}>
                             PDF

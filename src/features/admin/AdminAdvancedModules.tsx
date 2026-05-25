@@ -643,7 +643,11 @@ function SimpleTable({ headers, rows }: { headers: string[]; rows: Array<Array<s
         <tbody>
           {rows.map((row, index) => (
             <tr key={index}>
-              {row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}
+              {row.map((cell, cellIndex) => (
+                <td key={cellIndex} data-label={headers[cellIndex] ?? ''}>
+                  {cell}
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>

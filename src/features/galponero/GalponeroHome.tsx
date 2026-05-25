@@ -159,9 +159,11 @@ function LoteSummary({ summary }: { summary: LoteResumen }) {
         <small>{summary.Galpones.join(', ') || 'Sin galpón'}</small>
       </header>
       <div className="stats-grid">
+        <StatCard label="Aves vivas" value={fmtNumber(summary.AvesVivasTotal)} />
         <StatCard label="Machos vivos" value={fmtNumber(summary.MachosVivos)} />
         <StatCard label="Hembras vivas" value={fmtNumber(summary.HembrasVivas)} />
         <StatCard label="Pendientes" value={fmtNumber(summary.PendientesHoy)} tone={summary.PendientesHoy > 0 ? 'warn' : 'good'} />
+        <StatCard label="Vacunas" value={fmtNumber(summary.VacunasPendientes)} tone={summary.VacunasPendientes > 0 ? 'warn' : 'good'} />
         <StatCard label="Sync" value={fmtNumber(summary.SyncPendiente)} tone={summary.SyncPendiente > 0 ? 'warn' : 'good'} />
       </div>
       <div className="mini-metrics">

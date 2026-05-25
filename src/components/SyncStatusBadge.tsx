@@ -8,10 +8,12 @@ interface SyncStatusBadgeProps {
 }
 
 export function SyncStatusBadge({ pendingCount, online, syncing = false, onSync }: SyncStatusBadgeProps) {
+  const label = online ? `${pendingCount} pendientes por sincronizar` : 'Sin conexión';
+
   return (
-    <button className="sync-badge" type="button" onClick={onSync} disabled={!online || syncing}>
+    <button className="sync-badge" type="button" onClick={onSync} disabled={!online || syncing} aria-label={label} title={label}>
       {online ? <Cloud size={18} /> : <CloudOff size={18} />}
-      <span>{pendingCount} pendientes</span>
+      <span className="sync-badge__label">{pendingCount} pendientes</span>
       {syncing && <RefreshCcw className="spin" size={16} />}
     </button>
   );

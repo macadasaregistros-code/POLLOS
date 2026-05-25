@@ -241,15 +241,15 @@ function AuthenticatedApp({
         <div className="top-bar__actions">
           <SyncStatusBadge pendingCount={pendingCount ?? 0} online={online} syncing={syncing} onSync={handleSync} />
           {allowDemoReset && (
-            <button className="icon-text-button" type="button" onClick={handleResetDemo}>
+            <button className="icon-text-button" type="button" onClick={handleResetDemo} aria-label="Restaurar datos demo">
               <RefreshCcw size={17} />
-              Demo
+              <span className="button-label">Demo</span>
             </button>
           )}
           {onSignOut && (
-            <button className="icon-text-button" type="button" onClick={onSignOut}>
+            <button className="icon-text-button" type="button" onClick={onSignOut} aria-label="Cerrar sesión">
               <LogOut size={17} />
-              Salir
+              <span className="button-label">Salir</span>
             </button>
           )}
         </div>
