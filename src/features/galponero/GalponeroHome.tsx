@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Activity, ClipboardCheck, Droplets, Scale, ShieldAlert, ShoppingCart, Syringe, Truck, Wheat } from 'lucide-react';
+import { Activity, ClipboardCheck, Droplets, Scale, ShieldAlert, ShoppingCart, Syringe, Truck } from 'lucide-react';
 import { GalponMap } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
 import { StatCard } from '../../components/StatCard';
@@ -77,14 +77,6 @@ export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
 
   return (
     <main className="page-shell page-shell--mobile">
-      <section className="page-title">
-        <div>
-          <span>GALPONERO</span>
-          <h1>POLLOS</h1>
-        </div>
-        <Wheat size={34} />
-      </section>
-
       <GalponMap
         galpones={galpones ?? []}
         loteGalpones={loteGalpones ?? []}

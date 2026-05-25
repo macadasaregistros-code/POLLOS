@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { LogOut, RefreshCcw, Shield, UserRound } from 'lucide-react';
+import { RefreshCcw, Shield, UserRound } from 'lucide-react';
 import { RoleGuard } from './components/RoleGuard';
 import { SyncStatusBadge } from './components/SyncStatusBadge';
 import { AdminDashboard } from './features/admin/AdminDashboard';
@@ -9,7 +9,7 @@ import { GalponeroHome } from './features/galponero/GalponeroHome';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { getCurrentUser, getOrCreateSupabaseUser, switchRole } from './services/authService';
 import { db, prepareRemoteLocalData, resetLocalDemoData, seedDemoDataIfNeeded } from './services/localDbService';
-import { getSupabaseSession, isSupabaseAuthRequired, signInSupabase, signOutSupabase, type SupabaseSession } from './services/supabaseAuthService';
+import { getSupabaseSession, isSupabaseAuthRequired, signInSupabase, type SupabaseSession } from './services/supabaseAuthService';
 import { bootstrapFromRemote, processSyncQueue } from './services/syncService';
 import type { Role, Usuario } from './types/entities';
 
@@ -108,15 +108,6 @@ export function App() {
       user={user}
       setUser={setUser}
       allowDemoReset={!supabaseRequired}
-      onSignOut={
-        supabaseRequired
-          ? () => {
-              signOutSupabase();
-              setUser(undefined);
-              setSupabaseSession(undefined);
-            }
-          : undefined
-      }
     />
   );
 }
@@ -164,12 +155,10 @@ function SupabaseLogin({ onSignedIn }: { onSignedIn: (session: SupabaseSession) 
 function AuthenticatedApp({
   user,
   setUser,
-  onSignOut,
   allowDemoReset,
 }: {
   user: Usuario;
   setUser: (user: Usuario) => void;
-  onSignOut?: () => void;
   allowDemoReset: boolean;
 }) {
   const [toast, setToast] = useState('');
@@ -228,30 +217,27 @@ function AuthenticatedApp({
   return (
     <div className="app">
       <header className="top-bar">
-        <div className="role-switch" aria-label="Selector de rol">
-          <button className={user.Rol === 'GALPONERO' ? 'is-active' : ''} type="button" onClick={() => handleRoleChange('GALPONERO')}>
-            <UserRound size={18} />
-            Galponero
-          </button>
-          <button className={user.Rol === 'ADMIN' ? 'is-active' : ''} type="button" onClick={() => handleRoleChange('ADMIN')}>
-            <Shield size={18} />
-            Admin
-          </button>
+        <div className="top-bar__brand">
+          <strong>POLLOS</strong>
+          <div className="role-switch" aria-label="Selector de rol">
+            <button className={user.Rol === 'GALPONERO' ? 'is-active' : ''} type="button" onClick={() => handleRoleChange('GALPONERO')}>
+              <UserRound size={18} />
+              Galponero
+            </button>
+            <button className={user.Rol === 'ADMIN' ? 'is-active' : ''} type="button" onClick={() => handleRoleChange('ADMIN')}>
+              <Shield size={18} />
+              Admin
+            </button>
+          </div>
         </div>
         <div className="top-bar__actions">
-          <SyncStatusBadge pendingCount={pendingCount ?? 0} online={online} syncing={syncing} onSync={handleSync} />
           {allowDemoReset && (
             <button className="icon-text-button" type="button" onClick={handleResetDemo} aria-label="Restaurar datos demo">
               <RefreshCcw size={17} />
               <span className="button-label">Demo</span>
             </button>
           )}
-          {onSignOut && (
-            <button className="icon-text-button" type="button" onClick={onSignOut} aria-label="Cerrar sesión">
-              <LogOut size={17} />
-              <span className="button-label">Salir</span>
-            </button>
-          )}
+          <SyncStatusBadge pendingCount={pendingCount ?? 0} online={online} syncing={syncing} onSync={handleSync} />
         </div>
       </header>
 
