@@ -143,6 +143,7 @@ function GalponTile({
     '--growth-ratio': growth.progress,
     '--empty-progress-percent': `${Math.round(emptyState.progress * 100)}%`,
     '--empty-progress-ratio': emptyState.progress,
+    '--flock-opacity': Math.min(0.9, 0.42 + ocupacion * 0.48),
   } as CSSProperties;
 
   return (
