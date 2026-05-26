@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
@@ -102,13 +102,9 @@ export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
   const activeAssignments = useMemo(() => (loteGalpones ?? []).filter((item) => item.Estado === 'ACTIVO'), [loteGalpones]);
   const selectedGalpon = useMemo(() => {
     const allGalpones = galpones ?? [];
-    if (allGalpones.length === 0) return undefined;
-    return (
-      allGalpones.find((galpon) => galpon.GalponID === selectedGalponId) ??
-      allGalpones.find((galpon) => activeAssignments.some((assignment) => assignment.GalponID === galpon.GalponID)) ??
-      allGalpones[0]
-    );
-  }, [activeAssignments, galpones, selectedGalponId]);
+    if (allGalpones.length === 0 || !selectedGalponId) return undefined;
+    return allGalpones.find((galpon) => galpon.GalponID === selectedGalponId);
+  }, [galpones, selectedGalponId]);
   const selectedAssignment = selectedGalpon
     ? activeAssignments.find((assignment) => assignment.GalponID === selectedGalpon.GalponID)
     : undefined;
@@ -120,6 +116,13 @@ export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
     setActiveAction('actividades');
     if (loteId) setOccupiedEntryMode('diario');
   }
+
+  useEffect(() => {
+    if (!selectedGalponId) return;
+    window.setTimeout(() => {
+      document.getElementById('galpon-entry-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  }, [selectedGalponId]);
 
   return (
     <main className="page-shell page-shell--mobile">
@@ -133,25 +136,27 @@ export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
       />
 
       {selectedGalpon && (
-        <MobileCard
-          className="galpon-entry-card"
-          title={`Galpón ${selectedGalpon.NombreGalpon}`}
-          subtitle={selectedLote ? `${selectedLote.CodigoLote} · ingreso de datos` : 'Alistamiento del galpón'}
-        >
-          {selectedLote && selectedSummary ? (
-            <OccupiedGalponPanel
-              galpon={selectedGalpon}
-              lote={selectedLote}
-              summary={selectedSummary}
-              user={user}
-              mode={occupiedEntryMode}
-              onModeChange={setOccupiedEntryMode}
-              onSaved={onToast}
-            />
-          ) : (
-            <GalponPreparationPanel galpon={selectedGalpon} onSaved={onToast} />
-          )}
-        </MobileCard>
+        <div id="galpon-entry-panel" className="galpon-entry-anchor">
+          <MobileCard
+            className="galpon-entry-card"
+            title={`Galpón ${selectedGalpon.NombreGalpon}`}
+            subtitle={selectedLote ? `${selectedLote.CodigoLote} · ingreso de datos` : 'Alistamiento del galpón'}
+          >
+            {selectedLote && selectedSummary ? (
+              <OccupiedGalponPanel
+                galpon={selectedGalpon}
+                lote={selectedLote}
+                summary={selectedSummary}
+                user={user}
+                mode={occupiedEntryMode}
+                onModeChange={setOccupiedEntryMode}
+                onSaved={onToast}
+              />
+            ) : (
+              <GalponPreparationPanel galpon={selectedGalpon} onSaved={onToast} />
+            )}
+          </MobileCard>
+        </div>
       )}
 
       {selectedSummary && (

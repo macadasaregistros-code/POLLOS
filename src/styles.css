@@ -1267,6 +1267,10 @@ textarea {
   border-color: rgb(18 102 94 / 24%);
 }
 
+.galpon-entry-anchor {
+  scroll-margin-top: calc(72px + var(--safe-top));
+}
+
 .galpon-entry {
   display: grid;
   gap: 12px;
