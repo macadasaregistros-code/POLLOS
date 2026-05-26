@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" role="img" aria-label="Interior suave de galpon avicola">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E8F7F7"/>
+      <stop offset="0.5" stop-color="#FFFDF8"/>
+      <stop offset="1" stop-color="#F8E9B8"/>
+    </linearGradient>
+    <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFF3D9"/>
+      <stop offset="1" stop-color="#E9C58E"/>
+    </linearGradient>
+    <linearGradient id="straw" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF5CF"/>
+      <stop offset="1" stop-color="#EFC678"/>
+    </linearGradient>
+    <pattern id="roofLines" width="42" height="42" patternUnits="userSpaceOnUse" patternTransform="rotate(28)">
+      <path d="M0 8h42M0 28h42" stroke="#B58B52" stroke-width="2" opacity=".22"/>
+      <path d="M0 18h42" stroke="#FFFFFF" stroke-width="2" opacity=".28"/>
+    </pattern>
+    <pattern id="wallPlanks" width="34" height="28" patternUnits="userSpaceOnUse">
+      <path d="M2 0v28M32 0v28" stroke="#9EB3A9" stroke-width="1.4" opacity=".16"/>
+      <path d="M0 27h34" stroke="#FFFFFF" stroke-width="1.5" opacity=".28"/>
+    </pattern>
+    <pattern id="litter" width="54" height="34" patternUnits="userSpaceOnUse">
+      <path d="M6 21c12-10 18 11 31-3M22 9c9-6 15 7 25-1M2 30c8-5 13 5 22-1" fill="none" stroke="#E1B24D" stroke-width="2" opacity=".18" stroke-linecap="round"/>
+      <circle cx="10" cy="11" r="4" fill="#E1B24D" opacity=".12"/>
+      <circle cx="42" cy="23" r="5" fill="#D9A544" opacity=".10"/>
+    </pattern>
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="13" flood-color="#543D19" flood-opacity=".12"/>
+    </filter>
+  </defs>
+
+  <rect width="900" height="540" rx="28" fill="url(#sky)"/>
+  <path d="M-35 220L450 14l485 206v92H-35z" fill="url(#wood)" opacity=".64"/>
+  <path d="M-35 220L450 14l485 206v92H-35z" fill="url(#roofLines)" opacity=".7"/>
+  <path d="M450 10v312" stroke="#6E897F" stroke-width="4" opacity=".16"/>
+  <path d="M448 24L135 292M452 24l313 268" stroke="#6E897F" stroke-width="5" opacity=".15" stroke-linecap="round"/>
+  <path d="M200 240h500v190H200z" fill="#F5EBD3" opacity=".45"/>
+  <path d="M-20 260h260v220H-20z" fill="url(#wallPlanks)" opacity=".74"/>
+  <path d="M660 260h260v220H660z" fill="url(#wallPlanks)" opacity=".74"/>
+
+  <g opacity=".72">
+    <rect x="38" y="306" width="132" height="76" rx="9" fill="#FFFFFF" opacity=".56"/>
+    <rect x="50" y="318" width="108" height="52" rx="5" fill="#DDF7FC" opacity=".82"/>
+    <path d="M52 362c34-32 55 0 74-22 15-16 28-4 32 8v22H52z" fill="#BBD99C" opacity=".56"/>
+    <path d="M104 318v52M50 344h108" stroke="#80A49A" stroke-width="3" opacity=".18"/>
+    <rect x="730" y="306" width="132" height="76" rx="9" fill="#FFFFFF" opacity=".56"/>
+    <rect x="742" y="318" width="108" height="52" rx="5" fill="#DDF7FC" opacity=".82"/>
+    <path d="M744 363c28-29 54-2 74-20 15-14 28-2 32 9v18H744z" fill="#BBD99C" opacity=".56"/>
+    <path d="M796 318v52M742 344h108" stroke="#80A49A" stroke-width="3" opacity=".18"/>
+  </g>
+
+  <g filter="url(#softShadow)" opacity=".68">
+    <path d="M315 254h270v188H315z" fill="#FFFFFF" opacity=".34"/>
+    <path d="M318 254h264v150H318z" fill="#DDF7FC" opacity=".76"/>
+    <path d="M318 386c38-46 70-10 102-34 45-33 74 18 116-18 22-18 39-7 46 8v62H318z" fill="#C7DEA9" opacity=".46"/>
+    <path d="M306 246h288v16H306z" fill="#BFD5D0" opacity=".58"/>
+  </g>
+
+  <g opacity=".56">
+    <circle cx="450" cy="176" r="38" fill="#FFFFFF" opacity=".52"/>
+    <circle cx="450" cy="176" r="29" fill="none" stroke="#6E897F" stroke-width="6" opacity=".23"/>
+    <path d="M450 176l-8-22c18-5 27 6 8 22zM450 176l24 7c-6 17-21 22-24-7zM450 176l-16 18c-13-12-12-27 16-18z" fill="#6E897F" opacity=".32"/>
+  </g>
+
+  <g opacity=".8">
+    <path d="M178 160v74" stroke="#6F978A" stroke-width="3" opacity=".36"/>
+    <path d="M145 236c18-32 48-32 66 0z" fill="#6BA486" opacity=".7"/>
+    <ellipse cx="178" cy="239" rx="34" ry="11" fill="#FFF7B8" opacity=".82"/>
+    <path d="M702 160v74" stroke="#6F978A" stroke-width="3" opacity=".36"/>
+    <path d="M669 236c18-32 48-32 66 0z" fill="#6BA486" opacity=".7"/>
+    <ellipse cx="702" cy="239" rx="34" ry="11" fill="#FFF7B8" opacity=".82"/>
+    <path d="M254 216v56" stroke="#6F978A" stroke-width="3" opacity=".26"/>
+    <path d="M230 274c13-23 35-23 48 0z" fill="#6BA486" opacity=".58"/>
+    <path d="M646 216v56" stroke="#6F978A" stroke-width="3" opacity=".26"/>
+    <path d="M622 274c13-23 35-23 48 0z" fill="#6BA486" opacity=".58"/>
+  </g>
+
+  <path d="M-30 382c142-34 276-38 433-12 174 29 313 10 527 2v190H-30z" fill="url(#straw)" opacity=".86"/>
+  <path d="M-30 382c142-34 276-38 433-12 174 29 313 10 527 2v190H-30z" fill="url(#litter)" opacity=".84"/>
+  <rect width="900" height="540" fill="#FFFDF8" opacity=".27"/>
+</svg>

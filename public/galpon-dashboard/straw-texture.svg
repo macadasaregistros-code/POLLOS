@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" role="img" aria-label="Textura suave de paja">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF8DE"/>
+      <stop offset="1" stop-color="#F8E9B8"/>
+    </linearGradient>
+    <pattern id="speckles" width="46" height="32" patternUnits="userSpaceOnUse">
+      <path d="M5 21c9-7 16 7 26-2M18 8c8-5 12 4 20-1" fill="none" stroke="#E0B75F" stroke-width="2" opacity=".16" stroke-linecap="round"/>
+      <circle cx="9" cy="9" r="3.5" fill="#E0B75F" opacity=".11"/>
+      <circle cx="34" cy="24" r="4" fill="#DDAA43" opacity=".10"/>
+    </pattern>
+  </defs>
+  <rect width="640" height="180" fill="url(#base)"/>
+  <rect width="640" height="180" fill="url(#speckles)"/>
+  <path d="M0 16c74 34 137-28 219 10 84 39 135-25 216 6 70 27 132-11 205 8v-48H0z" fill="#FFFDF8" opacity=".55"/>
+  <g opacity=".55">
+    <path d="M28 160c14-40 42-38 40-4-19-8-29 1-40 4z" fill="#8DBB82"/>
+    <path d="M54 164c8-37 36-47 43-15-17-2-27 9-43 15z" fill="#A8CB90"/>
+    <path d="M588 160c-14-40-42-38-40-4 19-8 29 1 40 4z" fill="#8DBB82"/>
+    <path d="M562 164c-8-37-36-47-43-15 17-2 27 9 43 15z" fill="#A8CB90"/>
+  </g>
+</svg>

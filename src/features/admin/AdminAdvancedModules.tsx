@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { MobileCard } from '../../components/MobileCard';
@@ -40,6 +40,8 @@ import type {
 interface AdminAdvancedModulesProps {
   user: Usuario;
   onToast: (message: string) => void;
+  initialTab?: TabId;
+  visibleTabs?: TabId[];
 }
 
 type TabId = 'finanzas' | 'facturas' | 'maestros' | 'inventario' | 'curvas' | 'veterinaria' | 'cierres' | 'comparacion' | 'proveedores' | 'alertas';
@@ -57,7 +59,7 @@ const tabs: Array<{ id: TabId; label: string }> = [
   { id: 'alertas', label: 'Alertas' },
 ];
 
-export function AdminAdvancedModules({ user, onToast }: AdminAdvancedModulesProps) {
+export function AdminAdvancedModules({ user, onToast, initialTab = 'finanzas', visibleTabs }: AdminAdvancedModulesProps) {
   const lotes = useLiveQuery(() => db.lotes.toArray(), []) ?? [];
   const costos = useLiveQuery(() => db.costosLote.toArray(), []) ?? [];
   const salidas = useLiveQuery(() => db.salidasPollo.toArray(), []) ?? [];
@@ -79,9 +81,16 @@ export function AdminAdvancedModules({ user, onToast }: AdminAdvancedModulesProp
   const detalleVenta = useLiveQuery(() => db.detalleFacturasVenta.toArray(), []) ?? [];
   const cierresSemanales = useLiveQuery(() => db.cierresSemanales.toArray(), []) ?? [];
   const cierresLote = useLiveQuery(() => db.cierreLote.toArray(), []) ?? [];
-  const [tab, setTab] = useState<TabId>('finanzas');
+  const availableTabs = useMemo(() => (visibleTabs ? tabs.filter((item) => visibleTabs.includes(item.id)) : tabs), [visibleTabs]);
+  const [tab, setTab] = useState<TabId>(initialTab);
   const [selectedLoteId, setSelectedLoteId] = useState('');
   const [pesoObjetivo, setPesoObjetivo] = useState('2500');
+
+  useEffect(() => {
+    const fallback = availableTabs[0]?.id ?? 'finanzas';
+    const nextTab = availableTabs.some((item) => item.id === initialTab) ? initialTab : fallback;
+    if (!availableTabs.some((item) => item.id === tab)) setTab(nextTab);
+  }, [availableTabs, initialTab, tab]);
 
   const selectedLote = lotes.find((lote) => lote.LoteID === (selectedLoteId || lotes[0]?.LoteID));
   const economia = selectedLote ? calcularEconomiaLote({ lote: selectedLote, costos, salidas }) : undefined;
@@ -107,7 +116,7 @@ export function AdminAdvancedModules({ user, onToast }: AdminAdvancedModulesProp
   return (
     <section className="advanced-admin">
       <div className="admin-tabs">
-        {tabs.map((item) => (
+        {availableTabs.map((item) => (
           <button key={item.id} type="button" className={tab === item.id ? 'is-active' : ''} onClick={() => setTab(item.id)}>
             {item.label}
           </button>

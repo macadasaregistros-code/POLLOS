@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { RefreshCcw, Shield, UserRound } from 'lucide-react';
+import { BarChart3, ClipboardList, Home, Map, Package, RefreshCcw, Shield, UserRound } from 'lucide-react';
 import { RoleGuard } from './components/RoleGuard';
 import { SyncStatusBadge } from './components/SyncStatusBadge';
 import { AdminDashboard } from './features/admin/AdminDashboard';
@@ -11,10 +11,19 @@ import { getCurrentUser, getOrCreateSupabaseUser, switchRole } from './services/
 import { db, prepareRemoteLocalData, resetLocalDemoData, seedDemoDataIfNeeded } from './services/localDbService';
 import { getSupabaseSession, isSupabaseAuthRequired, signInSupabase, type SupabaseSession } from './services/supabaseAuthService';
 import { bootstrapFromRemote, processSyncQueue } from './services/syncService';
+import type { MainView } from './types/navigation';
 import type { Role, Usuario } from './types/entities';
 
 const FORCE_RESET_KEY = 'pollos.forceResetDb';
 const RESET_ATTEMPTED_KEY = 'pollos.resetAttempted';
+
+const mainNavItems: Array<{ view: MainView; label: string; icon: typeof Home }> = [
+  { view: 'inicio', label: 'Inicio', icon: Home },
+  { view: 'galpones', label: 'Galpones', icon: Map },
+  { view: 'lotes', label: 'Lotes', icon: ClipboardList },
+  { view: 'inventario', label: 'Inventario', icon: Package },
+  { view: 'reportes', label: 'Reportes', icon: BarChart3 },
+];
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -164,6 +173,7 @@ function AuthenticatedApp({
   const [toast, setToast] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [bootstrappedRemote, setBootstrappedRemote] = useState(false);
+  const [activeView, setActiveView] = useState<MainView>('inicio');
   const online = useOnlineStatus();
   const pendingCount = useLiveQuery(() => db.syncQueue.where('EstadoSync').anyOf(['PENDIENTE', 'ERROR']).count(), []);
 
@@ -191,7 +201,13 @@ function AuthenticatedApp({
   async function handleRoleChange(role: Role) {
     const nextUser = await switchRole(role);
     setUser(nextUser);
+    handleViewChange('inicio');
     setBootstrappedRemote(false);
+  }
+
+  function handleViewChange(view: MainView) {
+    setActiveView(view);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }
 
   async function handleSync() {
@@ -242,13 +258,37 @@ function AuthenticatedApp({
       </header>
 
       <RoleGuard user={user} allow={['GALPONERO']}>
-        <GalponeroHome user={user} onToast={setToast} />
+        <GalponeroHome user={user} activeView={activeView} onViewChange={handleViewChange} onToast={setToast} />
       </RoleGuard>
       <RoleGuard user={user} allow={['ADMIN']}>
-        <AdminDashboard user={user} onToast={setToast} />
+        <AdminDashboard user={user} activeView={activeView} onToast={setToast} />
       </RoleGuard>
+
+      <MainNavigation activeView={activeView} onViewChange={handleViewChange} />
 
       {toast && <div className="toast">{toast}</div>}
     </div>
+  );
+}
+
+function MainNavigation({ activeView, onViewChange }: { activeView: MainView; onViewChange: (view: MainView) => void }) {
+  return (
+    <nav className="app-main-nav" aria-label="Menu principal">
+      {mainNavItems.map((item) => {
+        const Icon = item.icon;
+        return (
+          <button
+            key={item.view}
+            className={activeView === item.view ? 'is-active' : ''}
+            type="button"
+            aria-current={activeView === item.view ? 'page' : undefined}
+            onClick={() => onViewChange(item.view)}
+          >
+            <Icon size={21} />
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
+    </nav>
   );
 }

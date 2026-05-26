@@ -157,21 +157,81 @@ function GalponTile({
   const isEmpty = assignments.length === 0 || !lote;
   const isVacating = !isEmpty && (galpon.EstadoActual === 'SALIDA' || salidaRatio > 0);
   const growth = getGrowthState(summary?.DiaLote ?? 0);
-  const chickenImage = getChickenImage(summary?.DiaLote ?? 1);
   const emptyState = getEmptyState(galpon.EstadoActual);
-  const statusLabel = isEmpty ? emptyState.label : isVacating ? 'Salida' : growth.stage.label;
-  const statusDetail = isEmpty ? emptyState.detail : isVacating ? `${fmtPercent(salidaRatio, 0)} desocupado` : growth.stage.detail;
-  const visibleCountLabel = `${fmtNumber(avesEnGalpon)} / ${fmtNumber(galpon.Capacidad)}`;
+  const dashboardData: GalponDashboardCardData = {
+    galpon: galpon.NombreGalpon,
+    etapa: growth.stage.label.toUpperCase(),
+    tipoAlimento: growth.stage.detail,
+    capacidad: galpon.Capacidad,
+    dia: summary?.DiaLote ?? 0,
+    pesoPromedioKg: summary?.PesoPromedioGeneralKg ?? 0,
+    ocupacionPct: ocupacion * 100,
+    entrada: isVacating ? avesEnGalpon : avesEntrada,
+    mortalidadPct: summary ? summary.MortalidadAcumulada * 100 : 0,
+    consumoKg: summary?.ConsumoAcumuladoKg ?? 0,
+    conversionCA: summary?.ConversionAlimenticia ?? 0,
+    pendientes: summary?.PendientesHoy ?? 0,
+  };
+
+  return (
+    <GalponDashboardCard
+      data={dashboardData}
+      selected={isSelected}
+      empty={isEmpty}
+      vacating={isVacating}
+      emptyState={emptyState}
+      capacityRatio={capacityRatio}
+      dataGalponId={galpon.GalponID}
+      onClick={() => onSelectGalpon(galpon.GalponID, lote?.LoteID)}
+    />
+  );
+}
+
+export function GalponDashboardCard({
+  data,
+  selected = false,
+  empty = false,
+  vacating = false,
+  emptyState,
+  capacityRatio = 1,
+  dataGalponId,
+  onClick,
+}: {
+  data: GalponDashboardCardData;
+  selected?: boolean;
+  empty?: boolean;
+  vacating?: boolean;
+  emptyState?: ReturnType<typeof getEmptyState>;
+  capacityRatio?: number;
+  dataGalponId?: string;
+  onClick?: () => void;
+}) {
+  const occupancyPercent = Math.min(100, Math.max(0, data.ocupacionPct));
+  const occupancyRatio = occupancyPercent / 100;
+  const occupancyTone = getOccupancyTone(occupancyPercent);
+  const growth = getGrowthState(data.dia);
+  const chickenImage = getChickenImage(data.dia);
+  const resolvedEmptyState = emptyState ?? getEmptyState('VACIO');
+  const statusLabel = empty ? resolvedEmptyState.label : vacating ? 'Salida' : growth.stage.label;
+  const statusDetail = empty
+    ? resolvedEmptyState.detail
+    : vacating
+      ? `${fmtNumber(100 - occupancyPercent, 0)}% desocupado`
+      : data.tipoAlimento || growth.stage.detail;
+  const occupancyValue = fmtPercent(occupancyRatio, 0);
+  const entryLabel = vacating ? 'quedan' : 'entrada';
+  const isOverdue = !empty && growth.isOverdue;
   const style = {
     '--capacity-ratio': capacityRatio,
-    '--occupancy-percent': `${Math.round(ocupacion * 100)}%`,
-    '--occupancy-ratio': ocupacion,
-    '--departure-percent': `${Math.round(salidaRatio * 100)}%`,
+    '--occupancy-percent': `${Math.round(occupancyPercent)}%`,
+    '--occupancy-ratio': occupancyRatio,
+    '--departure-percent': `${Math.round(100 - occupancyPercent)}%`,
     '--growth-percent': `${Math.round(growth.progress * 100)}%`,
     '--growth-ratio': growth.progress,
-    '--empty-progress-percent': `${Math.round(emptyState.progress * 100)}%`,
-    '--empty-progress-ratio': emptyState.progress,
-    '--flock-opacity': Math.min(0.9, 0.42 + ocupacion * 0.48),
+    '--empty-progress-percent': `${Math.round(resolvedEmptyState.progress * 100)}%`,
+    '--empty-progress-ratio': resolvedEmptyState.progress,
+    '--flock-height': `${Math.round(38 + occupancyRatio * 124)}px`,
+    '--flock-opacity': Math.min(0.95, 0.34 + occupancyRatio * 0.58),
   } as CSSProperties;
 
   return (
@@ -180,23 +240,26 @@ function GalponTile({
       className={[
         'farm-shed',
         'farm-shed--story',
-        `farm-shed--${galpon.Capacidad >= 2000 ? 'large' : 'small'}`,
-        isSelected ? 'is-selected' : '',
-        isEmpty ? 'farm-shed--empty' : '',
-        isVacating ? 'farm-shed--vacating' : '',
-        growth.isOverdue ? 'farm-shed--overdue' : '',
+        `farm-shed--${data.capacidad >= 2000 ? 'large' : 'small'}`,
+        `farm-shed--occupancy-${occupancyTone}`,
+        selected ? 'is-selected' : '',
+        empty ? 'farm-shed--empty' : '',
+        vacating ? 'farm-shed--vacating' : '',
+        isOverdue ? 'farm-shed--overdue' : '',
       ].join(' ')}
       style={style}
-      aria-pressed={isSelected}
-      data-galpon-id={galpon.GalponID}
-      onClick={() => onSelectGalpon(galpon.GalponID, lote?.LoteID)}
+      aria-pressed={selected}
+      data-galpon-id={dataGalponId}
+      onClick={onClick}
     >
       <header className="farm-shed__hero-header">
         <div className="farm-shed__title-block">
-          <strong>Galpón {galpon.NombreGalpon}</strong>
+          <strong>Galpón {data.galpon}</strong>
         </div>
         <span className="farm-shed__status-pill">
-          <Leaf size={17} />
+          <span className="farm-shed__status-icon">
+            <Leaf size={18} />
+          </span>
           <span>
             <strong>{statusLabel}</strong>
             <small>{statusDetail}</small>
@@ -204,32 +267,26 @@ function GalponTile({
         </span>
         <span className="farm-shed__capacity-pill">
           <UsersRound size={17} />
-          <strong>{fmtNumber(galpon.Capacidad)}</strong>
+          <strong>{fmtNumber(data.capacidad)}</strong>
           <small>cap.</small>
         </span>
       </header>
 
       <section className="farm-shed__visual" aria-hidden="true">
         <span className="shed-room">
-          <span className="shed-room__roof" />
-          <span className="shed-room__wall shed-room__wall--left" />
-          <span className="shed-room__wall shed-room__wall--right" />
-          <span className="shed-room__door" />
-          <span className="shed-room__fan" />
-          <span className="shed-room__lamp shed-room__lamp--left" />
-          <span className="shed-room__lamp shed-room__lamp--right" />
-          <span className="shed-room__litter" />
+          <img className="shed-room__asset" src="/galpon-dashboard/shed-scene.svg" alt="" loading="lazy" decoding="async" />
         </span>
-        <StatBubble className="farm-shed__day-bubble" icon={<CalendarDays size={18} />} label="Día" value={summary ? fmtNumber(summary.DiaLote) : '-'} />
+        <span className="farm-shed__visual-haze" />
+        <StatBubble className="farm-shed__day-bubble" icon={<CalendarDays size={18} />} label="Día" value={empty ? '-' : fmtNumber(data.dia)} />
         <StatBubble
           className="farm-shed__weight-bubble"
           icon={<Scale size={18} />}
           label="Peso"
-          value={summary ? fmtNumber(summary.PesoPromedioGeneralKg, 2) : '-'}
+          value={empty ? '-' : fmtNumber(data.pesoPromedioKg, 2)}
           suffix="kg"
         />
-        {isEmpty ? (
-          <ShedProgressVisual progress={emptyState.progress} />
+        {empty ? (
+          <ShedProgressVisual progress={resolvedEmptyState.progress} />
         ) : (
           <img
             className={`farm-shed__bird-image farm-shed__bird-image--day-${chickenImage.day}`}
@@ -241,16 +298,22 @@ function GalponTile({
         )}
       </section>
 
-      {isEmpty ? <EmptyStateTrack currentIndex={emptyState.index} /> : <GrowthTrack currentIndex={growth.index} />}
+      {empty ? <EmptyStateTrack currentIndex={resolvedEmptyState.index} /> : <GrowthTrack currentIndex={growth.index} />}
 
       <section className="farm-shed__occupancy-panel">
         <div className="farm-shed__occupancy-copy">
-          <strong>{fmtPercent(ocupacion, 0)}</strong>
+          <strong>{occupancyValue}</strong>
           <span>ocup.</span>
         </div>
+        <span className="farm-shed__occupancy-action" aria-hidden="true">
+          <Check size={21} />
+        </span>
         <div className="farm-shed__count-copy">
-          <strong>{visibleCountLabel}</strong>
-          <span>{isVacating ? 'quedan' : 'en galpón'}</span>
+          <span className="farm-shed__count-action" aria-hidden="true">
+            <ArrowDown size={20} />
+          </span>
+          <strong>{fmtNumber(data.entrada)}</strong>
+          <span>{entryLabel}</span>
         </div>
         <FlockLayer />
         <div className="farm-shed__vertical-meter" aria-hidden="true">
@@ -259,21 +322,22 @@ function GalponTile({
           </span>
           <small>100%</small>
           <small>75%</small>
-          <small>{fmtPercent(ocupacion, 0)}</small>
+          <small>50%</small>
           <small>25%</small>
           <small>0%</small>
+          <strong>{occupancyValue}</strong>
         </div>
       </section>
 
       <footer className="farm-shed__metric-dock">
-        <MetricPill icon={<ShieldPlus size={21} />} label="Mort." value={summary ? fmtPercent(summary.MortalidadAcumulada) : '-'} />
-        <MetricPill icon={<Package size={21} />} label="Cons." value={summary ? fmtKg(summary.ConsumoAcumuladoKg, 0) : '-'} />
-        <MetricPill icon={<BarChart3 size={21} />} label="CA" value={summary ? fmtNumber(summary.ConversionAlimenticia, 2) : '-'} />
+        <MetricPill icon={<ShieldPlus size={21} />} label="Mort." value={empty ? '-' : `${fmtNumber(data.mortalidadPct, 1)}%`} />
+        <MetricPill icon={<Package size={21} />} label="Cons." value={empty ? '-' : fmtKg(data.consumoKg, 0)} />
+        <MetricPill icon={<BarChart3 size={21} />} label="CA" value={empty ? '-' : fmtNumber(data.conversionCA, 2)} />
         <MetricPill
           icon={<ClipboardList size={21} />}
           label="Pend."
-          value={summary ? fmtNumber(summary.PendientesHoy) : '-'}
-          tone={summary && summary.PendientesHoy > 0 ? 'warn' : 'neutral'}
+          value={empty ? '-' : fmtNumber(data.pendientes)}
+          tone={!empty && data.pendientes > 0 ? 'warn' : 'neutral'}
         />
       </footer>
     </button>
@@ -288,9 +352,15 @@ function getGrowthState(day: number) {
   return {
     index: stageIndex,
     stage: growthStages[stageIndex],
-    progress: Math.min(1, safeDay / 42),
-    isOverdue: safeDay > 42,
+    progress: growthStages.length <= 1 ? 1 : stageIndex / (growthStages.length - 1),
+    isOverdue: safeDay >= 51,
   };
+}
+
+function getOccupancyTone(occupancyPercent: number) {
+  if (occupancyPercent >= 90) return 'high';
+  if (occupancyPercent >= 50) return 'medium';
+  return 'low';
 }
 
 function getChickenImage(day: number) {
@@ -359,7 +429,7 @@ function GrowthTrack({ currentIndex }: { currentIndex: number }) {
           className={`growth-track__step ${index <= currentIndex ? 'is-complete' : ''} ${index === currentIndex ? 'is-current' : ''}`}
           title={`${stage.label}: días ${stage.range}`}
         >
-          <span />
+          <span>{index === currentIndex && <Bird size={18} strokeWidth={2.5} />}</span>
           <small>{stage.label}</small>
         </span>
       ))}
@@ -388,9 +458,7 @@ function EmptyStateTrack({ currentIndex }: { currentIndex: number }) {
 function FlockLayer() {
   return (
     <div className="farm-shed__flock" aria-hidden="true">
-      {Array.from({ length: 24 }, (_, index) => (
-        <span key={index} />
-      ))}
+      <img className="farm-shed__flock-asset" src="/galpon-dashboard/flock-mass.svg" alt="" loading="lazy" decoding="async" />
     </div>
   );
 }

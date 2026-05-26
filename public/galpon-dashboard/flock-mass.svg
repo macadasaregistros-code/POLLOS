@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 310" role="img" aria-label="Masa suave de pollitos">
+  <defs>
+    <radialGradient id="down" cx=".42" cy=".28" r=".7">
+      <stop offset="0" stop-color="#FFF7C8"/>
+      <stop offset=".58" stop-color="#FFE39A"/>
+      <stop offset="1" stop-color="#F4C86B"/>
+    </radialGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".2"/>
+      <stop offset=".35" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="1" stop-color="#F7D784" stop-opacity=".22"/>
+    </linearGradient>
+    <filter id="soft" x="-35%" y="-35%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="7" stdDeviation="8" flood-color="#A8792D" flood-opacity=".12"/>
+    </filter>
+    <g id="chick">
+      <ellipse cx="0" cy="14" rx="30" ry="26" fill="url(#down)"/>
+      <circle cx="16" cy="0" r="20" fill="url(#down)"/>
+      <circle cx="22" cy="-4" r="3.2" fill="#564735" opacity=".78"/>
+      <path d="M34 1l20 8-20 10z" fill="#E9A03A" opacity=".88"/>
+      <path d="M-6 16c13-11 30-8 39 4-14 7-29 7-39-4z" fill="#F5C96D" opacity=".42"/>
+      <path d="M13-14c8-8 17-8 24-1" fill="none" stroke="#FFF5C0" stroke-width="4" opacity=".55" stroke-linecap="round"/>
+    </g>
+  </defs>
+
+  <path d="M-16 96c82-28 124 22 204-2 92-28 146 26 244-2 86-24 148 18 226-6 84-27 142 10 258 0v234H-16z" fill="#FFE9A9" opacity=".58"/>
+  <path d="M-16 96c82-28 124 22 204-2 92-28 146 26 244-2 86-24 148 18 226-6 84-27 142 10 258 0" fill="none" stroke="#2F7D55" stroke-width="3" stroke-dasharray="13 10" opacity=".28"/>
+
+  <g filter="url(#soft)" opacity=".58">
+    <use href="#chick" x="16" y="174" transform="scale(1.16)"/>
+    <use href="#chick" x="68" y="138" transform="scale(.92)"/>
+    <use href="#chick" x="116" y="180" transform="scale(1.24)"/>
+    <use href="#chick" x="176" y="126" transform="scale(.92)"/>
+    <use href="#chick" x="230" y="166" transform="scale(1.1)"/>
+    <use href="#chick" x="286" y="122" transform="scale(.84)"/>
+    <use href="#chick" x="330" y="184" transform="scale(1.22)"/>
+    <use href="#chick" x="398" y="137" transform="scale(.98)"/>
+    <use href="#chick" x="450" y="177" transform="scale(1.22)"/>
+    <use href="#chick" x="516" y="126" transform="scale(.9)"/>
+    <use href="#chick" x="568" y="172" transform="scale(1.14)"/>
+    <use href="#chick" x="630" y="132" transform="scale(.94)"/>
+    <use href="#chick" x="682" y="182" transform="scale(1.22)"/>
+    <use href="#chick" x="748" y="137" transform="scale(.98)"/>
+    <use href="#chick" x="802" y="176" transform="scale(1.12)"/>
+    <use href="#chick" x="858" y="135" transform="scale(.92)"/>
+  </g>
+
+  <g filter="url(#soft)" opacity=".72">
+    <use href="#chick" x="8" y="235" transform="scale(1.26)"/>
+    <use href="#chick" x="66" y="214" transform="scale(1.08)"/>
+    <use href="#chick" x="124" y="249" transform="scale(1.36)"/>
+    <use href="#chick" x="190" y="208" transform="scale(1.02)"/>
+    <use href="#chick" x="242" y="243" transform="scale(1.22)"/>
+    <use href="#chick" x="302" y="214" transform="scale(1.08)"/>
+    <use href="#chick" x="358" y="251" transform="scale(1.34)"/>
+    <use href="#chick" x="424" y="210" transform="scale(1.02)"/>
+    <use href="#chick" x="478" y="242" transform="scale(1.22)"/>
+    <use href="#chick" x="540" y="216" transform="scale(1.08)"/>
+    <use href="#chick" x="596" y="251" transform="scale(1.34)"/>
+    <use href="#chick" x="664" y="210" transform="scale(1.04)"/>
+    <use href="#chick" x="720" y="244" transform="scale(1.24)"/>
+    <use href="#chick" x="782" y="214" transform="scale(1.08)"/>
+    <use href="#chick" x="842" y="250" transform="scale(1.32)"/>
+  </g>
+
+  <g filter="url(#soft)" opacity=".9">
+    <use href="#chick" x="-6" y="302" transform="scale(1.52)"/>
+    <use href="#chick" x="72" y="287" transform="scale(1.38)"/>
+    <use href="#chick" x="144" y="307" transform="scale(1.55)"/>
+    <use href="#chick" x="226" y="286" transform="scale(1.42)"/>
+    <use href="#chick" x="300" y="307" transform="scale(1.55)"/>
+    <use href="#chick" x="382" y="286" transform="scale(1.42)"/>
+    <use href="#chick" x="458" y="307" transform="scale(1.55)"/>
+    <use href="#chick" x="540" y="286" transform="scale(1.42)"/>
+    <use href="#chick" x="614" y="307" transform="scale(1.55)"/>
+    <use href="#chick" x="696" y="286" transform="scale(1.42)"/>
+    <use href="#chick" x="772" y="307" transform="scale(1.55)"/>
+    <use href="#chick" x="854" y="286" transform="scale(1.42)"/>
+  </g>
+
+  <rect width="900" height="310" fill="url(#fade)"/>
+</svg>

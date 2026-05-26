@@ -1,20 +1,23 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Activity,
+  ArrowLeft,
+  BarChart3,
   Check,
   CheckCircle2,
   Circle,
   CircleDot,
   ClipboardCheck,
   Droplets,
+  Home,
+  Package,
   Scale,
   ShieldAlert,
   ShoppingCart,
   Syringe,
   Truck,
-  X,
 } from 'lucide-react';
 import { GalponMap } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
@@ -24,7 +27,8 @@ import { actualizarEstadoGalpon } from '../../services/domainService';
 import { db } from '../../services/localDbService';
 import { todayISO } from '../../lib/date';
 import { fmtKg, fmtNumber, fmtPercent } from '../../lib/format';
-import type { Galpon, Lote, LoteResumen, Usuario } from '../../types/entities';
+import type { Galpon, InventarioAlimento, Lote, LoteResumen, TipoAlimento, Usuario } from '../../types/entities';
+import type { MainView } from '../../types/navigation';
 import { RegistrarDiaForm } from './RegistrarDiaForm';
 import { PesajeForm } from './PesajeForm';
 import { ActividadesHoy } from './ActividadesHoy';
@@ -35,25 +39,26 @@ import { AguaForm } from './AguaForm';
 import { EventoSanitarioForm } from './EventoSanitarioForm';
 
 type GalponeroAction = 'dia' | 'actividades' | 'pesaje' | 'vacunas' | 'entrada' | 'salida' | 'agua' | 'evento';
-type OccupiedEntryMode = 'diario' | 'sacrificio';
 
 interface GalponeroHomeProps {
   user: Usuario;
+  activeView: MainView;
+  onViewChange: (view: MainView) => void;
   onToast: (message: string) => void;
 }
 
 const actionMeta: Record<GalponeroAction, { label: string; icon: ReactNode }> = {
-  dia: { label: 'Registrar día', icon: <ClipboardCheck size={22} /> },
+  dia: { label: 'Registro diario', icon: <ClipboardCheck size={22} /> },
   actividades: { label: 'Actividades de hoy', icon: <Activity size={22} /> },
   pesaje: { label: 'Pesaje', icon: <Scale size={22} /> },
   vacunas: { label: 'Vacunas', icon: <Syringe size={22} /> },
   entrada: { label: 'Entrada alimento', icon: <Truck size={22} /> },
-  salida: { label: 'Venta / salida', icon: <ShoppingCart size={22} /> },
+  salida: { label: 'Sacrificio / salida', icon: <ShoppingCart size={22} /> },
   agua: { label: 'Agua', icon: <Droplets size={22} /> },
-  evento: { label: 'Evento sanitario', icon: <ShieldAlert size={22} /> },
+  evento: { label: 'Sanidad', icon: <ShieldAlert size={22} /> },
 };
 
-const secondaryActions = (Object.keys(actionMeta) as GalponeroAction[]).filter((action) => action !== 'dia' && action !== 'salida');
+const occupiedActions: GalponeroAction[] = ['dia', 'actividades', 'agua', 'pesaje', 'vacunas', 'evento', 'salida'];
 
 type PrepCategoryKey = 'RETIRO' | 'DESINFECCION' | 'INSTALACION' | 'RECIBIMIENTO';
 
@@ -81,7 +86,7 @@ const preparationCategories: Array<{ key: PrepCategoryKey; label: string; state:
   },
   {
     key: 'DESINFECCION',
-    label: 'Desinfección',
+    label: 'Desinfeccion',
     state: 'DESCANSO_SANITARIO',
     tasks: [
       { id: 'fumiga_coquito', title: 'Fumiga Coquito', category: 'DESINFECCION' },
@@ -93,7 +98,7 @@ const preparationCategories: Array<{ key: PrepCategoryKey; label: string; state:
   },
   {
     key: 'INSTALACION',
-    label: 'Instalación',
+    label: 'Instalacion',
     state: 'PREPARACION',
     tasks: [
       { id: 'cisco_nuevo', title: 'Cisco Nuevo (en la mitad sin cama usada)', category: 'INSTALACION' },
@@ -119,7 +124,7 @@ const preparationCategories: Array<{ key: PrepCategoryKey; label: string; state:
 
 const preparationTasks = preparationCategories.flatMap((category) => category.tasks);
 
-export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
+export function GalponeroHome({ user, activeView, onViewChange, onToast }: GalponeroHomeProps) {
   const today = todayISO();
   const lotes = useLiveQuery(() => db.lotes.where('EstadoLote').equals('ACTIVO').toArray(), []);
   const registros = useLiveQuery(() => db.registroDiarioLote.toArray(), []);
@@ -133,8 +138,7 @@ export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
   const inventario = useLiveQuery(() => db.inventarioAlimento.toArray(), []);
   const tipos = useLiveQuery(() => db.tiposAlimento.toArray(), []);
   const [selectedGalponId, setSelectedGalponId] = useState<string>('');
-  const [occupiedEntryMode, setOccupiedEntryMode] = useState<OccupiedEntryMode>('diario');
-  const [activeAction, setActiveAction] = useState<GalponeroAction>('actividades');
+  const [activeAction, setActiveAction] = useState<GalponeroAction>('dia');
 
   const summaries = useMemo(() => {
     if (!lotes || !registros || !consumos || !pesajes || !loteGalpones || !galpones || !actividades || !vacunas || !syncQueue) return [];
@@ -166,111 +170,216 @@ export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
     : undefined;
   const selectedLote = lotes?.find((lote) => lote.LoteID === selectedAssignment?.LoteID);
   const selectedSummary = summaries.find((summary) => summary.LoteID === selectedLote?.LoteID);
+  const activeSummaries = summaries.filter((summary) => lotes?.some((lote) => lote.LoteID === summary.LoteID && lote.EstadoLote === 'ACTIVO'));
+  const totals = {
+    lotes: activeSummaries.length,
+    aves: activeSummaries.reduce((sum, summary) => sum + summary.AvesVivasTotal, 0),
+    pendientes: activeSummaries.reduce((sum, summary) => sum + summary.PendientesHoy, 0),
+    vacunas: activeSummaries.reduce((sum, summary) => sum + summary.VacunasPendientes, 0),
+    sync: activeSummaries.reduce((sum, summary) => sum + summary.SyncPendiente, 0),
+    consumo: activeSummaries.reduce((sum, summary) => sum + summary.ConsumoAcumuladoKg, 0),
+  };
+
+  useEffect(() => {
+    if (activeView !== 'galpones' && selectedGalponId) setSelectedGalponId('');
+  }, [activeView, selectedGalponId]);
 
   function handleSelectGalpon(galponId: string, loteId?: string) {
     setSelectedGalponId(galponId);
-    setActiveAction('actividades');
-    if (loteId) setOccupiedEntryMode('diario');
+    setActiveAction(loteId ? 'dia' : 'actividades');
+    onViewChange('galpones');
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }
+
+  if (activeView === 'galpones' && selectedGalpon) {
+    return (
+      <main className="page-shell page-shell--mobile page-shell--detail">
+        <GalponDetailHeader
+          galpon={selectedGalpon}
+          lote={selectedLote}
+          mode={selectedLote ? 'Ingreso de datos' : 'Alistamiento'}
+          onBack={() => setSelectedGalponId('')}
+        />
+
+        {selectedLote && selectedSummary ? (
+          <OccupiedGalponPanel
+            galpon={selectedGalpon}
+            lote={selectedLote}
+            summary={selectedSummary}
+            user={user}
+            activeAction={activeAction}
+            onActionChange={setActiveAction}
+            onSaved={onToast}
+          />
+        ) : (
+          <MobileCard className="native-view-card">
+            <GalponPreparationPanel galpon={selectedGalpon} onSaved={onToast} />
+          </MobileCard>
+        )}
+      </main>
+    );
   }
 
   return (
     <main className="page-shell page-shell--mobile">
-      <GalponMap
-        galpones={galpones ?? []}
-        loteGalpones={loteGalpones ?? []}
-        lotes={lotes ?? []}
-        summaries={summaries}
-        selectedGalponId={selectedGalpon?.GalponID}
-        onSelectGalpon={handleSelectGalpon}
-      />
+      {activeView === 'inicio' && (
+        <>
+          <section className="page-title native-page-title">
+            <div>
+              <span>GALPONERO</span>
+              <h1>Inicio</h1>
+            </div>
+            <Home size={34} />
+          </section>
 
-      {selectedGalpon && (
-        <div className="galpon-sheet-backdrop" role="presentation" onClick={() => setSelectedGalponId('')}>
-          <section
-            className="galpon-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="galpon-sheet-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <header className="galpon-sheet__header">
-              <div>
-                <span>{selectedLote ? 'Ingreso de datos' : 'Alistamiento'}</span>
-                <h2 id="galpon-sheet-title">Galpón {selectedGalpon.NombreGalpon}</h2>
-                <small>{selectedLote ? selectedLote.CodigoLote : 'Sin lote activo'}</small>
-              </div>
-              <button type="button" aria-label="Cerrar ingreso de galpón" onClick={() => setSelectedGalponId('')}>
-                <X size={20} />
-              </button>
-            </header>
-            <div className="galpon-sheet__body">
-              {selectedLote && selectedSummary ? (
-                <OccupiedGalponPanel
-                  galpon={selectedGalpon}
-                  lote={selectedLote}
-                  summary={selectedSummary}
-                  user={user}
-                  mode={occupiedEntryMode}
-                  onModeChange={setOccupiedEntryMode}
-                  onSaved={onToast}
-                />
+          <section className="stats-grid stats-grid--wide">
+            <StatCard label="Lotes activos" value={fmtNumber(totals.lotes)} />
+            <StatCard label="Aves vivas" value={fmtNumber(totals.aves)} />
+            <StatCard label="Consumo acum." value={fmtKg(totals.consumo)} />
+            <StatCard label="Pendientes hoy" value={fmtNumber(totals.pendientes)} tone={totals.pendientes > 0 ? 'warn' : 'good'} />
+            <StatCard label="Vacunas" value={fmtNumber(totals.vacunas)} tone={totals.vacunas > 0 ? 'warn' : 'good'} />
+            <StatCard label="Por sincronizar" value={fmtNumber(totals.sync)} tone={totals.sync > 0 ? 'warn' : 'good'} />
+          </section>
+
+          <MobileCard title="Prioridad de hoy" subtitle="Toca un lote para ver su estado">
+            <div className="native-list">
+              {activeSummaries.length ? (
+                activeSummaries.map((summary) => (
+                  <button key={summary.LoteID} type="button" onClick={() => onViewChange('lotes')}>
+                    <span>
+                      <strong>{summary.CodigoLote}</strong>
+                      <small>
+                        Dia {summary.DiaLote} - {summary.Galpones.join(', ') || 'Sin galpon'}
+                      </small>
+                    </span>
+                    <span>{fmtNumber(summary.PendientesHoy + summary.VacunasPendientes)} pendientes</span>
+                  </button>
+                ))
               ) : (
-                <GalponPreparationPanel galpon={selectedGalpon} onSaved={onToast} />
+                <p className="empty-state">No hay lotes activos.</p>
               )}
             </div>
-          </section>
-        </div>
-      )}
-
-      {selectedSummary && (
-        <MobileCard className="selected-lote-card">
-          <LoteSummary summary={selectedSummary} />
-        </MobileCard>
-      )}
-
-      {selectedLote && selectedSummary && (
-        <>
-          <section className="quick-actions">
-            {secondaryActions.map((action) => (
-              <button
-                key={action}
-                className={activeAction === action ? 'is-active' : ''}
-                type="button"
-                onClick={() => setActiveAction(action)}
-              >
-                {actionMeta[action].icon}
-                <span>{actionMeta[action].label}</span>
-              </button>
-            ))}
-          </section>
-
-          <MobileCard title={actionMeta[activeAction].label} subtitle={selectedLote.CodigoLote}>
-            {activeAction === 'actividades' && <ActividadesHoy lote={selectedLote} user={user} onSaved={onToast} />}
-            {activeAction === 'pesaje' && <PesajeForm lote={selectedLote} user={user} onSaved={onToast} />}
-            {activeAction === 'vacunas' && <VacunasView lote={selectedLote} user={user} onSaved={onToast} />}
-            {activeAction === 'entrada' && <EntradaAlimentoForm user={user} onSaved={onToast} />}
-            {activeAction === 'agua' && <AguaForm lote={selectedLote} user={user} onSaved={onToast} />}
-            {activeAction === 'evento' && <EventoSanitarioForm lote={selectedLote} user={user} onSaved={onToast} />}
           </MobileCard>
         </>
       )}
 
-      <MobileCard title="Inventario alimento">
-        <div className="inventory-list">
-          {inventario?.map((item) => {
-            const tipo = tipos?.find((tipoItem) => tipoItem.TipoAlimentoID === item.TipoAlimentoID);
-            return (
-              <div key={item.InventarioID}>
-                <span>{tipo?.Nombre ?? item.TipoAlimentoID}</span>
-                <strong>
-                  {fmtNumber(item.BultosDisponibles, 1)} bultos · {fmtKg(item.KgDisponibles)}
-                </strong>
-              </div>
-            );
-          })}
-        </div>
-      </MobileCard>
+      {activeView === 'galpones' && (
+        <>
+          <section className="page-title native-page-title">
+            <div>
+              <span>MAPA</span>
+              <h1>Galpones</h1>
+            </div>
+            <ClipboardCheck size={34} />
+          </section>
+          <GalponMap
+            galpones={galpones ?? []}
+            loteGalpones={loteGalpones ?? []}
+            lotes={lotes ?? []}
+            summaries={summaries}
+            selectedGalponId={selectedGalpon?.GalponID}
+            onSelectGalpon={handleSelectGalpon}
+          />
+        </>
+      )}
+
+      {activeView === 'lotes' && (
+        <>
+          <section className="page-title native-page-title">
+            <div>
+              <span>PRODUCCION</span>
+              <h1>Lotes</h1>
+            </div>
+            <BarChart3 size={34} />
+          </section>
+          <div className="lote-card-grid">
+            {activeSummaries.length ? (
+              activeSummaries.map((summary) => (
+                <MobileCard key={summary.LoteID} className="selected-lote-card">
+                  <LoteSummary summary={summary} />
+                </MobileCard>
+              ))
+            ) : (
+              <MobileCard>
+                <p className="empty-state">No hay lotes activos.</p>
+              </MobileCard>
+            )}
+          </div>
+        </>
+      )}
+
+      {activeView === 'inventario' && (
+        <>
+          <section className="page-title native-page-title">
+            <div>
+              <span>ALIMENTO</span>
+              <h1>Inventario</h1>
+            </div>
+            <Package size={34} />
+          </section>
+          <MobileCard title="Entrada de alimento">
+            <EntradaAlimentoForm user={user} onSaved={onToast} />
+          </MobileCard>
+          <MobileCard title="Existencias">
+            <InventoryList inventario={inventario ?? []} tipos={tipos ?? []} />
+          </MobileCard>
+        </>
+      )}
+
+      {activeView === 'reportes' && (
+        <>
+          <section className="page-title native-page-title">
+            <div>
+              <span>SEGUIMIENTO</span>
+              <h1>Reportes</h1>
+            </div>
+            <BarChart3 size={34} />
+          </section>
+          <MobileCard title="Resumen operativo">
+            <div className="stats-grid">
+              <StatCard label="Mortalidad prom." value={fmtPercent(getAverageMortality(activeSummaries))} />
+              <StatCard label="Consumo total" value={fmtKg(totals.consumo)} />
+              <StatCard label="Pendientes" value={fmtNumber(totals.pendientes)} tone={totals.pendientes > 0 ? 'warn' : 'good'} />
+              <StatCard label="Vacunas" value={fmtNumber(totals.vacunas)} tone={totals.vacunas > 0 ? 'warn' : 'good'} />
+            </div>
+          </MobileCard>
+          <MobileCard title="Lotes activos">
+            <div className="native-list">
+              {activeSummaries.length ? (
+                activeSummaries.map((summary) => (
+                  <button key={summary.LoteID} type="button" onClick={() => onViewChange('lotes')}>
+                    <span>
+                      <strong>{summary.CodigoLote}</strong>
+                      <small>
+                        Mortalidad {fmtPercent(summary.MortalidadAcumulada)} - CA {fmtNumber(summary.ConversionAlimenticia, 2)}
+                      </small>
+                    </span>
+                    <span>Dia {summary.DiaLote}</span>
+                  </button>
+                ))
+              ) : (
+                <p className="empty-state">No hay datos para reportar.</p>
+              )}
+            </div>
+          </MobileCard>
+        </>
+      )}
     </main>
+  );
+}
+
+function GalponDetailHeader({ galpon, lote, mode, onBack }: { galpon: Galpon; lote?: Lote; mode: string; onBack: () => void }) {
+  return (
+    <header className="native-detail-header">
+      <button className="native-back-button" type="button" aria-label="Volver a galpones" onClick={onBack}>
+        <ArrowLeft size={22} />
+      </button>
+      <div>
+        <span>{mode}</span>
+        <h1>Galpon {galpon.NombreGalpon}</h1>
+        <small>{lote ? lote.CodigoLote : 'Sin lote activo'}</small>
+      </div>
+    </header>
   );
 }
 
@@ -279,24 +388,24 @@ function OccupiedGalponPanel({
   lote,
   summary,
   user,
-  mode,
-  onModeChange,
+  activeAction,
+  onActionChange,
   onSaved,
 }: {
   galpon: Galpon;
   lote: Lote;
   summary: LoteResumen;
   user: Usuario;
-  mode: OccupiedEntryMode;
-  onModeChange: (mode: OccupiedEntryMode) => void;
+  activeAction: GalponeroAction;
+  onActionChange: (action: GalponeroAction) => void;
   onSaved: (message: string) => void;
 }) {
   return (
     <div className="galpon-entry">
-      <div className="galpon-entry__summary" aria-label="Resumen del galpón seleccionado">
+      <div className="galpon-entry__summary" aria-label={`Resumen del galpon ${galpon.NombreGalpon}`}>
         <span>
           <strong>{fmtNumber(summary.DiaLote)}</strong>
-          Día lote
+          Dia lote
         </span>
         <span>
           <strong>{fmtNumber(summary.AvesVivasTotal)}</strong>
@@ -308,22 +417,25 @@ function OccupiedGalponPanel({
         </span>
       </div>
 
-      <div className="entry-mode-tabs" role="tablist" aria-label={`Ingreso de datos para galpón ${galpon.NombreGalpon}`}>
-        <button className={mode === 'diario' ? 'is-active' : ''} type="button" onClick={() => onModeChange('diario')}>
-          <ClipboardCheck size={18} />
-          Diario
-        </button>
-        <button className={mode === 'sacrificio' ? 'is-active' : ''} type="button" onClick={() => onModeChange('sacrificio')}>
-          <ShoppingCart size={18} />
-          Sacrificio
-        </button>
-      </div>
+      <section className="native-action-tabs" aria-label={`Vistas del galpon ${galpon.NombreGalpon}`}>
+        {occupiedActions.map((action) => (
+          <button key={action} className={activeAction === action ? 'is-active' : ''} type="button" onClick={() => onActionChange(action)}>
+            {actionMeta[action].icon}
+            <span>{actionMeta[action].label}</span>
+          </button>
+        ))}
+      </section>
 
-      {mode === 'diario' ? (
-        <RegistrarDiaForm lote={lote} user={user} onSaved={onSaved} />
-      ) : (
-        <SalidaForm lote={lote} user={user} onSaved={onSaved} initialTipoSalida="SACRIFICIO" />
-      )}
+      <MobileCard className="native-view-card" title={actionMeta[activeAction].label} subtitle={lote.CodigoLote}>
+        {activeAction === 'dia' && <RegistrarDiaForm lote={lote} user={user} onSaved={onSaved} />}
+        {activeAction === 'actividades' && <ActividadesHoy lote={lote} user={user} onSaved={onSaved} />}
+        {activeAction === 'agua' && <AguaForm lote={lote} user={user} onSaved={onSaved} />}
+        {activeAction === 'pesaje' && <PesajeForm lote={lote} user={user} onSaved={onSaved} />}
+        {activeAction === 'vacunas' && <VacunasView lote={lote} user={user} onSaved={onSaved} />}
+        {activeAction === 'evento' && <EventoSanitarioForm lote={lote} user={user} onSaved={onSaved} />}
+        {activeAction === 'salida' && <SalidaForm lote={lote} user={user} onSaved={onSaved} initialTipoSalida="SACRIFICIO" />}
+        {activeAction === 'entrada' && <EntradaAlimentoForm user={user} onSaved={onSaved} />}
+      </MobileCard>
     </div>
   );
 }
@@ -363,7 +475,7 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
         getGalponStateForPrepProgress(nextCompleted),
         writePrepProgress(galpon.Observaciones, nextCompleted),
       );
-      onSaved('Última actividad de alistamiento revertida.');
+      onSaved('Ultima actividad de alistamiento revertida.');
     } finally {
       setSaving(false);
     }
@@ -435,11 +547,36 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
           <span>{ready ? 'Alistamiento completo' : 'Marcar realizada'}</span>
         </button>
         <button className="small-button" type="button" onClick={handleUndo} disabled={saving || completedTaskIds.length === 0}>
-          Deshacer última
+          Deshacer ultima
         </button>
       </div>
     </div>
   );
+}
+
+function InventoryList({ inventario, tipos }: { inventario: InventarioAlimento[]; tipos: TipoAlimento[] }) {
+  if (inventario.length === 0) return <p className="empty-state">No hay inventario registrado.</p>;
+
+  return (
+    <div className="inventory-list">
+      {inventario.map((item) => {
+        const tipo = tipos.find((tipoItem) => tipoItem.TipoAlimentoID === item.TipoAlimentoID);
+        return (
+          <div key={item.InventarioID}>
+            <span>{tipo?.Nombre ?? item.TipoAlimentoID}</span>
+            <strong>
+              {fmtNumber(item.BultosDisponibles, 1)} bultos - {fmtKg(item.KgDisponibles)}
+            </strong>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function getAverageMortality(summaries: LoteResumen[]): number {
+  if (summaries.length === 0) return 0;
+  return summaries.reduce((sum, summary) => sum + summary.MortalidadAcumulada, 0) / summaries.length;
 }
 
 function getCompletedPrepTaskIds(galpon: Galpon): string[] {
@@ -499,9 +636,9 @@ function LoteSummary({ summary }: { summary: LoteResumen }) {
       <header>
         <div>
           <strong>{summary.CodigoLote}</strong>
-          <span>Día {summary.DiaLote}</span>
+          <span>Dia {summary.DiaLote}</span>
         </div>
-        <small>{summary.Galpones.join(', ') || 'Sin galpón'}</small>
+        <small>{summary.Galpones.join(', ') || 'Sin galpon'}</small>
       </header>
       <div className="stats-grid">
         <StatCard label="Aves vivas" value={fmtNumber(summary.AvesVivasTotal)} />
