@@ -1,4 +1,5 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import { BarChart3, CalendarDays, ClipboardList, Leaf, Package, Scale, ShieldPlus, UsersRound } from 'lucide-react';
 import { fmtKg, fmtNumber, fmtPercent } from '../lib/format';
 import type { Galpon, Lote, LoteGalpon, LoteResumen } from '../types/entities';
 
@@ -130,11 +131,13 @@ function GalponTile({
   const isVacating = !isEmpty && (galpon.EstadoActual === 'SALIDA' || salidaRatio > 0);
   const growth = getGrowthState(summary?.DiaLote ?? 0);
   const emptyState = getEmptyState(galpon.EstadoActual);
-  const statusLabel = isEmpty ? emptyState.label : isVacating ? 'Salida en curso' : growth.stage.label;
+  const statusLabel = isEmpty ? emptyState.label : isVacating ? 'Salida' : growth.stage.label;
   const statusDetail = isEmpty ? emptyState.detail : isVacating ? `${fmtPercent(salidaRatio, 0)} desocupado` : growth.stage.detail;
+  const visibleCountLabel = `${fmtNumber(avesEnGalpon)} / ${fmtNumber(galpon.Capacidad)}`;
   const style = {
     '--capacity-ratio': capacityRatio,
     '--occupancy-percent': `${Math.round(ocupacion * 100)}%`,
+    '--occupancy-ratio': ocupacion,
     '--departure-percent': `${Math.round(salidaRatio * 100)}%`,
     '--growth-percent': `${Math.round(growth.progress * 100)}%`,
     '--growth-ratio': growth.progress,
@@ -147,6 +150,7 @@ function GalponTile({
       type="button"
       className={[
         'farm-shed',
+        'farm-shed--story',
         `farm-shed--${galpon.Capacidad >= 2000 ? 'large' : 'small'}`,
         isSelected ? 'is-selected' : '',
         isEmpty ? 'farm-shed--empty' : '',
@@ -155,62 +159,83 @@ function GalponTile({
       ].join(' ')}
       style={style}
       aria-pressed={isSelected}
-      onClick={() => {
-        onSelectGalpon(galpon.GalponID, lote?.LoteID);
-      }}
+      data-galpon-id={galpon.GalponID}
+      onClick={() => onSelectGalpon(galpon.GalponID, lote?.LoteID)}
     >
-      <span className="farm-shed__status">
-        <strong>{statusLabel}</strong>
-        <small>{statusDetail}</small>
-      </span>
-
-      <header className="farm-shed__header">
-        <div>
-          <span>Galpón</span>
-          <strong>{galpon.NombreGalpon}</strong>
+      <header className="farm-shed__hero-header">
+        <div className="farm-shed__title-block">
+          <strong>Galpón {galpon.NombreGalpon}</strong>
         </div>
-        <small>{fmtNumber(galpon.Capacidad)} cap.</small>
+        <span className="farm-shed__status-pill">
+          <Leaf size={17} />
+          <span>
+            <strong>{statusLabel}</strong>
+            <small>{statusDetail}</small>
+          </span>
+        </span>
+        <span className="farm-shed__capacity-pill">
+          <UsersRound size={17} />
+          <strong>{fmtNumber(galpon.Capacidad)}</strong>
+          <small>cap.</small>
+        </span>
       </header>
 
-      <div className="farm-shed__scene" aria-hidden="true">
+      <section className="farm-shed__visual" aria-hidden="true">
+        <span className="shed-room">
+          <span className="shed-room__roof" />
+          <span className="shed-room__wall shed-room__wall--left" />
+          <span className="shed-room__wall shed-room__wall--right" />
+          <span className="shed-room__door" />
+          <span className="shed-room__fan" />
+          <span className="shed-room__lamp shed-room__lamp--left" />
+          <span className="shed-room__lamp shed-room__lamp--right" />
+          <span className="shed-room__litter" />
+        </span>
+        <StatBubble className="farm-shed__day-bubble" icon={<CalendarDays size={18} />} label="Día" value={summary ? fmtNumber(summary.DiaLote) : '-'} />
+        <StatBubble
+          className="farm-shed__weight-bubble"
+          icon={<Scale size={18} />}
+          label="Peso"
+          value={summary ? fmtNumber(summary.PesoPromedioGeneralKg, 2) : '-'}
+          suffix="kg"
+        />
         {isEmpty ? (
           <ShedProgressVisual progress={emptyState.progress} />
         ) : (
           <BirdFigure stage={growth.stage.className} emphasis={isVacating || growth.isOverdue} />
         )}
-      </div>
-
-      <div className="farm-shed__body">
-        <div>
-          <strong>{fmtNumber(avesEnGalpon)}</strong>
-          <span>{lote?.CodigoLote ?? 'Sin lote activo'}</span>
-        </div>
-        <div className="farm-shed__mini">
-          <span>{fmtPercent(ocupacion, 0)} ocup.</span>
-          <span>{fmtNumber(avesEntrada)} entrada</span>
-        </div>
-      </div>
-
-      <div className="farm-shed__bar-group">
-        <div className="farm-shed__bar" aria-label={`Ocupación ${fmtPercent(ocupacion)}`}>
-          <span />
-        </div>
-        {isVacating && (
-          <div className="farm-shed__departure" aria-label={`Salida ${fmtPercent(salidaRatio)}`}>
-            <span />
-          </div>
-        )}
-      </div>
+      </section>
 
       {isEmpty ? <EmptyStateTrack currentIndex={emptyState.index} /> : <GrowthTrack currentIndex={growth.index} />}
 
-      <footer className="farm-shed__metrics">
-        <MetricPill label="Día" value={summary ? fmtNumber(summary.DiaLote) : '-'} />
-        <MetricPill label="Peso" value={summary ? fmtKg(summary.PesoPromedioGeneralKg, 2) : '-'} />
-        <MetricPill label="Mort." value={summary ? fmtPercent(summary.MortalidadAcumulada) : '-'} />
-        <MetricPill label="Cons." value={summary ? fmtKg(summary.ConsumoAcumuladoKg, 0) : '-'} />
-        <MetricPill label="CA" value={summary ? fmtNumber(summary.ConversionAlimenticia, 2) : '-'} />
+      <section className="farm-shed__occupancy-panel">
+        <div className="farm-shed__occupancy-copy">
+          <strong>{fmtPercent(ocupacion, 0)}</strong>
+          <span>ocup.</span>
+        </div>
+        <div className="farm-shed__count-copy">
+          <strong>{visibleCountLabel}</strong>
+          <span>{isVacating ? 'quedan' : 'en galpón'}</span>
+        </div>
+        <FlockLayer />
+        <div className="farm-shed__vertical-meter" aria-hidden="true">
+          <span className="farm-shed__vertical-track">
+            <span />
+          </span>
+          <small>100%</small>
+          <small>75%</small>
+          <small>{fmtPercent(ocupacion, 0)}</small>
+          <small>25%</small>
+          <small>0%</small>
+        </div>
+      </section>
+
+      <footer className="farm-shed__metric-dock">
+        <MetricPill icon={<ShieldPlus size={21} />} label="Mort." value={summary ? fmtPercent(summary.MortalidadAcumulada) : '-'} />
+        <MetricPill icon={<Package size={21} />} label="Cons." value={summary ? fmtKg(summary.ConsumoAcumuladoKg, 0) : '-'} />
+        <MetricPill icon={<BarChart3 size={21} />} label="CA" value={summary ? fmtNumber(summary.ConversionAlimenticia, 2) : '-'} />
         <MetricPill
+          icon={<ClipboardList size={21} />}
           label="Pend."
           value={summary ? fmtNumber(summary.PendientesHoy) : '-'}
           tone={summary && summary.PendientesHoy > 0 ? 'warn' : 'neutral'}
@@ -242,6 +267,29 @@ function getEmptyState(estado: Galpon['EstadoActual']) {
     index: stageIndex,
     progress: emptyStateFlow.length <= 1 ? 1 : stageIndex / (emptyStateFlow.length - 1),
   };
+}
+
+function StatBubble({
+  className,
+  icon,
+  label,
+  value,
+  suffix,
+}: {
+  className: string;
+  icon: ReactNode;
+  label: string;
+  value: string;
+  suffix?: string;
+}) {
+  return (
+    <span className={`farm-shed__stat-bubble ${className}`}>
+      {icon}
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {suffix && <small>{suffix}</small>}
+    </span>
+  );
 }
 
 function BirdFigure({ stage, emphasis = false }: { stage: (typeof growthStages)[number]['className']; emphasis?: boolean }) {
@@ -308,11 +356,23 @@ function EmptyStateTrack({ currentIndex }: { currentIndex: number }) {
   );
 }
 
-function MetricPill({ label, value, tone = 'neutral' }: { label: string; value: string; tone?: 'neutral' | 'warn' }) {
+function FlockLayer() {
+  return (
+    <div className="farm-shed__flock" aria-hidden="true">
+      {Array.from({ length: 24 }, (_, index) => (
+        <span key={index} />
+      ))}
+    </div>
+  );
+}
+
+function MetricPill({ icon, label, value, tone = 'neutral' }: { icon: ReactNode; label: string; value: string; tone?: 'neutral' | 'warn' }) {
   return (
     <span className={`farm-shed__metric farm-shed__metric--${tone}`}>
+      <span className="farm-shed__metric-icon">{icon}</span>
       <small>{label}</small>
       <strong>{value}</strong>
+      <span className="farm-shed__sparkline" />
     </span>
   );
 }

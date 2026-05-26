@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
@@ -14,6 +14,7 @@ import {
   ShoppingCart,
   Syringe,
   Truck,
+  X,
 } from 'lucide-react';
 import { GalponMap } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
@@ -117,13 +118,6 @@ export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
     if (loteId) setOccupiedEntryMode('diario');
   }
 
-  useEffect(() => {
-    if (!selectedGalponId) return;
-    window.setTimeout(() => {
-      document.getElementById('galpon-entry-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 0);
-  }, [selectedGalponId]);
-
   return (
     <main className="page-shell page-shell--mobile">
       <GalponMap
@@ -136,26 +130,40 @@ export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
       />
 
       {selectedGalpon && (
-        <div id="galpon-entry-panel" className="galpon-entry-anchor">
-          <MobileCard
-            className="galpon-entry-card"
-            title={`Galpón ${selectedGalpon.NombreGalpon}`}
-            subtitle={selectedLote ? `${selectedLote.CodigoLote} · ingreso de datos` : 'Alistamiento del galpón'}
+        <div className="galpon-sheet-backdrop" role="presentation" onClick={() => setSelectedGalponId('')}>
+          <section
+            className="galpon-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="galpon-sheet-title"
+            onClick={(event) => event.stopPropagation()}
           >
-            {selectedLote && selectedSummary ? (
-              <OccupiedGalponPanel
-                galpon={selectedGalpon}
-                lote={selectedLote}
-                summary={selectedSummary}
-                user={user}
-                mode={occupiedEntryMode}
-                onModeChange={setOccupiedEntryMode}
-                onSaved={onToast}
-              />
-            ) : (
-              <GalponPreparationPanel galpon={selectedGalpon} onSaved={onToast} />
-            )}
-          </MobileCard>
+            <header className="galpon-sheet__header">
+              <div>
+                <span>{selectedLote ? 'Ingreso de datos' : 'Alistamiento'}</span>
+                <h2 id="galpon-sheet-title">Galpón {selectedGalpon.NombreGalpon}</h2>
+                <small>{selectedLote ? selectedLote.CodigoLote : 'Sin lote activo'}</small>
+              </div>
+              <button type="button" aria-label="Cerrar ingreso de galpón" onClick={() => setSelectedGalponId('')}>
+                <X size={20} />
+              </button>
+            </header>
+            <div className="galpon-sheet__body">
+              {selectedLote && selectedSummary ? (
+                <OccupiedGalponPanel
+                  galpon={selectedGalpon}
+                  lote={selectedLote}
+                  summary={selectedSummary}
+                  user={user}
+                  mode={occupiedEntryMode}
+                  onModeChange={setOccupiedEntryMode}
+                  onSaved={onToast}
+                />
+              ) : (
+                <GalponPreparationPanel galpon={selectedGalpon} onSaved={onToast} />
+              )}
+            </div>
+          </section>
         </div>
       )}
 
