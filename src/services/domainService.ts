@@ -278,6 +278,31 @@ export async function registrarDia(input: RegistroDiaInput, user: Usuario): Prom
   return registro;
 }
 
+export async function actualizarEstadoGalpon(
+  galponId: string,
+  estado: Galpon['EstadoActual'],
+  observaciones?: string,
+): Promise<Galpon> {
+  const galpon = await db.galpones.get(galponId);
+  if (!galpon) throw new Error('Galpón no encontrado.');
+
+  const updatedGalpon: Galpon = {
+    ...galpon,
+    EstadoActual: estado,
+    Observaciones: observaciones ?? galpon.Observaciones,
+  };
+
+  await db.transaction('rw', [db.galpones, db.syncQueue], async () => {
+    await db.galpones.update(galponId, {
+      EstadoActual: updatedGalpon.EstadoActual,
+      Observaciones: updatedGalpon.Observaciones,
+    });
+    await enqueueSync('Galpones', galponId, 'UPDATE', updatedGalpon);
+  });
+
+  return updatedGalpon;
+}
+
 export async function registrarPesaje(input: PesajeInput, user: Usuario): Promise<Pesaje> {
   const lote = await db.lotes.get(input.LoteID);
   if (!lote) throw new Error('Lote no encontrado.');

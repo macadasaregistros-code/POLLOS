@@ -7,8 +7,8 @@ interface GalponMapProps {
   loteGalpones: LoteGalpon[];
   lotes: Lote[];
   summaries: LoteResumen[];
-  selectedLoteId?: string;
-  onSelectLote: (loteId: string) => void;
+  selectedGalponId?: string;
+  onSelectGalpon: (galponId: string, loteId?: string) => void;
 }
 
 const layout = [
@@ -34,7 +34,7 @@ const emptyStateFlow = [
   { key: 'RECIBIMIENTO', label: 'Recibir', detail: 'Listo para pollito' },
 ] as const;
 
-export function GalponMap({ galpones, loteGalpones, lotes, summaries, selectedLoteId, onSelectLote }: GalponMapProps) {
+export function GalponMap({ galpones, loteGalpones, lotes, summaries, selectedGalponId, onSelectGalpon }: GalponMapProps) {
   const galponesById = new Map(galpones.map((galpon) => [galpon.GalponID, galpon]));
   const lotesById = new Map(lotes.map((lote) => [lote.LoteID, lote]));
   const summariesByLoteId = new Map(summaries.map((summary) => [summary.LoteID, summary]));
@@ -84,9 +84,9 @@ export function GalponMap({ galpones, loteGalpones, lotes, summaries, selectedLo
                     loteGalpones={loteGalpones}
                     lotesById={lotesById}
                     summariesByLoteId={summariesByLoteId}
-                    selectedLoteId={selectedLoteId}
+                    selectedGalponId={selectedGalponId}
                     maxCapacity={maxCapacity}
-                    onSelectLote={onSelectLote}
+                    onSelectGalpon={onSelectGalpon}
                   />
                 );
               })}
@@ -103,17 +103,17 @@ function GalponTile({
   loteGalpones,
   lotesById,
   summariesByLoteId,
-  selectedLoteId,
+  selectedGalponId,
   maxCapacity,
-  onSelectLote,
+  onSelectGalpon,
 }: {
   galpon: Galpon;
   loteGalpones: LoteGalpon[];
   lotesById: Map<string, Lote>;
   summariesByLoteId: Map<string, LoteResumen>;
-  selectedLoteId?: string;
+  selectedGalponId?: string;
   maxCapacity: number;
-  onSelectLote: (loteId: string) => void;
+  onSelectGalpon: (galponId: string, loteId?: string) => void;
 }) {
   const assignments = loteGalpones.filter((item) => item.GalponID === galpon.GalponID && item.Estado === 'ACTIVO');
   const primaryAssignment = assignments[0];
@@ -125,7 +125,7 @@ function GalponTile({
   const ocupacion = galpon.Capacidad > 0 ? Math.min(1, avesEnGalpon / galpon.Capacidad) : 0;
   const salidaRatio = avesEntrada > 0 ? Math.min(1, Math.max(0, avesSalida / avesEntrada)) : 0;
   const capacityRatio = Math.max(0.45, galpon.Capacidad / maxCapacity);
-  const isSelected = Boolean(selectedLoteId && assignments.some((item) => item.LoteID === selectedLoteId));
+  const isSelected = selectedGalponId === galpon.GalponID;
   const isEmpty = assignments.length === 0 || !lote;
   const isVacating = !isEmpty && (galpon.EstadoActual === 'SALIDA' || salidaRatio > 0);
   const growth = getGrowthState(summary?.DiaLote ?? 0);
@@ -154,9 +154,9 @@ function GalponTile({
         growth.isOverdue ? 'farm-shed--overdue' : '',
       ].join(' ')}
       style={style}
-      aria-disabled={!lote}
+      aria-pressed={isSelected}
       onClick={() => {
-        if (lote) onSelectLote(lote.LoteID);
+        onSelectGalpon(galpon.GalponID, lote?.LoteID);
       }}
     >
       <span className="farm-shed__status">

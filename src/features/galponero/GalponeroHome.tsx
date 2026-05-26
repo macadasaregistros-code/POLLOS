@@ -1,15 +1,29 @@
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Activity, ClipboardCheck, Droplets, Scale, ShieldAlert, ShoppingCart, Syringe, Truck } from 'lucide-react';
+import {
+  Activity,
+  Check,
+  CheckCircle2,
+  Circle,
+  CircleDot,
+  ClipboardCheck,
+  Droplets,
+  Scale,
+  ShieldAlert,
+  ShoppingCart,
+  Syringe,
+  Truck,
+} from 'lucide-react';
 import { GalponMap } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
 import { StatCard } from '../../components/StatCard';
 import { buildLoteResumen } from '../../services/calculationsService';
+import { actualizarEstadoGalpon } from '../../services/domainService';
 import { db } from '../../services/localDbService';
 import { todayISO } from '../../lib/date';
 import { fmtKg, fmtNumber, fmtPercent } from '../../lib/format';
-import type { Lote, LoteResumen, Usuario } from '../../types/entities';
+import type { Galpon, Lote, LoteResumen, Usuario } from '../../types/entities';
 import { RegistrarDiaForm } from './RegistrarDiaForm';
 import { PesajeForm } from './PesajeForm';
 import { ActividadesHoy } from './ActividadesHoy';
@@ -20,6 +34,7 @@ import { AguaForm } from './AguaForm';
 import { EventoSanitarioForm } from './EventoSanitarioForm';
 
 type GalponeroAction = 'dia' | 'actividades' | 'pesaje' | 'vacunas' | 'entrada' | 'salida' | 'agua' | 'evento';
+type OccupiedEntryMode = 'diario' | 'sacrificio';
 
 interface GalponeroHomeProps {
   user: Usuario;
@@ -37,6 +52,17 @@ const actionMeta: Record<GalponeroAction, { label: string; icon: ReactNode }> = 
   evento: { label: 'Evento sanitario', icon: <ShieldAlert size={22} /> },
 };
 
+const secondaryActions = (Object.keys(actionMeta) as GalponeroAction[]).filter((action) => action !== 'dia' && action !== 'salida');
+
+const preparationStateOrder: Galpon['EstadoActual'][] = ['VACIO', 'LIMPIEZA', 'DESCANSO_SANITARIO', 'PREPARACION', 'RECIBIMIENTO'];
+
+const preparationTasks: Array<{ state: Galpon['EstadoActual']; title: string; detail: string }> = [
+  { state: 'LIMPIEZA', title: 'Retiro de gallinaza', detail: 'Cama vieja, pluma y residuos fuera del galpón' },
+  { state: 'DESCANSO_SANITARIO', title: 'Lavado y desinfección', detail: 'Lavado a presión y descanso sanitario' },
+  { state: 'PREPARACION', title: 'Instalación de equipo', detail: 'Cisco, divisiones, bebederos y comederos' },
+  { state: 'RECIBIMIENTO', title: 'Pre-calentamiento', detail: 'Temperatura y cortinas listas para recibir pollito' },
+];
+
 export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
   const today = todayISO();
   const lotes = useLiveQuery(() => db.lotes.where('EstadoLote').equals('ACTIVO').toArray(), []);
@@ -50,8 +76,9 @@ export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
   const syncQueue = useLiveQuery(() => db.syncQueue.toArray(), []);
   const inventario = useLiveQuery(() => db.inventarioAlimento.toArray(), []);
   const tipos = useLiveQuery(() => db.tiposAlimento.toArray(), []);
-  const [selectedLoteId, setSelectedLoteId] = useState<string>('');
-  const [activeAction, setActiveAction] = useState<GalponeroAction>('dia');
+  const [selectedGalponId, setSelectedGalponId] = useState<string>('');
+  const [occupiedEntryMode, setOccupiedEntryMode] = useState<OccupiedEntryMode>('diario');
+  const [activeAction, setActiveAction] = useState<GalponeroAction>('actividades');
 
   const summaries = useMemo(() => {
     if (!lotes || !registros || !consumos || !pesajes || !loteGalpones || !galpones || !actividades || !vacunas || !syncQueue) return [];
@@ -72,8 +99,27 @@ export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
     );
   }, [actividades, consumos, galpones, loteGalpones, lotes, pesajes, registros, syncQueue, today, vacunas]);
 
-  const selectedSummary = summaries.find((summary) => summary.LoteID === (selectedLoteId || summaries[0]?.LoteID)) ?? summaries[0];
-  const selectedLote = lotes?.find((lote) => lote.LoteID === selectedSummary?.LoteID);
+  const activeAssignments = useMemo(() => (loteGalpones ?? []).filter((item) => item.Estado === 'ACTIVO'), [loteGalpones]);
+  const selectedGalpon = useMemo(() => {
+    const allGalpones = galpones ?? [];
+    if (allGalpones.length === 0) return undefined;
+    return (
+      allGalpones.find((galpon) => galpon.GalponID === selectedGalponId) ??
+      allGalpones.find((galpon) => activeAssignments.some((assignment) => assignment.GalponID === galpon.GalponID)) ??
+      allGalpones[0]
+    );
+  }, [activeAssignments, galpones, selectedGalponId]);
+  const selectedAssignment = selectedGalpon
+    ? activeAssignments.find((assignment) => assignment.GalponID === selectedGalpon.GalponID)
+    : undefined;
+  const selectedLote = lotes?.find((lote) => lote.LoteID === selectedAssignment?.LoteID);
+  const selectedSummary = summaries.find((summary) => summary.LoteID === selectedLote?.LoteID);
+
+  function handleSelectGalpon(galponId: string, loteId?: string) {
+    setSelectedGalponId(galponId);
+    setActiveAction('actividades');
+    if (loteId) setOccupiedEntryMode('diario');
+  }
 
   return (
     <main className="page-shell page-shell--mobile">
@@ -82,9 +128,31 @@ export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
         loteGalpones={loteGalpones ?? []}
         lotes={lotes ?? []}
         summaries={summaries}
-        selectedLoteId={selectedSummary?.LoteID}
-        onSelectLote={setSelectedLoteId}
+        selectedGalponId={selectedGalpon?.GalponID}
+        onSelectGalpon={handleSelectGalpon}
       />
+
+      {selectedGalpon && (
+        <MobileCard
+          className="galpon-entry-card"
+          title={`Galpón ${selectedGalpon.NombreGalpon}`}
+          subtitle={selectedLote ? `${selectedLote.CodigoLote} · ingreso de datos` : 'Alistamiento del galpón'}
+        >
+          {selectedLote && selectedSummary ? (
+            <OccupiedGalponPanel
+              galpon={selectedGalpon}
+              lote={selectedLote}
+              summary={selectedSummary}
+              user={user}
+              mode={occupiedEntryMode}
+              onModeChange={setOccupiedEntryMode}
+              onSaved={onToast}
+            />
+          ) : (
+            <GalponPreparationPanel galpon={selectedGalpon} onSaved={onToast} />
+          )}
+        </MobileCard>
+      )}
 
       {selectedSummary && (
         <MobileCard className="selected-lote-card">
@@ -95,7 +163,7 @@ export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
       {selectedLote && selectedSummary && (
         <>
           <section className="quick-actions">
-            {(Object.keys(actionMeta) as GalponeroAction[]).map((action) => (
+            {secondaryActions.map((action) => (
               <button
                 key={action}
                 className={activeAction === action ? 'is-active' : ''}
@@ -109,12 +177,10 @@ export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
           </section>
 
           <MobileCard title={actionMeta[activeAction].label} subtitle={selectedLote.CodigoLote}>
-            {activeAction === 'dia' && <RegistrarDiaForm lote={selectedLote} user={user} onSaved={onToast} />}
             {activeAction === 'actividades' && <ActividadesHoy lote={selectedLote} user={user} onSaved={onToast} />}
             {activeAction === 'pesaje' && <PesajeForm lote={selectedLote} user={user} onSaved={onToast} />}
             {activeAction === 'vacunas' && <VacunasView lote={selectedLote} user={user} onSaved={onToast} />}
             {activeAction === 'entrada' && <EntradaAlimentoForm user={user} onSaved={onToast} />}
-            {activeAction === 'salida' && <SalidaForm lote={selectedLote} user={user} onSaved={onToast} />}
             {activeAction === 'agua' && <AguaForm lote={selectedLote} user={user} onSaved={onToast} />}
             {activeAction === 'evento' && <EventoSanitarioForm lote={selectedLote} user={user} onSaved={onToast} />}
           </MobileCard>
@@ -138,6 +204,121 @@ export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
       </MobileCard>
     </main>
   );
+}
+
+function OccupiedGalponPanel({
+  galpon,
+  lote,
+  summary,
+  user,
+  mode,
+  onModeChange,
+  onSaved,
+}: {
+  galpon: Galpon;
+  lote: Lote;
+  summary: LoteResumen;
+  user: Usuario;
+  mode: OccupiedEntryMode;
+  onModeChange: (mode: OccupiedEntryMode) => void;
+  onSaved: (message: string) => void;
+}) {
+  return (
+    <div className="galpon-entry">
+      <div className="galpon-entry__summary" aria-label="Resumen del galpón seleccionado">
+        <span>
+          <strong>{fmtNumber(summary.DiaLote)}</strong>
+          Día lote
+        </span>
+        <span>
+          <strong>{fmtNumber(summary.AvesVivasTotal)}</strong>
+          Aves vivas
+        </span>
+        <span>
+          <strong>{fmtPercent(summary.MortalidadAcumulada)}</strong>
+          Mortalidad
+        </span>
+      </div>
+
+      <div className="entry-mode-tabs" role="tablist" aria-label={`Ingreso de datos para galpón ${galpon.NombreGalpon}`}>
+        <button className={mode === 'diario' ? 'is-active' : ''} type="button" onClick={() => onModeChange('diario')}>
+          <ClipboardCheck size={18} />
+          Diario
+        </button>
+        <button className={mode === 'sacrificio' ? 'is-active' : ''} type="button" onClick={() => onModeChange('sacrificio')}>
+          <ShoppingCart size={18} />
+          Sacrificio
+        </button>
+      </div>
+
+      {mode === 'diario' ? (
+        <RegistrarDiaForm lote={lote} user={user} onSaved={onSaved} />
+      ) : (
+        <SalidaForm lote={lote} user={user} onSaved={onSaved} initialTipoSalida="SACRIFICIO" />
+      )}
+    </div>
+  );
+}
+
+function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: (message: string) => void }) {
+  const [saving, setSaving] = useState(false);
+  const currentIndex = getPreparationIndex(galpon.EstadoActual);
+  const progress = Math.round((currentIndex / preparationTasks.length) * 100);
+  const ready = currentIndex >= preparationTasks.length;
+  const nextState = preparationStateOrder[Math.min(currentIndex + 1, preparationStateOrder.length - 1)];
+
+  async function handleAdvance() {
+    if (ready) return;
+    setSaving(true);
+    try {
+      await actualizarEstadoGalpon(galpon.GalponID, nextState, galpon.Observaciones);
+      onSaved('Avance de alistamiento guardado offline.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="prep-panel">
+      <div className="prep-progress" aria-label={`Alistamiento ${progress}%`}>
+        <div>
+          <strong>{progress}% listo</strong>
+          <span>{ready ? 'Listo para recibir pollito' : 'Siguiente paso pendiente'}</span>
+        </div>
+        <div className="prep-progress__bar">
+          <span style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+
+      <div className="prep-task-list">
+        {preparationTasks.map((task, index) => {
+          const state = ready || index < currentIndex ? 'complete' : index === currentIndex ? 'current' : 'pending';
+          return (
+            <article className={`prep-task prep-task--${state}`} key={task.state}>
+              {state === 'complete' && <CheckCircle2 size={23} />}
+              {state === 'current' && <CircleDot size={23} />}
+              {state === 'pending' && <Circle size={23} />}
+              <div>
+                <strong>{task.title}</strong>
+                <span>{state === 'complete' ? 'Completado' : state === 'current' ? task.detail : 'Pendiente'}</span>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      <button className="primary-action primary-action--icon" type="button" onClick={handleAdvance} disabled={saving || ready}>
+        <Check size={18} />
+        <span>{ready ? 'Alistamiento completo' : 'Guardar avance'}</span>
+      </button>
+    </div>
+  );
+}
+
+function getPreparationIndex(estado: Galpon['EstadoActual']): number {
+  const index = preparationStateOrder.indexOf(estado);
+  if (index < 0) return 0;
+  return Math.min(index, preparationTasks.length);
 }
 
 function LoteSummary({ summary }: { summary: LoteResumen }) {

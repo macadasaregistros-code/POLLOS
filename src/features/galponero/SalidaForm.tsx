@@ -10,12 +10,13 @@ interface SalidaFormProps {
   lote: Lote;
   user: Usuario;
   onSaved: (message: string) => void;
+  initialTipoSalida?: 'VENTA' | 'SACRIFICIO';
 }
 
-export function SalidaForm({ lote, user, onSaved }: SalidaFormProps) {
+export function SalidaForm({ lote, user, onSaved, initialTipoSalida = 'VENTA' }: SalidaFormProps) {
   const clientes = useLiveQuery(() => db.clientes.toArray().then((items) => items.filter((item) => item.Activo)), []);
   const [clienteId, setClienteId] = useState('');
-  const [tipoSalida, setTipoSalida] = useState<'VENTA' | 'SACRIFICIO'>('VENTA');
+  const [tipoSalida, setTipoSalida] = useState<'VENTA' | 'SACRIFICIO'>(initialTipoSalida);
   const [sexo, setSexo] = useState<SexoLote>('MIXTO');
   const [cantidad, setCantidad] = useState('0');
   const [kg, setKg] = useState('0');

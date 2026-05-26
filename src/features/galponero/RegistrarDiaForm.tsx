@@ -22,6 +22,7 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
   const [muertosSinClasificar, setMuertosSinClasificar] = useState('0');
   const [sacrificadosM, setSacrificadosM] = useState('0');
   const [sacrificadosH, setSacrificadosH] = useState('0');
+  const [sacrificioActivo, setSacrificioActivo] = useState(false);
   const [observacion, setObservacion] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -47,8 +48,8 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
           MuertosMachos: Number(muertosM || 0),
           MuertosHembras: Number(muertosH || 0),
           MuertosSinClasificar: Number(muertosSinClasificar || 0),
-          SacrificadosMachos: Number(sacrificadosM || 0),
-          SacrificadosHembras: Number(sacrificadosH || 0),
+          SacrificadosMachos: sacrificioActivo ? Number(sacrificadosM || 0) : 0,
+          SacrificadosHembras: sacrificioActivo ? Number(sacrificadosH || 0) : 0,
           Observaciones: observacion,
         },
         user,
@@ -59,6 +60,7 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
       setMuertosSinClasificar('0');
       setSacrificadosM('0');
       setSacrificadosH('0');
+      setSacrificioActivo(false);
       setObservacion('');
       onSaved('Registro diario guardado offline.');
     } finally {
@@ -68,56 +70,111 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
 
   return (
     <form className="form-grid" onSubmit={handleSubmit}>
-      <label className="field">
-        <span>Tipo alimento</span>
-        <select value={currentTipoId} onChange={(event) => setTipoAlimentoId(event.target.value)} required>
-          {tiposAlimento?.map((tipo) => (
-            <option key={tipo.TipoAlimentoID} value={tipo.TipoAlimentoID}>
-              {tipo.Nombre}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="field">
-        <span>Bultos consumidos</span>
-        <input inputMode="decimal" type="number" min="0" step="0.25" value={bultos} onChange={(event) => setBultos(event.target.value)} />
-      </label>
-      <label className="field">
-        <span>Kg consumidos</span>
-        <input value={kgConsumidos.toFixed(1)} readOnly />
-      </label>
-      <label className="field">
-        <span>Muertos machos</span>
-        <input inputMode="numeric" type="number" min="0" value={muertosM} onChange={(event) => setMuertosM(event.target.value)} />
-      </label>
-      <label className="field">
-        <span>Muertas hembras</span>
-        <input inputMode="numeric" type="number" min="0" value={muertosH} onChange={(event) => setMuertosH(event.target.value)} />
-      </label>
-      <label className="field">
-        <span>Sin clasificar</span>
-        <input
-          inputMode="numeric"
-          type="number"
-          min="0"
-          value={muertosSinClasificar}
-          onChange={(event) => setMuertosSinClasificar(event.target.value)}
-        />
-      </label>
-      <label className="field">
-        <span>Sacrificados machos</span>
-        <input inputMode="numeric" type="number" min="0" value={sacrificadosM} onChange={(event) => setSacrificadosM(event.target.value)} />
-      </label>
-      <label className="field">
-        <span>Sacrificadas hembras</span>
-        <input inputMode="numeric" type="number" min="0" value={sacrificadosH} onChange={(event) => setSacrificadosH(event.target.value)} />
-      </label>
+      <section className="form-section">
+        <h3>Alimentación</h3>
+        <div className="form-grid">
+          <label className="field">
+            <span>Tipo alimento</span>
+            <select value={currentTipoId} onChange={(event) => setTipoAlimentoId(event.target.value)} required>
+              {tiposAlimento?.map((tipo) => (
+                <option key={tipo.TipoAlimentoID} value={tipo.TipoAlimentoID}>
+                  {tipo.Nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Bultos consumidos</span>
+            <input
+              inputMode="decimal"
+              type="number"
+              min="0"
+              step="0.25"
+              value={bultos}
+              onChange={(event) => setBultos(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>Kg consumidos</span>
+            <input value={kgConsumidos.toFixed(1)} readOnly />
+          </label>
+        </div>
+      </section>
+
+      <section className="form-section">
+        <h3>Mortalidad</h3>
+        <div className="form-grid">
+          <label className="field">
+            <span>Muertos machos</span>
+            <input inputMode="numeric" type="number" min="0" value={muertosM} onChange={(event) => setMuertosM(event.target.value)} />
+          </label>
+          <label className="field">
+            <span>Muertas hembras</span>
+            <input inputMode="numeric" type="number" min="0" value={muertosH} onChange={(event) => setMuertosH(event.target.value)} />
+          </label>
+          <label className="field">
+            <span>Sin clasificar</span>
+            <input
+              inputMode="numeric"
+              type="number"
+              min="0"
+              value={muertosSinClasificar}
+              onChange={(event) => setMuertosSinClasificar(event.target.value)}
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="form-section">
+        <label className="toggle-row">
+          <input
+            type="checkbox"
+            checked={sacrificioActivo}
+            onChange={(event) => {
+              setSacrificioActivo(event.target.checked);
+              if (!event.target.checked) {
+                setSacrificadosM('0');
+                setSacrificadosH('0');
+              }
+            }}
+          />
+          <span>
+            <strong>Registrar sacrificio hoy</strong>
+            <small>Activa estos campos cuando ya empezó la salida del pollo.</small>
+          </span>
+        </label>
+        {sacrificioActivo && (
+          <div className="form-grid">
+            <label className="field">
+              <span>Sacrificados machos</span>
+              <input
+                inputMode="numeric"
+                type="number"
+                min="0"
+                value={sacrificadosM}
+                onChange={(event) => setSacrificadosM(event.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span>Sacrificadas hembras</span>
+              <input
+                inputMode="numeric"
+                type="number"
+                min="0"
+                value={sacrificadosH}
+                onChange={(event) => setSacrificadosH(event.target.value)}
+              />
+            </label>
+          </div>
+        )}
+      </section>
+
       <label className="field field--full">
         <span>Observación</span>
         <textarea value={observacion} onChange={(event) => setObservacion(event.target.value)} rows={3} />
       </label>
       <button className="primary-action" disabled={saving || !currentTipoId}>
-        Guardar registro
+        Guardar registro diario
       </button>
     </form>
   );
