@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { ArrowDown, BarChart3, Bird, CalendarDays, Check, ClipboardList, Leaf, Package, Scale, ShieldPlus, UsersRound } from 'lucide-react';
+import { ArrowDown, BarChart3, Bird, CalendarDays, Check, ClipboardList, House, Leaf, Package, Scale, ShieldPlus, UsersRound } from 'lucide-react';
 import { fmtKg, fmtNumber, fmtPercent } from '../lib/format';
 import type { Galpon, Lote, LoteGalpon, LoteResumen } from '../types/entities';
 
@@ -221,6 +221,8 @@ export function GalponDashboardCard({
   const occupancyValue = fmtPercent(occupancyRatio, 0);
   const entryLabel = vacating ? 'quedan' : 'entrada';
   const isOverdue = !empty && growth.isOverdue;
+  const birdStageLabel = empty ? resolvedEmptyState.label : getBirdStageLabel(growth.index);
+  const compactSubtitle = empty ? resolvedEmptyState.detail : data.tipoAlimento || growth.stage.detail;
   const style = {
     '--capacity-ratio': capacityRatio,
     '--occupancy-percent': `${Math.round(occupancyPercent)}%`,
@@ -246,13 +248,89 @@ export function GalponDashboardCard({
         empty ? 'farm-shed--empty' : '',
         vacating ? 'farm-shed--vacating' : '',
         isOverdue ? 'farm-shed--overdue' : '',
+        selected ? 'farm-shed--expanded' : 'farm-shed--compact',
       ].join(' ')}
       style={style}
       aria-pressed={selected}
+      aria-expanded={selected}
       data-galpon-id={dataGalponId}
       onClick={onClick}
     >
-      <header className="farm-shed__hero-header">
+      <section className="farm-shed__compact-summary" aria-hidden={selected}>
+        <div className="farm-shed__compact-top">
+          <span className="farm-shed__compact-home">
+            <House size={34} strokeWidth={1.9} />
+          </span>
+          <div className="farm-shed__compact-title">
+            <strong>Galpón {data.galpon}</strong>
+            <span>
+              <Leaf size={17} />
+              {compactSubtitle}
+            </span>
+          </div>
+          <span className="farm-shed__compact-capacity">
+            <small>Capacidad</small>
+            <strong>{fmtNumber(data.capacidad)}</strong>
+            <span>cap.</span>
+          </span>
+        </div>
+
+        <div className="farm-shed__compact-main">
+          <div className="farm-shed__compact-day">
+            <small>Día</small>
+            <strong>{empty ? '-' : fmtNumber(data.dia)}</strong>
+            <span>{birdStageLabel}</span>
+          </div>
+          <div className="farm-shed__compact-bird" aria-hidden="true">
+            {empty ? (
+              <ShedProgressVisual progress={resolvedEmptyState.progress} />
+            ) : (
+              <img
+                className={`farm-shed__compact-bird-image farm-shed__compact-bird-image--day-${chickenImage.day}`}
+                src={chickenImage.src}
+                alt=""
+                loading="lazy"
+                decoding="async"
+              />
+            )}
+          </div>
+          <div className="farm-shed__compact-weight">
+            <small>Peso promedio</small>
+            <strong>
+              {empty ? '-' : fmtNumber(data.pesoPromedioKg, 2)}
+              {!empty && <span>kg</span>}
+            </strong>
+            <span>
+              <Scale size={16} />
+              por pollo
+            </span>
+          </div>
+        </div>
+
+        <div className="farm-shed__compact-progress" aria-hidden="true">
+          <span>
+            <span />
+          </span>
+          <strong>{occupancyValue}</strong>
+          <small>ocupación</small>
+        </div>
+
+        <div className="farm-shed__compact-metrics">
+          <CompactMetric icon={<Bird size={26} />} label="Ocupación" value={occupancyValue} detail={`${fmtNumber(data.entrada)} / ${fmtNumber(data.capacidad)} cap.`} />
+          <CompactMetric icon={<Package size={26} />} label="Consumo total" value={empty ? '-' : fmtKg(data.consumoKg, 0)} detail="Alimento" />
+          <CompactMetric icon={<Scale size={26} />} label="Conversión (CA)" value={empty ? '-' : fmtNumber(data.conversionCA, 2)} detail="Promedio" />
+          <CompactMetric icon={<ShieldPlus size={26} />} label="Mortalidad" value={empty ? '-' : `${fmtNumber(data.mortalidadPct, 1)}%`} detail="Acum." />
+          <CompactMetric
+            icon={<ClipboardList size={26} />}
+            label="Pendientes"
+            value={empty ? '-' : fmtNumber(data.pendientes)}
+            detail={vacating ? 'Por retirar' : 'Por hacer'}
+            tone={!empty && data.pendientes > 0 ? 'warn' : 'neutral'}
+          />
+        </div>
+      </section>
+
+      <header className="farm-shed__hero-header" aria-hidden={!selected}>
         <div className="farm-shed__title-block">
           <strong>Galpón {data.galpon}</strong>
         </div>
@@ -342,6 +420,23 @@ export function GalponDashboardCard({
       </footer>
     </button>
   );
+}
+
+function getBirdStageLabel(stageIndex: number) {
+  switch (stageIndex) {
+    case 0:
+      return 'Pollo bebé';
+    case 1:
+      return 'Pollo bebé';
+    case 2:
+      return 'Pollo levante';
+    case 3:
+      return 'Pollo engorde';
+    case 4:
+      return 'Listo sacrificio';
+    default:
+      return 'Pasado';
+  }
 }
 
 function getGrowthState(day: number) {
@@ -460,6 +555,31 @@ function FlockLayer() {
     <div className="farm-shed__flock" aria-hidden="true">
       <img className="farm-shed__flock-asset" src="/galpon-dashboard/flock-mass.svg" alt="" loading="lazy" decoding="async" />
     </div>
+  );
+}
+
+function CompactMetric({
+  icon,
+  label,
+  value,
+  detail,
+  tone = 'neutral',
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  detail: string;
+  tone?: 'neutral' | 'warn';
+}) {
+  return (
+    <span className={`farm-shed__compact-metric farm-shed__compact-metric--${tone}`}>
+      <span className="farm-shed__compact-metric-icon">{icon}</span>
+      <span>
+        <small>{label}</small>
+        <strong>{value}</strong>
+        <em>{detail}</em>
+      </span>
+    </span>
   );
 }
 
