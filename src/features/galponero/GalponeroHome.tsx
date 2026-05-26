@@ -55,14 +55,69 @@ const actionMeta: Record<GalponeroAction, { label: string; icon: ReactNode }> = 
 
 const secondaryActions = (Object.keys(actionMeta) as GalponeroAction[]).filter((action) => action !== 'dia' && action !== 'salida');
 
-const preparationStateOrder: Galpon['EstadoActual'][] = ['VACIO', 'LIMPIEZA', 'DESCANSO_SANITARIO', 'PREPARACION', 'RECIBIMIENTO'];
+type PrepCategoryKey = 'RETIRO' | 'DESINFECCION' | 'INSTALACION' | 'RECIBIMIENTO';
 
-const preparationTasks: Array<{ state: Galpon['EstadoActual']; title: string; detail: string }> = [
-  { state: 'LIMPIEZA', title: 'Retiro de gallinaza', detail: 'Cama vieja, pluma y residuos fuera del galpón' },
-  { state: 'DESCANSO_SANITARIO', title: 'Lavado y desinfección', detail: 'Lavado a presión y descanso sanitario' },
-  { state: 'PREPARACION', title: 'Instalación de equipo', detail: 'Cisco, divisiones, bebederos y comederos' },
-  { state: 'RECIBIMIENTO', title: 'Pre-calentamiento', detail: 'Temperatura y cortinas listas para recibir pollito' },
+interface PrepTask {
+  id: string;
+  title: string;
+  category: PrepCategoryKey;
+}
+
+const PREP_PROGRESS_MARKER = '[[POLLOS_PREP_PROGRESS:';
+const PREP_PROGRESS_END = ']]';
+
+const preparationCategories: Array<{ key: PrepCategoryKey; label: string; state: Galpon['EstadoActual']; tasks: PrepTask[] }> = [
+  {
+    key: 'RETIRO',
+    label: 'Retiro',
+    state: 'LIMPIEZA',
+    tasks: [
+      { id: 'recoger_equipo', title: 'Recoger Equipo', category: 'RETIRO' },
+      { id: 'barrer_pluma', title: 'Barrer Pluma', category: 'RETIRO' },
+      { id: 'sacar_caracha', title: 'Sacar Caracha', category: 'RETIRO' },
+      { id: 'amontonar_cama', title: 'Amontonar Cama durante 8 dias', category: 'RETIRO' },
+      { id: 'retiro_pollinaza', title: 'Retiro de Pollinaza Reusada en Exceso', category: 'RETIRO' },
+    ],
+  },
+  {
+    key: 'DESINFECCION',
+    label: 'Desinfección',
+    state: 'DESCANSO_SANITARIO',
+    tasks: [
+      { id: 'fumiga_coquito', title: 'Fumiga Coquito', category: 'DESINFECCION' },
+      { id: 'lavar_equipo', title: 'Lavar Equipo (Bebederos / Comederos)', category: 'DESINFECCION' },
+      { id: 'barrer_lavado_galpon', title: 'Barrer / Lavado Galpon', category: 'DESINFECCION' },
+      { id: 'calear', title: 'Calear', category: 'DESINFECCION' },
+      { id: 'fumiga_desinfectante', title: 'Fumiga Desinfectante', category: 'DESINFECCION' },
+    ],
+  },
+  {
+    key: 'INSTALACION',
+    label: 'Instalación',
+    state: 'PREPARACION',
+    tasks: [
+      { id: 'cisco_nuevo', title: 'Cisco Nuevo (en la mitad sin cama usada)', category: 'INSTALACION' },
+      { id: 'divisiones', title: 'Divisiones', category: 'INSTALACION' },
+      { id: 'encortinar', title: 'Encortinar', category: 'INSTALACION' },
+      { id: 'instalar_calentadoras', title: 'Instalar Calentadoras', category: 'INSTALACION' },
+      { id: 'bebederos_comederos_babies', title: 'Meter Bebederos de Volteo y Comederos Babies', category: 'INSTALACION' },
+    ],
+  },
+  {
+    key: 'RECIBIMIENTO',
+    label: 'Recibimiento',
+    state: 'RECIBIMIENTO',
+    tasks: [
+      { id: 'precalentar', title: 'Precalentar 8h antes de la llegada', category: 'RECIBIMIENTO' },
+      { id: 'purgar_lineas', title: 'Purgar Lineas', category: 'RECIBIMIENTO' },
+      { id: 'neutrar_agua', title: 'Neutrar el Agua de Bebida', category: 'RECIBIMIENTO' },
+      { id: 'verificar_temperatura', title: 'Verificar Temperatura', category: 'RECIBIMIENTO' },
+      { id: 'llegada_pollito', title: 'Llegada del Pollito', category: 'RECIBIMIENTO' },
+    ],
+  },
 ];
+
+const preparationTasks = preparationCategories.flatMap((category) => category.tasks);
 
 export function GalponeroHome({ user, onToast }: GalponeroHomeProps) {
   const today = todayISO();
@@ -275,17 +330,40 @@ function OccupiedGalponPanel({
 
 function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: (message: string) => void }) {
   const [saving, setSaving] = useState(false);
-  const currentIndex = getPreparationIndex(galpon.EstadoActual);
-  const progress = Math.round((currentIndex / preparationTasks.length) * 100);
-  const ready = currentIndex >= preparationTasks.length;
-  const nextState = preparationStateOrder[Math.min(currentIndex + 1, preparationStateOrder.length - 1)];
+  const completedTaskIds = getCompletedPrepTaskIds(galpon);
+  const completedSet = new Set(completedTaskIds);
+  const completedCount = completedTaskIds.length;
+  const progress = Math.round((completedCount / preparationTasks.length) * 100);
+  const currentTask = preparationTasks.find((task) => !completedSet.has(task.id));
+  const ready = !currentTask;
 
   async function handleAdvance() {
-    if (ready) return;
+    if (!currentTask) return;
     setSaving(true);
     try {
-      await actualizarEstadoGalpon(galpon.GalponID, nextState, galpon.Observaciones);
+      const nextCompleted = normalizePrepTaskIds([...completedTaskIds, currentTask.id]);
+      await actualizarEstadoGalpon(
+        galpon.GalponID,
+        getGalponStateForPrepProgress(nextCompleted),
+        writePrepProgress(galpon.Observaciones, nextCompleted),
+      );
       onSaved('Avance de alistamiento guardado offline.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleUndo() {
+    if (completedTaskIds.length === 0) return;
+    setSaving(true);
+    try {
+      const nextCompleted = completedTaskIds.slice(0, -1);
+      await actualizarEstadoGalpon(
+        galpon.GalponID,
+        getGalponStateForPrepProgress(nextCompleted),
+        writePrepProgress(galpon.Observaciones, nextCompleted),
+      );
+      onSaved('Última actividad de alistamiento revertida.');
     } finally {
       setSaving(false);
     }
@@ -296,42 +374,123 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
       <div className="prep-progress" aria-label={`Alistamiento ${progress}%`}>
         <div>
           <strong>{progress}% listo</strong>
-          <span>{ready ? 'Listo para recibir pollito' : 'Siguiente paso pendiente'}</span>
+          <span>{ready ? 'Listo para recibir pollito' : `Sigue: ${currentTask.title}`}</span>
         </div>
         <div className="prep-progress__bar">
           <span style={{ width: `${progress}%` }} />
         </div>
       </div>
 
-      <div className="prep-task-list">
-        {preparationTasks.map((task, index) => {
-          const state = ready || index < currentIndex ? 'complete' : index === currentIndex ? 'current' : 'pending';
+      <div className="prep-category-track" aria-label="Etapas de alistamiento">
+        {preparationCategories.map((category) => {
+          const categoryTasks = category.tasks;
+          const done = categoryTasks.filter((task) => completedSet.has(task.id)).length;
+          const state = done === categoryTasks.length ? 'complete' : done > 0 || currentTask?.category === category.key ? 'current' : 'pending';
           return (
-            <article className={`prep-task prep-task--${state}`} key={task.state}>
-              {state === 'complete' && <CheckCircle2 size={23} />}
-              {state === 'current' && <CircleDot size={23} />}
-              {state === 'pending' && <Circle size={23} />}
-              <div>
-                <strong>{task.title}</strong>
-                <span>{state === 'complete' ? 'Completado' : state === 'current' ? task.detail : 'Pendiente'}</span>
-              </div>
-            </article>
+            <span className={`prep-category-track__step prep-category-track__step--${state}`} key={category.key}>
+              {state === 'complete' && <CheckCircle2 size={18} />}
+              {state === 'current' && <CircleDot size={18} />}
+              {state === 'pending' && <Circle size={18} />}
+              <strong>{category.label}</strong>
+              <small>
+                {done}/{categoryTasks.length}
+              </small>
+            </span>
           );
         })}
       </div>
 
-      <button className="primary-action primary-action--icon" type="button" onClick={handleAdvance} disabled={saving || ready}>
-        <Check size={18} />
-        <span>{ready ? 'Alistamiento completo' : 'Guardar avance'}</span>
-      </button>
+      <div className="prep-category-list">
+        {preparationCategories.map((category) => (
+          <section className="prep-category-block" key={category.key}>
+            <header>
+              <strong>{category.label}</strong>
+              <span>
+                {category.tasks.filter((task) => completedSet.has(task.id)).length}/{category.tasks.length}
+              </span>
+            </header>
+            <div className="prep-task-list">
+              {category.tasks.map((task) => {
+                const state = completedSet.has(task.id) ? 'complete' : currentTask?.id === task.id ? 'current' : 'pending';
+                return (
+                  <article className={`prep-task prep-task--${state}`} key={task.id}>
+                    {state === 'complete' && <CheckCircle2 size={23} />}
+                    {state === 'current' && <CircleDot size={23} />}
+                    {state === 'pending' && <Circle size={23} />}
+                    <div>
+                      <strong>{task.title}</strong>
+                      <span>{state === 'complete' ? 'Completado' : state === 'current' ? 'En proceso' : 'Pendiente'}</span>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
+
+      <div className="prep-panel__actions">
+        <button className="primary-action primary-action--icon" type="button" onClick={handleAdvance} disabled={saving || ready}>
+          <Check size={18} />
+          <span>{ready ? 'Alistamiento completo' : 'Marcar realizada'}</span>
+        </button>
+        <button className="small-button" type="button" onClick={handleUndo} disabled={saving || completedTaskIds.length === 0}>
+          Deshacer última
+        </button>
+      </div>
     </div>
   );
 }
 
-function getPreparationIndex(estado: Galpon['EstadoActual']): number {
-  const index = preparationStateOrder.indexOf(estado);
-  if (index < 0) return 0;
-  return Math.min(index, preparationTasks.length);
+function getCompletedPrepTaskIds(galpon: Galpon): string[] {
+  const markerIndex = galpon.Observaciones.indexOf(PREP_PROGRESS_MARKER);
+  if (markerIndex >= 0) {
+    const start = markerIndex + PREP_PROGRESS_MARKER.length;
+    const end = galpon.Observaciones.indexOf(PREP_PROGRESS_END, start);
+    if (end > start) {
+      try {
+        const parsed = JSON.parse(galpon.Observaciones.slice(start, end)) as { completedTaskIds?: string[] };
+        return normalizePrepTaskIds(parsed.completedTaskIds ?? []);
+      } catch {
+        return [];
+      }
+    }
+  }
+
+  return normalizePrepTaskIds(getCompletedPrepTaskIdsFromState(galpon.EstadoActual));
+}
+
+function getCompletedPrepTaskIdsFromState(state: Galpon['EstadoActual']): string[] {
+  if (state === 'DESCANSO_SANITARIO') return preparationCategories[0].tasks.map((task) => task.id);
+  if (state === 'PREPARACION') return preparationCategories.slice(0, 2).flatMap((category) => category.tasks.map((task) => task.id));
+  if (state === 'RECIBIMIENTO') return preparationCategories.slice(0, 3).flatMap((category) => category.tasks.map((task) => task.id));
+  return [];
+}
+
+function normalizePrepTaskIds(ids: string[]): string[] {
+  const unique = new Set(ids);
+  return preparationTasks.filter((task) => unique.has(task.id)).map((task) => task.id);
+}
+
+function stripPrepProgress(observaciones: string): string {
+  const markerIndex = observaciones.indexOf(PREP_PROGRESS_MARKER);
+  if (markerIndex < 0) return observaciones;
+  const end = observaciones.indexOf(PREP_PROGRESS_END, markerIndex + PREP_PROGRESS_MARKER.length);
+  if (end < 0) return observaciones.slice(0, markerIndex).trim();
+  return `${observaciones.slice(0, markerIndex)}${observaciones.slice(end + PREP_PROGRESS_END.length)}`.trim();
+}
+
+function writePrepProgress(observaciones: string, completedTaskIds: string[]): string {
+  const visibleObservaciones = stripPrepProgress(observaciones);
+  const marker = `${PREP_PROGRESS_MARKER}${JSON.stringify({ completedTaskIds })}${PREP_PROGRESS_END}`;
+  return visibleObservaciones ? `${visibleObservaciones}\n${marker}` : marker;
+}
+
+function getGalponStateForPrepProgress(completedTaskIds: string[]): Galpon['EstadoActual'] {
+  if (completedTaskIds.length === 0) return 'VACIO';
+  const completedSet = new Set(completedTaskIds);
+  const activeCategory = preparationCategories.find((category) => category.tasks.some((task) => !completedSet.has(task.id)));
+  return activeCategory?.state ?? 'RECIBIMIENTO';
 }
 
 function LoteSummary({ summary }: { summary: LoteResumen }) {

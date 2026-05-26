@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { BarChart3, CalendarDays, ClipboardList, Leaf, Package, Scale, ShieldPlus, UsersRound } from 'lucide-react';
+import { ArrowDown, BarChart3, Bird, CalendarDays, Check, ClipboardList, Leaf, Package, Scale, ShieldPlus, UsersRound } from 'lucide-react';
 import { fmtKg, fmtNumber, fmtPercent } from '../lib/format';
 import type { Galpon, Lote, LoteGalpon, LoteResumen } from '../types/entities';
 
@@ -12,6 +12,21 @@ interface GalponMapProps {
   onSelectGalpon: (galponId: string, loteId?: string) => void;
 }
 
+export interface GalponDashboardCardData {
+  galpon: string;
+  etapa: string;
+  tipoAlimento: string;
+  capacidad: number;
+  dia: number;
+  pesoPromedioKg: number;
+  ocupacionPct: number;
+  entrada: number;
+  mortalidadPct: number;
+  consumoKg: number;
+  conversionCA: number;
+  pendientes: number;
+}
+
 const layout = [
   { label: 'Galpón 1', ids: ['galpon_1A', 'galpon_1B'], variant: 'vertical' },
   { label: 'Galpón 2', ids: ['galpon_2A', 'galpon_2B'], variant: 'vertical' },
@@ -21,10 +36,22 @@ const layout = [
 const growthStages = [
   { label: 'Bebé', range: '1-7', detail: 'Calor y arranque', className: 'baby', maxDay: 7 },
   { label: 'Inicio', range: '8-14', detail: 'Primer consumo', className: 'starter', maxDay: 14 },
-  { label: 'Levante', range: '15-24', detail: 'Pluma y espacio', className: 'grower', maxDay: 24 },
-  { label: 'Engorde', range: '25-34', detail: 'Peso acelerado', className: 'fattening', maxDay: 34 },
-  { label: 'Listo', range: '35-42', detail: 'Salida ideal', className: 'ready', maxDay: 42 },
-  { label: 'Pasado', range: '+42', detail: 'Priorizar salida', className: 'overdue', maxDay: Number.POSITIVE_INFINITY },
+  { label: 'Levante', range: '15-21', detail: 'Pluma y espacio', className: 'grower', maxDay: 21 },
+  { label: 'Engorde', range: '22-35', detail: 'Peso acelerado', className: 'fattening', maxDay: 35 },
+  { label: 'Listo', range: '36-50', detail: 'Salida ideal', className: 'ready', maxDay: 50 },
+  { label: 'Pasado', range: '+51', detail: 'Priorizar salida', className: 'overdue', maxDay: Number.POSITIVE_INFINITY },
+] as const;
+
+const chickenImages = [
+  { day: 1, src: '/chickens/day-1.png' },
+  { day: 8, src: '/chickens/day-8.png' },
+  { day: 15, src: '/chickens/day-15.png' },
+  { day: 22, src: '/chickens/day-22.png' },
+  { day: 29, src: '/chickens/day-29.png' },
+  { day: 36, src: '/chickens/day-36.png' },
+  { day: 43, src: '/chickens/day-43.png' },
+  { day: 50, src: '/chickens/day-50.png' },
+  { day: 57, src: '/chickens/day-57.png' },
 ] as const;
 
 const emptyStateFlow = [
@@ -130,6 +157,7 @@ function GalponTile({
   const isEmpty = assignments.length === 0 || !lote;
   const isVacating = !isEmpty && (galpon.EstadoActual === 'SALIDA' || salidaRatio > 0);
   const growth = getGrowthState(summary?.DiaLote ?? 0);
+  const chickenImage = getChickenImage(summary?.DiaLote ?? 1);
   const emptyState = getEmptyState(galpon.EstadoActual);
   const statusLabel = isEmpty ? emptyState.label : isVacating ? 'Salida' : growth.stage.label;
   const statusDetail = isEmpty ? emptyState.detail : isVacating ? `${fmtPercent(salidaRatio, 0)} desocupado` : growth.stage.detail;
@@ -203,7 +231,13 @@ function GalponTile({
         {isEmpty ? (
           <ShedProgressVisual progress={emptyState.progress} />
         ) : (
-          <BirdFigure stage={growth.stage.className} emphasis={isVacating || growth.isOverdue} />
+          <img
+            className={`farm-shed__bird-image farm-shed__bird-image--day-${chickenImage.day}`}
+            src={chickenImage.src}
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
         )}
       </section>
 
@@ -259,6 +293,16 @@ function getGrowthState(day: number) {
   };
 }
 
+function getChickenImage(day: number) {
+  const safeDay = Math.max(1, day);
+
+  for (let index = chickenImages.length - 1; index >= 0; index -= 1) {
+    if (safeDay >= chickenImages[index].day) return chickenImages[index];
+  }
+
+  return chickenImages[0];
+}
+
 function getEmptyState(estado: Galpon['EstadoActual']) {
   const index = emptyStateFlow.findIndex((step) => step.key === estado);
   const stageIndex = index >= 0 ? index : 0;
@@ -289,22 +333,6 @@ function StatBubble({
       <span>{label}</span>
       <strong>{value}</strong>
       {suffix && <small>{suffix}</small>}
-    </span>
-  );
-}
-
-function BirdFigure({ stage, emphasis = false }: { stage: (typeof growthStages)[number]['className']; emphasis?: boolean }) {
-  return (
-    <span className={`bird-figure bird-figure--${stage} ${emphasis ? 'bird-figure--emphasis' : ''}`}>
-      <span className="bird-figure__shadow" />
-      <span className="bird-figure__leg bird-figure__leg--left" />
-      <span className="bird-figure__leg bird-figure__leg--right" />
-      <span className="bird-figure__body" />
-      <span className="bird-figure__wing" />
-      <span className="bird-figure__head" />
-      <span className="bird-figure__comb" />
-      <span className="bird-figure__beak" />
-      <span className="bird-figure__eye" />
     </span>
   );
 }

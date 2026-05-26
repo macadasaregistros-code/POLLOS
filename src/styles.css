@@ -1430,6 +1430,100 @@ textarea {
   background: linear-gradient(90deg, #2364aa 0%, var(--brand) 58%, #c98d2a 100%);
 }
 
+.prep-category-track {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.prep-category-track__step {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 5px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #f7f9f8;
+  color: var(--muted);
+  text-align: center;
+}
+
+.prep-category-track__step svg {
+  color: var(--muted);
+}
+
+.prep-category-track__step--complete {
+  border-color: rgb(18 102 94 / 18%);
+  background: #eef9f3;
+  color: var(--brand-strong);
+}
+
+.prep-category-track__step--complete svg {
+  color: #3f7f35;
+}
+
+.prep-category-track__step--current {
+  border-color: rgb(35 100 170 / 28%);
+  background: #eef7ff;
+  color: var(--blue);
+}
+
+.prep-category-track__step--current svg {
+  color: var(--blue);
+}
+
+.prep-category-track__step strong,
+.prep-category-track__step small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prep-category-track__step strong {
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.prep-category-track__step small {
+  font-size: 0.68rem;
+  font-weight: 850;
+}
+
+.prep-category-list {
+  display: grid;
+  gap: 12px;
+}
+
+.prep-category-block {
+  display: grid;
+  gap: 8px;
+}
+
+.prep-category-block > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 2px;
+}
+
+.prep-category-block > header strong {
+  color: var(--brand-strong);
+  font-size: 0.94rem;
+  text-transform: uppercase;
+}
+
+.prep-category-block > header span {
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #edf4f0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
 .prep-task-list {
   display: grid;
   gap: 8px;
@@ -1486,6 +1580,17 @@ textarea {
   margin-top: 2px;
   color: var(--muted);
   font-size: 0.84rem;
+}
+
+.prep-panel__actions {
+  position: sticky;
+  bottom: -14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 0 0;
+  background: linear-gradient(180deg, rgb(255 253 249 / 0%) 0%, var(--surface) 32%);
 }
 
 .form-grid {
@@ -2651,6 +2756,69 @@ th {
 
 .farm-shed__weight-bubble {
   right: 7%;
+}
+
+.farm-shed__bird-image {
+  --bird-size: 236px;
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: min(84%, var(--bird-size));
+  height: min(92%, var(--bird-size));
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 18px 18px rgb(84 61 25 / 19%));
+  pointer-events: none;
+  transform-origin: center bottom;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+  user-select: none;
+}
+
+.farm-shed__bird-image--day-1 {
+  --bird-size: 190px;
+}
+
+.farm-shed__bird-image--day-8 {
+  --bird-size: 220px;
+}
+
+.farm-shed__bird-image--day-15 {
+  --bird-size: 236px;
+}
+
+.farm-shed__bird-image--day-22 {
+  --bird-size: 248px;
+}
+
+.farm-shed__bird-image--day-29 {
+  --bird-size: 258px;
+}
+
+.farm-shed__bird-image--day-36 {
+  --bird-size: 268px;
+}
+
+.farm-shed__bird-image--day-43 {
+  --bird-size: 276px;
+}
+
+.farm-shed__bird-image--day-50 {
+  --bird-size: 284px;
+}
+
+.farm-shed__bird-image--day-57 {
+  --bird-size: 292px;
+}
+
+.farm-shed--vacating .farm-shed__bird-image {
+  opacity: calc(0.42 + (var(--occupancy-ratio) * 0.58));
+  transform: translateY(4px) scale(calc(0.95 + (var(--occupancy-ratio) * 0.05)));
+}
+
+.farm-shed--overdue .farm-shed__bird-image {
+  filter: drop-shadow(0 18px 18px rgb(84 61 25 / 20%)) saturate(0.96) contrast(1.02);
 }
 
 .farm-shed--story .bird-figure {
