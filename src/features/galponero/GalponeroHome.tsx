@@ -22,7 +22,7 @@ import { fmtNumber, fmtPercent } from '../../lib/format';
 import type { ActividadLote, Galpon, Lote, LoteResumen, Usuario, VacunaLote } from '../../types/entities';
 import type { MainView } from '../../types/navigation';
 import { RegistrarDiaForm } from './RegistrarDiaForm';
-import { GalponeroActivityRecords, GalponeroEntradaView } from './GalponeroRecords';
+import { GalponeroActivityRecords, GalponeroEntradaView, type ActivityRecordKind, type EntryKind } from './GalponeroRecords';
 
 interface GalponeroHomeProps {
   user: Usuario;
@@ -112,6 +112,8 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   const vacunas = useLiveQuery(() => db.vacunasLote.toArray(), []);
   const syncQueue = useLiveQuery(() => db.syncQueue.toArray(), []);
   const [selectedGalponId, setSelectedGalponId] = useState('');
+  const [activeActivityRecord, setActiveActivityRecord] = useState<ActivityRecordKind | ''>('');
+  const [activeEntryRecord, setActiveEntryRecord] = useState<EntryKind | ''>('');
 
   useEffect(() => {
     if (!galponeroViews.includes(activeView)) onViewChange('actividades');
@@ -148,6 +150,11 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
     if (activeView !== 'galpones' && selectedGalponId) setSelectedGalponId('');
   }, [activeView, selectedGalponId]);
 
+  useEffect(() => {
+    if (activeView !== 'actividades' && activeActivityRecord) setActiveActivityRecord('');
+    if (activeView !== 'entrada' && activeEntryRecord) setActiveEntryRecord('');
+  }, [activeActivityRecord, activeEntryRecord, activeView]);
+
   function handleSelectGalpon(galponId: string) {
     setSelectedGalponId(galponId);
     onViewChange('galpones');
@@ -178,11 +185,15 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   return (
     <main className={`page-shell page-shell--mobile ${activeView === 'galpones' ? 'page-shell--galpones' : ''}`}>
       {activeView === 'actividades' && (
-        <>
-          <GalponeroTitle eyebrow="OPERACION" title="Actividades" icon={<Activity size={34} />} />
-          <ActivityBuckets actividades={actividades ?? []} vacunas={vacunas ?? []} today={today} />
-          <GalponeroActivityRecords user={user} onSaved={onToast} />
-        </>
+        activeActivityRecord ? (
+          <GalponeroActivityRecords user={user} activeKind={activeActivityRecord} onActiveKindChange={setActiveActivityRecord} onSaved={onToast} />
+        ) : (
+          <>
+            <GalponeroTitle eyebrow="OPERACION" title="Actividades" icon={<Activity size={34} />} />
+            <ActivityBuckets actividades={actividades ?? []} vacunas={vacunas ?? []} today={today} />
+            <GalponeroActivityRecords user={user} activeKind={activeActivityRecord} onActiveKindChange={setActiveActivityRecord} onSaved={onToast} />
+          </>
+        )
       )}
 
       {activeView === 'galpones' && (
@@ -200,10 +211,14 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
       )}
 
       {activeView === 'entrada' && (
-        <>
-          <GalponeroTitle eyebrow="MATERIALES" title="Entrada" icon={<Truck size={34} />} />
-          <GalponeroEntradaView user={user} onSaved={onToast} />
-        </>
+        activeEntryRecord ? (
+          <GalponeroEntradaView user={user} activeEntry={activeEntryRecord} onActiveEntryChange={setActiveEntryRecord} onSaved={onToast} />
+        ) : (
+          <>
+            <GalponeroTitle eyebrow="MATERIALES" title="Entrada" icon={<Truck size={34} />} />
+            <GalponeroEntradaView user={user} activeEntry={activeEntryRecord} onActiveEntryChange={setActiveEntryRecord} onSaved={onToast} />
+          </>
+        )
       )}
     </main>
   );
@@ -316,6 +331,15 @@ function OccupiedGalponPanel({
           Mortalidad
         </span>
       </div>
+
+      <section className="daily-record-hero">
+        <div>
+          <span>Datos del dia</span>
+          <h2>Registro operativo</h2>
+          <p>Alimento, mortalidad y sacrificio del lote en una sola pantalla.</p>
+        </div>
+        <img src="/chickens/day-36.png" alt="" loading="lazy" decoding="async" />
+      </section>
 
       <MobileCard className="native-view-card" title="Registro diario" subtitle="Alimento, mortalidad y sacrificio">
         <RegistrarDiaForm lote={lote} user={user} onSaved={onSaved} />

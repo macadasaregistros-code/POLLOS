@@ -13,6 +13,7 @@ interface RemoteTable {
   table: string;
   idField: string;
   readonly?: boolean;
+  optional?: boolean;
 }
 
 const BOOTSTRAP_TABLES: Array<{ localName: string } & RemoteTable> = [
@@ -37,19 +38,19 @@ const BOOTSTRAP_TABLES: Array<{ localName: string } & RemoteTable> = [
   { localName: 'EntradasAlimento', schema: 'pollos', table: 'entradas_alimento', idField: 'EntradaAlimentoID' },
   { localName: 'ConsumoAlimentoLote', schema: 'pollos', table: 'consumo_alimento_lote', idField: 'ConsumoID' },
   { localName: 'MaterialesLote', schema: 'pollos', table: 'materiales_lote', idField: 'MaterialLoteID' },
-  { localName: 'EntradasMaterial', schema: 'pollos', table: 'entradas_material', idField: 'EntradaMaterialID' },
-  { localName: 'InventarioMaterial', schema: 'pollos', table: 'inventario_material', idField: 'InventarioMaterialID' },
-  { localName: 'MovimientosInventarioMaterial', schema: 'pollos', table: 'movimientos_inventario_material', idField: 'MovimientoMaterialID' },
+  { localName: 'EntradasMaterial', schema: 'pollos', table: 'entradas_material', idField: 'EntradaMaterialID', optional: true },
+  { localName: 'InventarioMaterial', schema: 'pollos', table: 'inventario_material', idField: 'InventarioMaterialID', optional: true },
+  { localName: 'MovimientosInventarioMaterial', schema: 'pollos', table: 'movimientos_inventario_material', idField: 'MovimientoMaterialID', optional: true },
   { localName: 'ControlesAgua', schema: 'pollos', table: 'controles_agua', idField: 'ControlAguaID' },
   { localName: 'EventosSanitarios', schema: 'pollos', table: 'eventos_sanitarios', idField: 'EventoSanitarioID' },
   { localName: 'TratamientosVeterinarios', schema: 'pollos', table: 'tratamientos_veterinarios', idField: 'TratamientoID' },
-  { localName: 'RegistrosPlaga', schema: 'pollos', table: 'registros_plaga', idField: 'RegistroPlagaID' },
-  { localName: 'CompostajeCajones', schema: 'pollos', table: 'compostaje_cajones', idField: 'CajonID' },
-  { localName: 'CompostajeRegistros', schema: 'pollos', table: 'compostaje_registros', idField: 'RegistroCompostajeID' },
-  { localName: 'Medicamentos', schema: 'pollos', table: 'medicamentos', idField: 'MedicamentoID' },
-  { localName: 'PerrosRegistros', schema: 'pollos', table: 'perros_registros', idField: 'PerroRegistroID' },
-  { localName: 'Capacitaciones', schema: 'pollos', table: 'capacitaciones', idField: 'CapacitacionID' },
-  { localName: 'CapacitacionAsistentes', schema: 'pollos', table: 'capacitacion_asistentes', idField: 'AsistenteID' },
+  { localName: 'RegistrosPlaga', schema: 'pollos', table: 'registros_plaga', idField: 'RegistroPlagaID', optional: true },
+  { localName: 'CompostajeCajones', schema: 'pollos', table: 'compostaje_cajones', idField: 'CajonID', optional: true },
+  { localName: 'CompostajeRegistros', schema: 'pollos', table: 'compostaje_registros', idField: 'RegistroCompostajeID', optional: true },
+  { localName: 'Medicamentos', schema: 'pollos', table: 'medicamentos', idField: 'MedicamentoID', optional: true },
+  { localName: 'PerrosRegistros', schema: 'pollos', table: 'perros_registros', idField: 'PerroRegistroID', optional: true },
+  { localName: 'Capacitaciones', schema: 'pollos', table: 'capacitaciones', idField: 'CapacitacionID', optional: true },
+  { localName: 'CapacitacionAsistentes', schema: 'pollos', table: 'capacitacion_asistentes', idField: 'AsistenteID', optional: true },
   { localName: 'CostosLote', schema: 'pollos', table: 'costos_lote', idField: 'CostoID' },
   { localName: 'InventarioAlimento', schema: 'pollos', table: 'inventario_alimento', idField: 'InventarioID' },
   { localName: 'MovimientosInventarioAlimento', schema: 'pollos', table: 'movimientos_inventario_alimento', idField: 'MovimientoInventarioID' },
@@ -127,6 +128,42 @@ function normalizeForSupabase(payload: unknown): Record<string, unknown> {
   return record;
 }
 
+function getMissingColumnName(error: unknown): string | undefined {
+  if (!(error instanceof Error)) return undefined;
+  return /Could not find the '([^']+)' column/.exec(error.message)?.[1];
+}
+
+async function writeRemoteRecordWithColumnRetry(
+  table: RemoteTable,
+  method: 'POST' | 'PATCH',
+  record: Record<string, unknown>,
+  query: string,
+  headers: Record<string, string>,
+): Promise<void> {
+  const strippedColumns: string[] = [];
+  let nextRecord = { ...record };
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    try {
+      await request(table.schema, table.table, {
+        method,
+        body: JSON.stringify(nextRecord),
+        headers,
+      }, query);
+      return;
+    } catch (error) {
+      const missingColumn = getMissingColumnName(error);
+      if (!missingColumn || missingColumn === table.idField || !(missingColumn in nextRecord)) throw error;
+
+      strippedColumns.push(missingColumn);
+      nextRecord = { ...nextRecord };
+      delete nextRecord[missingColumn];
+    }
+  }
+
+  throw new Error(`No se pudo sincronizar ${table.table}; columnas no existentes: ${strippedColumns.join(', ')}`);
+}
+
 async function listRemoteRows(table: RemoteTable): Promise<object[]> {
   return request<object[]>(table.schema, table.table);
 }
@@ -137,35 +174,32 @@ async function upsertRemoteRecord(table: RemoteTable, payload: unknown): Promise
   const record = normalizeForSupabase(payload);
   if (!record[table.idField]) throw new Error(`Falta ID ${table.idField}.`);
 
-  await request(table.schema, table.table, {
-    method: 'POST',
-    body: JSON.stringify(record),
-    headers: {
-      Prefer: 'resolution=merge-duplicates,return=minimal',
-    },
-  }, `on_conflict=${encodeURIComponent(table.idField)}`);
+  await writeRemoteRecordWithColumnRetry(table, 'POST', record, `on_conflict=${encodeURIComponent(table.idField)}`, {
+    Prefer: 'resolution=merge-duplicates,return=minimal',
+  });
 }
 
 async function updateRemoteRecord(table: RemoteTable, id: string, payload: unknown): Promise<void> {
   if (table.readonly) throw new Error(`La tabla ${table.table} pertenece a core y es solo lectura para POLLOS.`);
 
   const record = normalizeForSupabase(payload);
-  await request(table.schema, table.table, {
-    method: 'PATCH',
-    body: JSON.stringify(record),
-    headers: {
-      Prefer: 'return=minimal',
-    },
-  }, `${encodeURIComponent(table.idField)}=eq.${encodeURIComponent(id)}`);
+  await writeRemoteRecordWithColumnRetry(table, 'PATCH', record, `${encodeURIComponent(table.idField)}=eq.${encodeURIComponent(id)}`, {
+    Prefer: 'return=minimal',
+  });
 }
 
 export async function bootstrap(user: Usuario): Promise<ApiResponse<BootstrapResponse>> {
   if (!isSupabaseConfigured()) return { ok: true, data: undefined };
 
   try {
-    const entries = await Promise.all(
-      BOOTSTRAP_TABLES.map(async (table) => [table.localName, await listRemoteRows(table)] as const),
-    );
+    const entries: Array<readonly [string, object[]]> = [];
+    for (const table of BOOTSTRAP_TABLES) {
+      try {
+        entries.push([table.localName, await listRemoteRows(table)] as const);
+      } catch (error) {
+        if (!table.optional) throw error;
+      }
+    }
     return {
       ok: true,
       data: {

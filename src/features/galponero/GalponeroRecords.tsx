@@ -33,61 +33,168 @@ import { fileToDataUrl } from '../../lib/photo';
 import { fmtNumber } from '../../lib/format';
 import type { CompostajeCajon, ControlAgua, Lote, TipoAlimento, TipoMaterialInventario, TipoPlaga, Usuario } from '../../types/entities';
 
-type ActivityRecordKind = 'vacunacion' | 'agua' | 'plagas' | 'medicamento' | 'compostaje' | 'perros' | 'capacitacion';
-type EntryKind = 'alimento' | 'cisco' | 'gas';
+export type ActivityRecordKind = 'vacunacion' | 'agua' | 'plagas' | 'medicamento' | 'compostaje' | 'perros' | 'capacitacion';
+export type EntryKind = 'alimento' | 'cisco' | 'gas';
 
-const activityOptions: Array<{ kind: ActivityRecordKind; title: string; subtitle: string; icon: ReactNode }> = [
-  { kind: 'vacunacion', title: 'Vacunacion', subtitle: 'Producto, lote, responsable, foto', icon: <Syringe size={28} /> },
-  { kind: 'agua', title: 'Tratamiento de agua', subtitle: 'Cloro, pH, verificacion y foto', icon: <Droplets size={28} /> },
-  { kind: 'plagas', title: 'Control de plagas', subtitle: 'Roedores y mosca semanal', icon: <Bug size={28} /> },
-  { kind: 'medicamento', title: 'Medicamento', subtitle: 'Dosis, via, motivo y retiro', icon: <Pill size={28} /> },
-  { kind: 'compostaje', title: 'Compostaje', subtitle: 'Cajon activo y acumulado', icon: <Sprout size={28} /> },
-  { kind: 'perros', title: 'Perros', subtitle: 'Rabia y desparasitacion', icon: <Dog size={28} /> },
-  { kind: 'capacitacion', title: 'Capacitaciones', subtitle: 'Tema, capacitador y asistentes', icon: <Users size={28} /> },
+interface RecordOption<TKind extends string> {
+  kind: TKind;
+  title: string;
+  subtitle: string;
+  eyebrow: string;
+  image: string;
+  icon: ReactNode;
+  tone: string;
+}
+
+const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
+  {
+    kind: 'vacunacion',
+    title: 'Vacunacion',
+    subtitle: 'Producto, laboratorio, lote, responsable y foto',
+    eyebrow: 'Sanidad',
+    image: '/chickens/day-15.png',
+    icon: <Syringe size={28} />,
+    tone: 'vaccine',
+  },
+  {
+    kind: 'agua',
+    title: 'Tratamiento de agua',
+    subtitle: 'Dosificacion, pH, cloro y soporte visual',
+    eyebrow: 'Agua',
+    image: '/galpon-dashboard/shed-scene.svg',
+    icon: <Droplets size={28} />,
+    tone: 'water',
+  },
+  {
+    kind: 'plagas',
+    title: 'Control de plagas',
+    subtitle: 'Roedores, mosca, producto y estaciones',
+    eyebrow: 'Bioseguridad',
+    image: '/galpon-dashboard/straw-texture.svg',
+    icon: <Bug size={28} />,
+    tone: 'pest',
+  },
+  {
+    kind: 'medicamento',
+    title: 'Medicamento',
+    subtitle: 'Dosis, via, motivo, responsable y retiro',
+    eyebrow: 'Veterinaria',
+    image: '/chickens/day-22.png',
+    icon: <Pill size={28} />,
+    tone: 'medicine',
+  },
+  {
+    kind: 'compostaje',
+    title: 'Compostaje',
+    subtitle: 'Cajon activo, tiempos y acumulado de mortalidad',
+    eyebrow: 'Compostaje',
+    image: '/galpon-dashboard/straw-texture.svg',
+    icon: <Sprout size={28} />,
+    tone: 'compost',
+  },
+  {
+    kind: 'perros',
+    title: 'Perros',
+    subtitle: 'Rabia, desparasitacion, producto y foto',
+    eyebrow: 'Bioseguridad',
+    image: '/galpon-dashboard/shed-scene.svg',
+    icon: <Dog size={28} />,
+    tone: 'dogs',
+  },
+  {
+    kind: 'capacitacion',
+    title: 'Capacitaciones',
+    subtitle: 'Tema, capacitador, firmas y asistentes',
+    eyebrow: 'Equipo',
+    image: '/galpon-dashboard/shed-scene.svg',
+    icon: <Users size={28} />,
+    tone: 'training',
+  },
 ];
 
-const entryOptions: Array<{ kind: EntryKind; title: string; subtitle: string; icon: ReactNode; tone: string }> = [
-  { kind: 'alimento', title: 'Alimento', subtitle: 'Tipo de alimento y bultos', icon: <PackagePlus size={30} />, tone: 'food' },
-  { kind: 'cisco', title: 'Cisco', subtitle: 'Pacas recibidas', icon: <Warehouse size={30} />, tone: 'cisco' },
-  { kind: 'gas', title: 'Gas', subtitle: 'Cilindros recibidos', icon: <Flame size={30} />, tone: 'gas' },
+const entryOptions: Array<RecordOption<EntryKind>> = [
+  {
+    kind: 'alimento',
+    title: 'Alimento',
+    subtitle: 'Selecciona etapa y cantidad de bultos recibidos',
+    eyebrow: 'Entrada',
+    image: '/chickens/day-29.png',
+    icon: <PackagePlus size={30} />,
+    tone: 'food',
+  },
+  {
+    kind: 'cisco',
+    title: 'Cisco',
+    subtitle: 'Pacas recibidas para cama y alistamiento',
+    eyebrow: 'Entrada',
+    image: '/galpon-dashboard/straw-texture.svg',
+    icon: <Warehouse size={30} />,
+    tone: 'cisco',
+  },
+  {
+    kind: 'gas',
+    title: 'Gas',
+    subtitle: 'Cilindros disponibles para calentadoras',
+    eyebrow: 'Entrada',
+    image: '/galpon-dashboard/shed-scene.svg',
+    icon: <Flame size={30} />,
+    tone: 'gas',
+  },
 ];
 
 const foodOrder = ['preiniciador', 'iniciador', 'engorde'] as const;
 
-export function GalponeroActivityRecords({ user, onSaved }: { user: Usuario; onSaved: (message: string) => void }) {
-  const [activeKind, setActiveKind] = useState<ActivityRecordKind | ''>('');
-  const activeOption = activityOptions.find((option) => option.kind === activeKind);
+interface ActivityRecordsProps {
+  user: Usuario;
+  activeKind?: ActivityRecordKind | '';
+  onActiveKindChange?: (kind: ActivityRecordKind | '') => void;
+  onSaved: (message: string) => void;
+}
 
-  if (activeKind) {
+interface EntradaViewProps {
+  user: Usuario;
+  activeEntry?: EntryKind | '';
+  onActiveEntryChange?: (entry: EntryKind | '') => void;
+  onSaved: (message: string) => void;
+}
+
+export function GalponeroActivityRecords({ user, activeKind, onActiveKindChange, onSaved }: ActivityRecordsProps) {
+  const [localActiveKind, setLocalActiveKind] = useState<ActivityRecordKind | ''>('');
+  const resolvedActiveKind = activeKind ?? localActiveKind;
+  const activeOption = activityOptions.find((option) => option.kind === resolvedActiveKind);
+
+  function setActiveKind(nextKind: ActivityRecordKind | '') {
+    if (onActiveKindChange) onActiveKindChange(nextKind);
+    else setLocalActiveKind(nextKind);
+  }
+
+  if (resolvedActiveKind && activeOption) {
     return (
-      <section className="native-record-screen">
-        <header className="native-record-screen__header">
-          <button className="native-back-button" type="button" aria-label="Volver a actividades" onClick={() => setActiveKind('')}>
-            <ArrowLeft size={21} />
-          </button>
-          <div>
-            <span>Registro</span>
-            <h2>{activeOption?.title}</h2>
-          </div>
-        </header>
-        {activeKind === 'vacunacion' && <VaccinationRecordForm user={user} onSaved={onSaved} />}
-        {activeKind === 'agua' && <WaterTreatmentForm user={user} onSaved={onSaved} />}
-        {activeKind === 'plagas' && <PestControlForm user={user} onSaved={onSaved} />}
-        {activeKind === 'medicamento' && <MedicationForm user={user} onSaved={onSaved} />}
-        {activeKind === 'compostaje' && <CompostingPanel />}
-        {activeKind === 'perros' && <DogRecordForm user={user} onSaved={onSaved} />}
-        {activeKind === 'capacitacion' && <TrainingForm user={user} onSaved={onSaved} />}
-      </section>
+      <NativeRecordScreen option={activeOption} context="Registro" onBack={() => setActiveKind('')}>
+        {resolvedActiveKind === 'vacunacion' && <VaccinationRecordForm user={user} onSaved={onSaved} />}
+        {resolvedActiveKind === 'agua' && <WaterTreatmentForm user={user} onSaved={onSaved} />}
+        {resolvedActiveKind === 'plagas' && <PestControlForm user={user} onSaved={onSaved} />}
+        {resolvedActiveKind === 'medicamento' && <MedicationForm user={user} onSaved={onSaved} />}
+        {resolvedActiveKind === 'compostaje' && <CompostingPanel />}
+        {resolvedActiveKind === 'perros' && <DogRecordForm user={user} onSaved={onSaved} />}
+        {resolvedActiveKind === 'capacitacion' && <TrainingForm user={user} onSaved={onSaved} />}
+      </NativeRecordScreen>
     );
   }
 
   return (
     <section className="record-launch-grid" aria-label="Registros operativos">
       {activityOptions.map((option) => (
-        <button key={option.kind} className="record-launch-card" type="button" onClick={() => setActiveKind(option.kind)}>
+        <button key={option.kind} className={`record-launch-card record-launch-card--${option.tone}`} type="button" onClick={() => setActiveKind(option.kind)}>
+          <span className="record-launch-card__image">
+            <img src={option.image} alt="" loading="lazy" decoding="async" />
+          </span>
           <span className="record-launch-card__icon">{option.icon}</span>
-          <strong>{option.title}</strong>
-          <small>{option.subtitle}</small>
+          <span className="record-launch-card__copy">
+            <small>{option.eyebrow}</small>
+            <strong>{option.title}</strong>
+            <em>{option.subtitle}</em>
+          </span>
         </button>
       ))}
       <ReminderPanel />
@@ -95,26 +202,23 @@ export function GalponeroActivityRecords({ user, onSaved }: { user: Usuario; onS
   );
 }
 
-export function GalponeroEntradaView({ user, onSaved }: { user: Usuario; onSaved: (message: string) => void }) {
-  const [activeEntry, setActiveEntry] = useState<EntryKind | ''>('');
-  const activeOption = entryOptions.find((option) => option.kind === activeEntry);
+export function GalponeroEntradaView({ user, activeEntry, onActiveEntryChange, onSaved }: EntradaViewProps) {
+  const [localActiveEntry, setLocalActiveEntry] = useState<EntryKind | ''>('');
+  const resolvedActiveEntry = activeEntry ?? localActiveEntry;
+  const activeOption = entryOptions.find((option) => option.kind === resolvedActiveEntry);
 
-  if (activeEntry) {
+  function setActiveEntry(nextEntry: EntryKind | '') {
+    if (onActiveEntryChange) onActiveEntryChange(nextEntry);
+    else setLocalActiveEntry(nextEntry);
+  }
+
+  if (resolvedActiveEntry && activeOption) {
     return (
-      <section className="native-record-screen">
-        <header className="native-record-screen__header">
-          <button className="native-back-button" type="button" aria-label="Volver a entrada" onClick={() => setActiveEntry('')}>
-            <ArrowLeft size={21} />
-          </button>
-          <div>
-            <span>Entrada</span>
-            <h2>{activeOption?.title}</h2>
-          </div>
-        </header>
-        {activeEntry === 'alimento' && <FoodEntryForm user={user} onSaved={onSaved} />}
-        {activeEntry === 'cisco' && <MaterialEntryForm type="CISCO" unit="PACAS" label="Pacas de cisco" user={user} onSaved={onSaved} />}
-        {activeEntry === 'gas' && <MaterialEntryForm type="GAS" unit="CILINDROS" label="Cilindros de gas" user={user} onSaved={onSaved} />}
-      </section>
+      <NativeRecordScreen option={activeOption} context="Entrada" onBack={() => setActiveEntry('')}>
+        {resolvedActiveEntry === 'alimento' && <FoodEntryForm user={user} onSaved={onSaved} />}
+        {resolvedActiveEntry === 'cisco' && <MaterialEntryForm type="CISCO" unit="PACAS" label="Pacas de cisco" user={user} onSaved={onSaved} />}
+        {resolvedActiveEntry === 'gas' && <MaterialEntryForm type="GAS" unit="CILINDROS" label="Cilindros de gas" user={user} onSaved={onSaved} />}
+      </NativeRecordScreen>
     );
   }
 
@@ -122,11 +226,46 @@ export function GalponeroEntradaView({ user, onSaved }: { user: Usuario; onSaved
     <section className="entry-card-grid" aria-label="Entradas de material">
       {entryOptions.map((option) => (
         <button key={option.kind} className={`entry-option-card entry-option-card--${option.tone}`} type="button" onClick={() => setActiveEntry(option.kind)}>
-          <span>{option.icon}</span>
+          <span className="entry-option-card__image">
+            <img src={option.image} alt="" loading="lazy" decoding="async" />
+          </span>
+          <span className="entry-option-card__icon">{option.icon}</span>
           <strong>{option.title}</strong>
           <small>{option.subtitle}</small>
         </button>
       ))}
+    </section>
+  );
+}
+
+function NativeRecordScreen({
+  option,
+  context,
+  onBack,
+  children,
+}: {
+  option: RecordOption<ActivityRecordKind | EntryKind>;
+  context: string;
+  onBack: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <section className={`native-record-screen native-record-screen--${option.tone}`}>
+      <header className="native-record-hero">
+        <button className="native-back-button native-record-hero__back" type="button" aria-label={`Volver a ${context.toLowerCase()}`} onClick={onBack}>
+          <ArrowLeft size={21} />
+        </button>
+        <div className="native-record-hero__copy">
+          <span>{option.eyebrow}</span>
+          <h2>{option.title}</h2>
+          <p>{option.subtitle}</p>
+        </div>
+        <div className="native-record-hero__visual" aria-hidden="true">
+          <img src={option.image} alt="" />
+          <span>{option.icon}</span>
+        </div>
+      </header>
+      <div className="record-form-surface">{children}</div>
     </section>
   );
 }
