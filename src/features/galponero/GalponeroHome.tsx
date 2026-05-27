@@ -4,41 +4,25 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Activity,
   ArrowLeft,
-  BarChart3,
   Check,
   CheckCircle2,
   Circle,
   CircleDot,
   ClipboardCheck,
-  Droplets,
-  Home,
-  Package,
-  Scale,
-  ShieldAlert,
-  ShoppingCart,
-  Syringe,
+  Map as MapIcon,
   Truck,
 } from 'lucide-react';
 import { GalponMap } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
-import { StatCard } from '../../components/StatCard';
 import { buildLoteResumen } from '../../services/calculationsService';
 import { actualizarEstadoGalpon } from '../../services/domainService';
 import { db } from '../../services/localDbService';
 import { todayISO } from '../../lib/date';
-import { fmtKg, fmtNumber, fmtPercent } from '../../lib/format';
-import type { Galpon, InventarioAlimento, Lote, LoteResumen, TipoAlimento, Usuario } from '../../types/entities';
+import { fmtNumber, fmtPercent } from '../../lib/format';
+import type { ActividadLote, Galpon, Lote, LoteResumen, Usuario, VacunaLote } from '../../types/entities';
 import type { MainView } from '../../types/navigation';
 import { RegistrarDiaForm } from './RegistrarDiaForm';
-import { PesajeForm } from './PesajeForm';
-import { ActividadesHoy } from './ActividadesHoy';
-import { VacunasView } from './VacunasView';
-import { EntradaAlimentoForm } from './EntradaAlimentoForm';
-import { SalidaForm } from './SalidaForm';
-import { AguaForm } from './AguaForm';
-import { EventoSanitarioForm } from './EventoSanitarioForm';
-
-type GalponeroAction = 'dia' | 'actividades' | 'pesaje' | 'vacunas' | 'entrada' | 'salida' | 'agua' | 'evento';
+import { GalponeroActivityRecords, GalponeroEntradaView } from './GalponeroRecords';
 
 interface GalponeroHomeProps {
   user: Usuario;
@@ -46,19 +30,6 @@ interface GalponeroHomeProps {
   onViewChange: (view: MainView) => void;
   onToast: (message: string) => void;
 }
-
-const actionMeta: Record<GalponeroAction, { label: string; icon: ReactNode }> = {
-  dia: { label: 'Registro diario', icon: <ClipboardCheck size={22} /> },
-  actividades: { label: 'Actividades de hoy', icon: <Activity size={22} /> },
-  pesaje: { label: 'Pesaje', icon: <Scale size={22} /> },
-  vacunas: { label: 'Vacunas', icon: <Syringe size={22} /> },
-  entrada: { label: 'Entrada alimento', icon: <Truck size={22} /> },
-  salida: { label: 'Sacrificio / salida', icon: <ShoppingCart size={22} /> },
-  agua: { label: 'Agua', icon: <Droplets size={22} /> },
-  evento: { label: 'Sanidad', icon: <ShieldAlert size={22} /> },
-};
-
-const occupiedActions: GalponeroAction[] = ['dia', 'actividades', 'agua', 'pesaje', 'vacunas', 'evento', 'salida'];
 
 type PrepCategoryKey = 'RETIRO' | 'DESINFECCION' | 'INSTALACION' | 'RECIBIMIENTO';
 
@@ -70,6 +41,7 @@ interface PrepTask {
 
 const PREP_PROGRESS_MARKER = '[[POLLOS_PREP_PROGRESS:';
 const PREP_PROGRESS_END = ']]';
+const galponeroViews: MainView[] = ['actividades', 'galpones', 'entrada'];
 
 const preparationCategories: Array<{ key: PrepCategoryKey; label: string; state: Galpon['EstadoActual']; tasks: PrepTask[] }> = [
   {
@@ -80,7 +52,7 @@ const preparationCategories: Array<{ key: PrepCategoryKey; label: string; state:
       { id: 'recoger_equipo', title: 'Recoger Equipo', category: 'RETIRO' },
       { id: 'barrer_pluma', title: 'Barrer Pluma', category: 'RETIRO' },
       { id: 'sacar_caracha', title: 'Sacar Caracha', category: 'RETIRO' },
-      { id: 'amontonar_cama', title: 'Amontonar Cama durante 8 dias', category: 'RETIRO' },
+      { id: 'amontonar_pollinaza', title: 'Amontonar pollinaza 8 dias y registrar temperatura interna', category: 'RETIRO' },
       { id: 'retiro_pollinaza', title: 'Retiro de Pollinaza Reusada en Exceso', category: 'RETIRO' },
     ],
   },
@@ -89,9 +61,13 @@ const preparationCategories: Array<{ key: PrepCategoryKey; label: string; state:
     label: 'Desinfeccion',
     state: 'DESCANSO_SANITARIO',
     tasks: [
-      { id: 'fumiga_coquito', title: 'Fumiga Coquito', category: 'DESINFECCION' },
+      { id: 'fumiga_coquito_1', title: 'Fumiga Coquito 1', category: 'DESINFECCION' },
+      { id: 'fumiga_coquito_2', title: 'Fumiga Coquito 2', category: 'DESINFECCION' },
       { id: 'lavar_equipo', title: 'Lavar Equipo (Bebederos / Comederos)', category: 'DESINFECCION' },
       { id: 'barrer_lavado_galpon', title: 'Barrer / Lavado Galpon', category: 'DESINFECCION' },
+      { id: 'barrer_malla_techo', title: 'Barrer malla y limpiar techo', category: 'DESINFECCION' },
+      { id: 'reparaciones_locativas', title: 'Reparaciones locativas', category: 'DESINFECCION' },
+      { id: 'lavar_tanques_purgar', title: 'Lavar tanques de agua y purgar lineas', category: 'DESINFECCION' },
       { id: 'calear', title: 'Calear', category: 'DESINFECCION' },
       { id: 'fumiga_desinfectante', title: 'Fumiga Desinfectante', category: 'DESINFECCION' },
     ],
@@ -135,10 +111,11 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   const actividades = useLiveQuery(() => db.actividadesLote.toArray(), []);
   const vacunas = useLiveQuery(() => db.vacunasLote.toArray(), []);
   const syncQueue = useLiveQuery(() => db.syncQueue.toArray(), []);
-  const inventario = useLiveQuery(() => db.inventarioAlimento.toArray(), []);
-  const tipos = useLiveQuery(() => db.tiposAlimento.toArray(), []);
-  const [selectedGalponId, setSelectedGalponId] = useState<string>('');
-  const [activeAction, setActiveAction] = useState<GalponeroAction>('dia');
+  const [selectedGalponId, setSelectedGalponId] = useState('');
+
+  useEffect(() => {
+    if (!galponeroViews.includes(activeView)) onViewChange('actividades');
+  }, [activeView, onViewChange]);
 
   const summaries = useMemo(() => {
     if (!lotes || !registros || !consumos || !pesajes || !loteGalpones || !galpones || !actividades || !vacunas || !syncQueue) return [];
@@ -160,33 +137,19 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   }, [actividades, consumos, galpones, loteGalpones, lotes, pesajes, registros, syncQueue, today, vacunas]);
 
   const activeAssignments = useMemo(() => (loteGalpones ?? []).filter((item) => item.Estado === 'ACTIVO'), [loteGalpones]);
-  const selectedGalpon = useMemo(() => {
-    const allGalpones = galpones ?? [];
-    if (allGalpones.length === 0 || !selectedGalponId) return undefined;
-    return allGalpones.find((galpon) => galpon.GalponID === selectedGalponId);
-  }, [galpones, selectedGalponId]);
+  const selectedGalpon = useMemo(() => (galpones ?? []).find((galpon) => galpon.GalponID === selectedGalponId), [galpones, selectedGalponId]);
   const selectedAssignment = selectedGalpon
     ? activeAssignments.find((assignment) => assignment.GalponID === selectedGalpon.GalponID)
     : undefined;
   const selectedLote = lotes?.find((lote) => lote.LoteID === selectedAssignment?.LoteID);
   const selectedSummary = summaries.find((summary) => summary.LoteID === selectedLote?.LoteID);
-  const activeSummaries = summaries.filter((summary) => lotes?.some((lote) => lote.LoteID === summary.LoteID && lote.EstadoLote === 'ACTIVO'));
-  const totals = {
-    lotes: activeSummaries.length,
-    aves: activeSummaries.reduce((sum, summary) => sum + summary.AvesVivasTotal, 0),
-    pendientes: activeSummaries.reduce((sum, summary) => sum + summary.PendientesHoy, 0),
-    vacunas: activeSummaries.reduce((sum, summary) => sum + summary.VacunasPendientes, 0),
-    sync: activeSummaries.reduce((sum, summary) => sum + summary.SyncPendiente, 0),
-    consumo: activeSummaries.reduce((sum, summary) => sum + summary.ConsumoAcumuladoKg, 0),
-  };
 
   useEffect(() => {
     if (activeView !== 'galpones' && selectedGalponId) setSelectedGalponId('');
   }, [activeView, selectedGalponId]);
 
-  function handleSelectGalpon(galponId: string, loteId?: string) {
+  function handleSelectGalpon(galponId: string) {
     setSelectedGalponId(galponId);
-    setActiveAction(loteId ? 'dia' : 'actividades');
     onViewChange('galpones');
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }
@@ -197,20 +160,12 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
         <GalponDetailHeader
           galpon={selectedGalpon}
           lote={selectedLote}
-          mode={selectedLote ? 'Ingreso de datos' : 'Alistamiento'}
+          mode={selectedLote ? 'Registro diario' : 'Alistamiento'}
           onBack={() => setSelectedGalponId('')}
         />
 
         {selectedLote && selectedSummary ? (
-          <OccupiedGalponPanel
-            galpon={selectedGalpon}
-            lote={selectedLote}
-            summary={selectedSummary}
-            user={user}
-            activeAction={activeAction}
-            onActionChange={setActiveAction}
-            onSaved={onToast}
-          />
+          <OccupiedGalponPanel lote={selectedLote} summary={selectedSummary} user={user} onSaved={onToast} />
         ) : (
           <MobileCard className="native-view-card">
             <GalponPreparationPanel galpon={selectedGalpon} onSaved={onToast} />
@@ -221,57 +176,18 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   }
 
   return (
-    <main className="page-shell page-shell--mobile">
-      {activeView === 'inicio' && (
+    <main className={`page-shell page-shell--mobile ${activeView === 'galpones' ? 'page-shell--galpones' : ''}`}>
+      {activeView === 'actividades' && (
         <>
-          <section className="page-title native-page-title">
-            <div>
-              <span>GALPONERO</span>
-              <h1>Inicio</h1>
-            </div>
-            <Home size={34} />
-          </section>
-
-          <section className="stats-grid stats-grid--wide">
-            <StatCard label="Lotes activos" value={fmtNumber(totals.lotes)} />
-            <StatCard label="Aves vivas" value={fmtNumber(totals.aves)} />
-            <StatCard label="Consumo acum." value={fmtKg(totals.consumo)} />
-            <StatCard label="Pendientes hoy" value={fmtNumber(totals.pendientes)} tone={totals.pendientes > 0 ? 'warn' : 'good'} />
-            <StatCard label="Vacunas" value={fmtNumber(totals.vacunas)} tone={totals.vacunas > 0 ? 'warn' : 'good'} />
-            <StatCard label="Por sincronizar" value={fmtNumber(totals.sync)} tone={totals.sync > 0 ? 'warn' : 'good'} />
-          </section>
-
-          <MobileCard title="Prioridad de hoy" subtitle="Toca un lote para ver su estado">
-            <div className="native-list">
-              {activeSummaries.length ? (
-                activeSummaries.map((summary) => (
-                  <button key={summary.LoteID} type="button" onClick={() => onViewChange('lotes')}>
-                    <span>
-                      <strong>{summary.CodigoLote}</strong>
-                      <small>
-                        Dia {summary.DiaLote} - {summary.Galpones.join(', ') || 'Sin galpon'}
-                      </small>
-                    </span>
-                    <span>{fmtNumber(summary.PendientesHoy + summary.VacunasPendientes)} pendientes</span>
-                  </button>
-                ))
-              ) : (
-                <p className="empty-state">No hay lotes activos.</p>
-              )}
-            </div>
-          </MobileCard>
+          <GalponeroTitle eyebrow="OPERACION" title="Actividades" icon={<Activity size={34} />} />
+          <ActivityBuckets actividades={actividades ?? []} vacunas={vacunas ?? []} today={today} />
+          <GalponeroActivityRecords user={user} onSaved={onToast} />
         </>
       )}
 
       {activeView === 'galpones' && (
         <>
-          <section className="page-title native-page-title">
-            <div>
-              <span>MAPA</span>
-              <h1>Galpones</h1>
-            </div>
-            <ClipboardCheck size={34} />
-          </section>
+          <GalponeroTitle eyebrow="MAPA" title="Galpones" icon={<MapIcon size={34} />} />
           <GalponMap
             galpones={galpones ?? []}
             loteGalpones={loteGalpones ?? []}
@@ -283,88 +199,78 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
         </>
       )}
 
-      {activeView === 'lotes' && (
+      {activeView === 'entrada' && (
         <>
-          <section className="page-title native-page-title">
-            <div>
-              <span>PRODUCCION</span>
-              <h1>Lotes</h1>
-            </div>
-            <BarChart3 size={34} />
-          </section>
-          <div className="lote-card-grid">
-            {activeSummaries.length ? (
-              activeSummaries.map((summary) => (
-                <MobileCard key={summary.LoteID} className="selected-lote-card">
-                  <LoteSummary summary={summary} />
-                </MobileCard>
-              ))
-            ) : (
-              <MobileCard>
-                <p className="empty-state">No hay lotes activos.</p>
-              </MobileCard>
-            )}
-          </div>
-        </>
-      )}
-
-      {activeView === 'inventario' && (
-        <>
-          <section className="page-title native-page-title">
-            <div>
-              <span>ALIMENTO</span>
-              <h1>Inventario</h1>
-            </div>
-            <Package size={34} />
-          </section>
-          <MobileCard title="Entrada de alimento">
-            <EntradaAlimentoForm user={user} onSaved={onToast} />
-          </MobileCard>
-          <MobileCard title="Existencias">
-            <InventoryList inventario={inventario ?? []} tipos={tipos ?? []} />
-          </MobileCard>
-        </>
-      )}
-
-      {activeView === 'reportes' && (
-        <>
-          <section className="page-title native-page-title">
-            <div>
-              <span>SEGUIMIENTO</span>
-              <h1>Reportes</h1>
-            </div>
-            <BarChart3 size={34} />
-          </section>
-          <MobileCard title="Resumen operativo">
-            <div className="stats-grid">
-              <StatCard label="Mortalidad prom." value={fmtPercent(getAverageMortality(activeSummaries))} />
-              <StatCard label="Consumo total" value={fmtKg(totals.consumo)} />
-              <StatCard label="Pendientes" value={fmtNumber(totals.pendientes)} tone={totals.pendientes > 0 ? 'warn' : 'good'} />
-              <StatCard label="Vacunas" value={fmtNumber(totals.vacunas)} tone={totals.vacunas > 0 ? 'warn' : 'good'} />
-            </div>
-          </MobileCard>
-          <MobileCard title="Lotes activos">
-            <div className="native-list">
-              {activeSummaries.length ? (
-                activeSummaries.map((summary) => (
-                  <button key={summary.LoteID} type="button" onClick={() => onViewChange('lotes')}>
-                    <span>
-                      <strong>{summary.CodigoLote}</strong>
-                      <small>
-                        Mortalidad {fmtPercent(summary.MortalidadAcumulada)} - CA {fmtNumber(summary.ConversionAlimenticia, 2)}
-                      </small>
-                    </span>
-                    <span>Dia {summary.DiaLote}</span>
-                  </button>
-                ))
-              ) : (
-                <p className="empty-state">No hay datos para reportar.</p>
-              )}
-            </div>
-          </MobileCard>
+          <GalponeroTitle eyebrow="MATERIALES" title="Entrada" icon={<Truck size={34} />} />
+          <GalponeroEntradaView user={user} onSaved={onToast} />
         </>
       )}
     </main>
+  );
+}
+
+function GalponeroTitle({ eyebrow, title, icon }: { eyebrow: string; title: string; icon: ReactNode }) {
+  return (
+    <section className="page-title native-page-title">
+      <div>
+        <span>{eyebrow}</span>
+        <h1>{title}</h1>
+      </div>
+      {icon}
+    </section>
+  );
+}
+
+function ActivityBuckets({ actividades, vacunas, today }: { actividades: ActividadLote[]; vacunas: VacunaLote[]; today: string }) {
+  const actionable = actividades.filter((actividad) => ['PENDIENTE', 'VENCIDA', 'NO_REALIZADA'].includes(actividad.Estado));
+  const vencidas = actionable.filter((actividad) => actividad.FechaProgramada < today || actividad.Estado === 'VENCIDA');
+  const hoy = actionable.filter((actividad) => actividad.FechaProgramada === today && actividad.Estado !== 'VENCIDA');
+  const proximas = actionable.filter((actividad) => actividad.FechaProgramada > today).slice(0, 6);
+  const vacunasPendientes = vacunas.filter((vacuna) => vacuna.Estado !== 'APLICADA');
+
+  return (
+    <section className="activity-bucket-grid">
+      <ActivityBucket title="Vencidas" count={vencidas.length} tone="warn" items={vencidas.slice(0, 4)} />
+      <ActivityBucket title="Hoy" count={hoy.length} tone="today" items={hoy.slice(0, 4)} />
+      <ActivityBucket title="Proximas" count={proximas.length + vacunasPendientes.length} tone="next" items={proximas.slice(0, 3)} vacunas={vacunasPendientes.slice(0, 3)} />
+    </section>
+  );
+}
+
+function ActivityBucket({
+  title,
+  count,
+  tone,
+  items,
+  vacunas = [],
+}: {
+  title: string;
+  count: number;
+  tone: 'warn' | 'today' | 'next';
+  items: ActividadLote[];
+  vacunas?: VacunaLote[];
+}) {
+  return (
+    <MobileCard className={`activity-bucket activity-bucket--${tone}`}>
+      <header>
+        <span>{title}</span>
+        <strong>{fmtNumber(count)}</strong>
+      </header>
+      <div className="activity-item-list">
+        {[...items.map((item) => ({ key: item.ActividadLoteID, title: item.NombreActividad, detail: item.FechaProgramada })),
+          ...vacunas.map((vacuna) => ({ key: vacuna.VacunaLoteID, title: `Vacuna ${vacuna.NombreVacuna}`, detail: vacuna.FechaProgramada })),
+        ].map((item) => (
+          <article key={item.key}>
+            <ClipboardCheck size={18} />
+            <span>
+              <strong>{item.title}</strong>
+              <small>{item.detail}</small>
+            </span>
+          </article>
+        ))}
+        {count === 0 && <p className="empty-state">Sin pendientes.</p>}
+      </div>
+    </MobileCard>
   );
 }
 
@@ -384,25 +290,19 @@ function GalponDetailHeader({ galpon, lote, mode, onBack }: { galpon: Galpon; lo
 }
 
 function OccupiedGalponPanel({
-  galpon,
   lote,
   summary,
   user,
-  activeAction,
-  onActionChange,
   onSaved,
 }: {
-  galpon: Galpon;
   lote: Lote;
   summary: LoteResumen;
   user: Usuario;
-  activeAction: GalponeroAction;
-  onActionChange: (action: GalponeroAction) => void;
   onSaved: (message: string) => void;
 }) {
   return (
     <div className="galpon-entry">
-      <div className="galpon-entry__summary" aria-label={`Resumen del galpon ${galpon.NombreGalpon}`}>
+      <div className="galpon-entry__summary" aria-label="Resumen del galpon">
         <span>
           <strong>{fmtNumber(summary.DiaLote)}</strong>
           Dia lote
@@ -417,24 +317,8 @@ function OccupiedGalponPanel({
         </span>
       </div>
 
-      <section className="native-action-tabs" aria-label={`Vistas del galpon ${galpon.NombreGalpon}`}>
-        {occupiedActions.map((action) => (
-          <button key={action} className={activeAction === action ? 'is-active' : ''} type="button" onClick={() => onActionChange(action)}>
-            {actionMeta[action].icon}
-            <span>{actionMeta[action].label}</span>
-          </button>
-        ))}
-      </section>
-
-      <MobileCard className="native-view-card" title={actionMeta[activeAction].label} subtitle={lote.CodigoLote}>
-        {activeAction === 'dia' && <RegistrarDiaForm lote={lote} user={user} onSaved={onSaved} />}
-        {activeAction === 'actividades' && <ActividadesHoy lote={lote} user={user} onSaved={onSaved} />}
-        {activeAction === 'agua' && <AguaForm lote={lote} user={user} onSaved={onSaved} />}
-        {activeAction === 'pesaje' && <PesajeForm lote={lote} user={user} onSaved={onSaved} />}
-        {activeAction === 'vacunas' && <VacunasView lote={lote} user={user} onSaved={onSaved} />}
-        {activeAction === 'evento' && <EventoSanitarioForm lote={lote} user={user} onSaved={onSaved} />}
-        {activeAction === 'salida' && <SalidaForm lote={lote} user={user} onSaved={onSaved} initialTipoSalida="SACRIFICIO" />}
-        {activeAction === 'entrada' && <EntradaAlimentoForm user={user} onSaved={onSaved} />}
+      <MobileCard className="native-view-card" title="Registro diario" subtitle="Alimento, mortalidad y sacrificio">
+        <RegistrarDiaForm lote={lote} user={user} onSaved={onSaved} />
       </MobileCard>
     </div>
   );
@@ -554,31 +438,6 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
   );
 }
 
-function InventoryList({ inventario, tipos }: { inventario: InventarioAlimento[]; tipos: TipoAlimento[] }) {
-  if (inventario.length === 0) return <p className="empty-state">No hay inventario registrado.</p>;
-
-  return (
-    <div className="inventory-list">
-      {inventario.map((item) => {
-        const tipo = tipos.find((tipoItem) => tipoItem.TipoAlimentoID === item.TipoAlimentoID);
-        return (
-          <div key={item.InventarioID}>
-            <span>{tipo?.Nombre ?? item.TipoAlimentoID}</span>
-            <strong>
-              {fmtNumber(item.BultosDisponibles, 1)} bultos - {fmtKg(item.KgDisponibles)}
-            </strong>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function getAverageMortality(summaries: LoteResumen[]): number {
-  if (summaries.length === 0) return 0;
-  return summaries.reduce((sum, summary) => sum + summary.MortalidadAcumulada, 0) / summaries.length;
-}
-
 function getCompletedPrepTaskIds(galpon: Galpon): string[] {
   const markerIndex = galpon.Observaciones.indexOf(PREP_PROGRESS_MARKER);
   if (markerIndex >= 0) {
@@ -628,32 +487,4 @@ function getGalponStateForPrepProgress(completedTaskIds: string[]): Galpon['Esta
   const completedSet = new Set(completedTaskIds);
   const activeCategory = preparationCategories.find((category) => category.tasks.some((task) => !completedSet.has(task.id)));
   return activeCategory?.state ?? 'RECIBIMIENTO';
-}
-
-function LoteSummary({ summary }: { summary: LoteResumen }) {
-  return (
-    <div className="lote-summary">
-      <header>
-        <div>
-          <strong>{summary.CodigoLote}</strong>
-          <span>Dia {summary.DiaLote}</span>
-        </div>
-        <small>{summary.Galpones.join(', ') || 'Sin galpon'}</small>
-      </header>
-      <div className="stats-grid">
-        <StatCard label="Aves vivas" value={fmtNumber(summary.AvesVivasTotal)} />
-        <StatCard label="Machos vivos" value={fmtNumber(summary.MachosVivos)} />
-        <StatCard label="Hembras vivas" value={fmtNumber(summary.HembrasVivas)} />
-        <StatCard label="Pendientes" value={fmtNumber(summary.PendientesHoy)} tone={summary.PendientesHoy > 0 ? 'warn' : 'good'} />
-        <StatCard label="Vacunas" value={fmtNumber(summary.VacunasPendientes)} tone={summary.VacunasPendientes > 0 ? 'warn' : 'good'} />
-        <StatCard label="Sync" value={fmtNumber(summary.SyncPendiente)} tone={summary.SyncPendiente > 0 ? 'warn' : 'good'} />
-      </div>
-      <div className="mini-metrics">
-        <span>Mortalidad {fmtPercent(summary.MortalidadAcumulada)}</span>
-        <span>Consumo {fmtKg(summary.ConsumoAcumuladoKg)}</span>
-        <span>Peso {fmtKg(summary.PesoPromedioGeneralKg, 2)}</span>
-        <span>CA {fmtNumber(summary.ConversionAlimenticia, 2)}</span>
-      </div>
-    </div>
-  );
 }

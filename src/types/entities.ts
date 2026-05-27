@@ -2,6 +2,8 @@ export type Role = 'ADMIN' | 'GALPONERO';
 export type EstadoSync = 'PENDIENTE' | 'SINCRONIZADO' | 'ERROR' | 'REQUIERE_REVISION';
 export type EstadoActivo = 'ACTIVO' | 'CERRADO' | 'CANCELADO';
 export type SexoLote = 'MIXTO' | 'MACHO' | 'HEMBRA';
+export type TipoMaterialInventario = 'CISCO' | 'GAS';
+export type TipoPlaga = 'ROEDORES' | 'MOSCA';
 export type FechaISO = string;
 export type FechaHoraISO = string;
 
@@ -184,12 +186,25 @@ export interface PlanVacunalBase {
 export interface VacunaLote extends SyncFields {
   VacunaLoteID: string;
   LoteID: string;
+  GalponID: string;
   NombreVacuna: string;
+  Producto: string;
+  Laboratorio: string;
+  LoteProducto: string;
+  FechaVencimientoProducto: FechaISO;
+  ViaAdministracion: string;
+  Cepa: string;
+  Enfermedad: string;
+  NumeroAves: number;
+  EdadDias: number;
   DiaProgramado: number;
   FechaProgramada: FechaISO;
   Estado: 'PENDIENTE' | 'APLICADA' | 'VENCIDA' | 'NO_APLICADA';
   FechaAplicacion: FechaHoraISO;
   AplicadaPor: string;
+  Responsable: string;
+  FirmaResponsable: string;
+  Foto: string;
   Observacion: string;
 }
 
@@ -239,10 +254,15 @@ export interface MaterialLote extends SyncFields {
 export interface ControlAgua extends SyncFields {
   ControlAguaID: string;
   Fecha: FechaISO;
+  FechaHoraRegistro: FechaHoraISO;
   LoteID: string;
   GalponID: string;
+  DosificacionCloroGr: number;
   PH: number;
   CloroLibrePPM: number;
+  VerificacionPH: number;
+  VerificacionCloro: number;
+  Foto: string;
   LugarMedicion: 'TANQUE' | 'LINEA' | 'NIPPLE';
   AccionTomada: string;
   Observacion: string;
@@ -397,6 +417,139 @@ export interface MovimientoInventarioAlimento {
   Observacion: string;
 }
 
+export interface EntradaMaterial extends SyncFields {
+  EntradaMaterialID: string;
+  Fecha: FechaISO;
+  FechaHoraRegistro: FechaHoraISO;
+  TipoMaterial: TipoMaterialInventario;
+  Cantidad: number;
+  Unidad: string;
+  ProveedorID: string;
+  FacturaID: string;
+  PrecioUnitario: number;
+  EstadoAdmin: 'PENDIENTE_PROVEEDOR' | 'PENDIENTE_FACTURA' | 'PENDIENTE_PRECIO' | 'COMPLETO';
+  RegistradoPor: string;
+  Observaciones: string;
+}
+
+export interface InventarioMaterial {
+  InventarioMaterialID: string;
+  TipoMaterial: TipoMaterialInventario;
+  CantidadDisponible: number;
+  Unidad: string;
+  UltimaActualizacion: FechaHoraISO;
+}
+
+export interface MovimientoInventarioMaterial {
+  MovimientoMaterialID: string;
+  Fecha: FechaISO;
+  TipoMovimiento: 'ENTRADA_COMPRA' | 'CONSUMO_LOTE' | 'AJUSTE_ADMIN' | 'MERMA';
+  TipoMaterial: TipoMaterialInventario;
+  Cantidad: number;
+  Unidad: string;
+  LoteID: string;
+  GalponID: string;
+  ProveedorID: string;
+  FacturaID: string;
+  Origen: string;
+  Destino: string;
+  RegistradoPor: string;
+  Observacion: string;
+}
+
+export interface RegistroPlaga extends SyncFields {
+  RegistroPlagaID: string;
+  Fecha: FechaISO;
+  FechaHoraRegistro: FechaHoraISO;
+  TipoPlaga: TipoPlaga;
+  GalponID: string;
+  Producto: string;
+  Dosificacion: string;
+  EstacionesVeneno: number;
+  Responsable: string;
+  Foto: string;
+  Observaciones: string;
+}
+
+export interface CompostajeCajon extends SyncFields {
+  CajonID: string;
+  CodigoCajon: string;
+  Estado: 'ACTIVO' | 'LLENADO_CERRADO' | 'VOLTEO_PENDIENTE' | 'RETIRO_PENDIENTE' | 'RETIRADO';
+  FechaInicio: FechaISO;
+  FechaFinLlenado: FechaISO;
+  FechaVolteo: FechaISO;
+  FechaRetiro: FechaISO;
+  AvesAcumuladas: number;
+  Observaciones: string;
+}
+
+export interface CompostajeRegistro extends SyncFields {
+  RegistroCompostajeID: string;
+  CajonID: string;
+  Fecha: FechaISO;
+  FechaHoraRegistro: FechaHoraISO;
+  LoteID: string;
+  GalponID: string;
+  RegistroDiarioID: string;
+  MuertosMachos: number;
+  MuertosHembras: number;
+  MuertosSinClasificar: number;
+  TotalAves: number;
+  Fuente: 'MORTALIDAD_DIARIA' | 'AJUSTE_MANUAL';
+  RegistradoPor: string;
+  Observaciones: string;
+}
+
+export interface MedicamentoRegistro extends SyncFields {
+  MedicamentoID: string;
+  Fecha: FechaISO;
+  FechaHoraRegistro: FechaHoraISO;
+  LoteID: string;
+  GalponID: string;
+  Producto: string;
+  Dosis: string;
+  ViaAdministracion: string;
+  Motivo: string;
+  Responsable: string;
+  PeriodoRetiroDias: number;
+  Foto: string;
+  Observaciones: string;
+}
+
+export interface PerroRegistro extends SyncFields {
+  PerroRegistroID: string;
+  Fecha: FechaISO;
+  FechaHoraRegistro: FechaHoraISO;
+  NombrePerro: string;
+  TipoRegistro: 'RABIA' | 'DESPARASITACION';
+  Producto: string;
+  Laboratorio: string;
+  LoteProducto: string;
+  FechaVencimiento: FechaISO;
+  Responsable: string;
+  FirmaResponsable: string;
+  Foto: string;
+  Observaciones: string;
+}
+
+export interface Capacitacion extends SyncFields {
+  CapacitacionID: string;
+  Fecha: FechaISO;
+  FechaHoraRegistro: FechaHoraISO;
+  Tema: string;
+  Capacitador: string;
+  FirmaCapacitador: string;
+  Observaciones: string;
+  RegistradoPor: string;
+}
+
+export interface CapacitacionAsistente extends SyncFields {
+  AsistenteID: string;
+  CapacitacionID: string;
+  Nombre: string;
+  Firma: string;
+}
+
 export interface CurvaEstandar {
   CurvaID: string;
   LineaGenetica: string;
@@ -512,9 +665,19 @@ export type SyncEntityTable =
   | 'EntradasAlimento'
   | 'ConsumoAlimentoLote'
   | 'MaterialesLote'
+  | 'EntradasMaterial'
+  | 'InventarioMaterial'
+  | 'MovimientosInventarioMaterial'
   | 'ControlesAgua'
   | 'EventosSanitarios'
   | 'TratamientosVeterinarios'
+  | 'RegistrosPlaga'
+  | 'CompostajeCajones'
+  | 'CompostajeRegistros'
+  | 'Medicamentos'
+  | 'PerrosRegistros'
+  | 'Capacitaciones'
+  | 'CapacitacionAsistentes'
   | 'Proveedores'
   | 'Clientes'
   | 'TiposAlimento'

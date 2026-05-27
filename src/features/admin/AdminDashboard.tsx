@@ -37,6 +37,9 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
   const syncQueue = useLiveQuery(() => db.syncQueue.toArray(), []);
   const alertas = useLiveQuery(() => db.alertas.toArray(), []);
   const inventario = useLiveQuery(() => db.inventarioAlimento.toArray(), []);
+  const inventarioMaterial = useLiveQuery(() => db.inventarioMaterial.toArray(), []);
+  const movimientosMaterial = useLiveQuery(() => db.movimientosInventarioMaterial.toArray(), []);
+  const entradasMaterial = useLiveQuery(() => db.entradasMaterial.toArray(), []);
   const tipos = useLiveQuery(() => db.tiposAlimento.toArray(), []);
   const salidas = useLiveQuery(() => db.salidasPollo.toArray(), []);
   const [selectedLoteId, setSelectedLoteId] = useState('');
@@ -216,6 +219,9 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
           <AdminTitle eyebrow="ALIMENTO" title="Inventario" icon={<Package size={34} />} />
           <MobileCard title="Existencias">
             <InventoryList inventario={inventario ?? []} tipos={tipos ?? []} />
+          </MobileCard>
+          <MobileCard title="Auditoria materiales">
+            <MaterialAuditList inventario={inventarioMaterial ?? []} movimientos={movimientosMaterial ?? []} entradas={entradasMaterial ?? []} />
           </MobileCard>
           <AdminAdvancedModules user={user} onToast={onToast} initialTab="inventario" visibleTabs={['inventario']} />
         </>
@@ -413,6 +419,49 @@ function InventoryList({
               {fmtNumber(item.BultosDisponibles, 1)} bultos - {fmtKg(item.KgDisponibles)}
             </strong>
           </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MaterialAuditList({
+  inventario,
+  movimientos,
+  entradas,
+}: {
+  inventario: Array<{ InventarioMaterialID: string; TipoMaterial: string; CantidadDisponible: number; Unidad: string }>;
+  movimientos: Array<{ MovimientoMaterialID: string; TipoMaterial: string; TipoMovimiento: string; Cantidad: number; Unidad: string; Fecha: string }>;
+  entradas: Array<{ EntradaMaterialID: string; TipoMaterial: string; Cantidad: number; Unidad: string; Fecha: string }>;
+}) {
+  const tipos = ['CISCO', 'GAS'];
+
+  if (inventario.length === 0 && movimientos.length === 0 && entradas.length === 0) {
+    return <p className="empty-state">No hay entradas de cisco o gas registradas.</p>;
+  }
+
+  return (
+    <div className="material-audit-list">
+      {tipos.map((tipo) => {
+        const saldo = inventario.find((item) => item.TipoMaterial === tipo);
+        const entradasTipo = entradas.filter((entrada) => entrada.TipoMaterial === tipo);
+        const movimientosTipo = movimientos.filter((movimiento) => movimiento.TipoMaterial === tipo);
+        const totalEntradas = entradasTipo.reduce((sum, entrada) => sum + entrada.Cantidad, 0);
+        const totalSalidas = movimientosTipo
+          .filter((movimiento) => movimiento.TipoMovimiento !== 'ENTRADA_COMPRA')
+          .reduce((sum, movimiento) => sum + movimiento.Cantidad, 0);
+        return (
+          <article key={tipo}>
+            <header>
+              <strong>{tipo === 'CISCO' ? 'Cisco' : 'Gas'}</strong>
+              <span>
+                {fmtNumber(saldo?.CantidadDisponible ?? Math.max(0, totalEntradas - totalSalidas), 1)} {saldo?.Unidad || (tipo === 'CISCO' ? 'PACAS' : 'CILINDROS')}
+              </span>
+            </header>
+            <small>
+              Entradas {fmtNumber(totalEntradas, 1)} - salidas/ajustes {fmtNumber(totalSalidas, 1)}
+            </small>
+          </article>
         );
       })}
     </div>

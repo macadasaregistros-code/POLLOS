@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { BarChart3, ClipboardList, Home, Map, Package, RefreshCcw, Shield, UserRound } from 'lucide-react';
+import { Activity, BarChart3, ClipboardList, Home, Map, Package, RefreshCcw, Shield, Truck, UserRound } from 'lucide-react';
 import { RoleGuard } from './components/RoleGuard';
 import { SyncStatusBadge } from './components/SyncStatusBadge';
 import { AdminDashboard } from './features/admin/AdminDashboard';
@@ -17,13 +17,27 @@ import type { Role, Usuario } from './types/entities';
 const FORCE_RESET_KEY = 'pollos.forceResetDb';
 const RESET_ATTEMPTED_KEY = 'pollos.resetAttempted';
 
-const mainNavItems: Array<{ view: MainView; label: string; icon: typeof Home }> = [
+const adminNavItems: Array<{ view: MainView; label: string; icon: typeof Home }> = [
   { view: 'inicio', label: 'Inicio', icon: Home },
   { view: 'galpones', label: 'Galpones', icon: Map },
   { view: 'lotes', label: 'Lotes', icon: ClipboardList },
   { view: 'inventario', label: 'Inventario', icon: Package },
   { view: 'reportes', label: 'Reportes', icon: BarChart3 },
 ];
+
+const galponeroNavItems: Array<{ view: MainView; label: string; icon: typeof Home }> = [
+  { view: 'actividades', label: 'Actividades', icon: Activity },
+  { view: 'galpones', label: 'Galpones', icon: Map },
+  { view: 'entrada', label: 'Entrada', icon: Truck },
+];
+
+function getDefaultViewForRole(role: Role): MainView {
+  return role === 'GALPONERO' ? 'actividades' : 'inicio';
+}
+
+function getNavItemsForRole(role: Role): Array<{ view: MainView; label: string; icon: typeof Home }> {
+  return role === 'GALPONERO' ? galponeroNavItems : adminNavItems;
+}
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -173,7 +187,7 @@ function AuthenticatedApp({
   const [toast, setToast] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [bootstrappedRemote, setBootstrappedRemote] = useState(false);
-  const [activeView, setActiveView] = useState<MainView>('inicio');
+  const [activeView, setActiveView] = useState<MainView>(() => getDefaultViewForRole(user.Rol));
   const online = useOnlineStatus();
   const pendingCount = useLiveQuery(() => db.syncQueue.where('EstadoSync').anyOf(['PENDIENTE', 'ERROR']).count(), []);
 
@@ -201,7 +215,7 @@ function AuthenticatedApp({
   async function handleRoleChange(role: Role) {
     const nextUser = await switchRole(role);
     setUser(nextUser);
-    handleViewChange('inicio');
+    handleViewChange(getDefaultViewForRole(role));
     setBootstrappedRemote(false);
   }
 
@@ -264,17 +278,18 @@ function AuthenticatedApp({
         <AdminDashboard user={user} activeView={activeView} onToast={setToast} />
       </RoleGuard>
 
-      <MainNavigation activeView={activeView} onViewChange={handleViewChange} />
+      <MainNavigation role={user.Rol} activeView={activeView} onViewChange={handleViewChange} />
 
       {toast && <div className="toast">{toast}</div>}
     </div>
   );
 }
 
-function MainNavigation({ activeView, onViewChange }: { activeView: MainView; onViewChange: (view: MainView) => void }) {
+function MainNavigation({ role, activeView, onViewChange }: { role: Role; activeView: MainView; onViewChange: (view: MainView) => void }) {
+  const navItems = getNavItemsForRole(role);
   return (
     <nav className="app-main-nav" aria-label="Menu principal">
-      {mainNavItems.map((item) => {
+      {navItems.map((item) => {
         const Icon = item.icon;
         return (
           <button

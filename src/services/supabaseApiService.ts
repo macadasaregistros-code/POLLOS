@@ -37,9 +37,19 @@ const BOOTSTRAP_TABLES: Array<{ localName: string } & RemoteTable> = [
   { localName: 'EntradasAlimento', schema: 'pollos', table: 'entradas_alimento', idField: 'EntradaAlimentoID' },
   { localName: 'ConsumoAlimentoLote', schema: 'pollos', table: 'consumo_alimento_lote', idField: 'ConsumoID' },
   { localName: 'MaterialesLote', schema: 'pollos', table: 'materiales_lote', idField: 'MaterialLoteID' },
+  { localName: 'EntradasMaterial', schema: 'pollos', table: 'entradas_material', idField: 'EntradaMaterialID' },
+  { localName: 'InventarioMaterial', schema: 'pollos', table: 'inventario_material', idField: 'InventarioMaterialID' },
+  { localName: 'MovimientosInventarioMaterial', schema: 'pollos', table: 'movimientos_inventario_material', idField: 'MovimientoMaterialID' },
   { localName: 'ControlesAgua', schema: 'pollos', table: 'controles_agua', idField: 'ControlAguaID' },
   { localName: 'EventosSanitarios', schema: 'pollos', table: 'eventos_sanitarios', idField: 'EventoSanitarioID' },
   { localName: 'TratamientosVeterinarios', schema: 'pollos', table: 'tratamientos_veterinarios', idField: 'TratamientoID' },
+  { localName: 'RegistrosPlaga', schema: 'pollos', table: 'registros_plaga', idField: 'RegistroPlagaID' },
+  { localName: 'CompostajeCajones', schema: 'pollos', table: 'compostaje_cajones', idField: 'CajonID' },
+  { localName: 'CompostajeRegistros', schema: 'pollos', table: 'compostaje_registros', idField: 'RegistroCompostajeID' },
+  { localName: 'Medicamentos', schema: 'pollos', table: 'medicamentos', idField: 'MedicamentoID' },
+  { localName: 'PerrosRegistros', schema: 'pollos', table: 'perros_registros', idField: 'PerroRegistroID' },
+  { localName: 'Capacitaciones', schema: 'pollos', table: 'capacitaciones', idField: 'CapacitacionID' },
+  { localName: 'CapacitacionAsistentes', schema: 'pollos', table: 'capacitacion_asistentes', idField: 'AsistenteID' },
   { localName: 'CostosLote', schema: 'pollos', table: 'costos_lote', idField: 'CostoID' },
   { localName: 'InventarioAlimento', schema: 'pollos', table: 'inventario_alimento', idField: 'InventarioID' },
   { localName: 'MovimientosInventarioAlimento', schema: 'pollos', table: 'movimientos_inventario_alimento', idField: 'MovimientoInventarioID' },
@@ -61,6 +71,8 @@ const NULLABLE_DATE_FIELDS = new Set([
   'FechaAplicacion',
   'FechaResuelta',
   'FechaHoraUltimaEdicion',
+  'FechaVencimientoProducto',
+  'FechaVencimiento',
 ]);
 
 export function isSupabaseConfigured(): boolean {
