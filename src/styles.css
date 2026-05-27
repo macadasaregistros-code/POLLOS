@@ -4324,3 +4324,573 @@ th {
     font-size: 0.56rem;
   }
 }
+
+/* Six-shed overview density */
+.farm-map-card {
+  padding: 14px;
+}
+
+.farm-map-card__header {
+  margin-bottom: 10px;
+}
+
+.farm-map__scroll {
+  padding-bottom: 2px;
+}
+
+.farm-map__grid {
+  min-width: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.farm-map__group,
+.farm-map__group--horizontal,
+.farm-map__group--vertical {
+  gap: 8px;
+}
+
+.farm-map__group-label {
+  min-height: 18px;
+  padding-inline: 7px;
+  font-size: 0.66rem;
+}
+
+.farm-shed--compact {
+  min-height: 218px;
+  border-radius: 22px;
+  padding: 8px;
+  box-shadow:
+    0 14px 26px rgb(20 33 29 / 10%),
+    0 2px 8px rgb(20 33 29 / 4%),
+    inset 0 0 0 1px rgb(255 255 255 / 84%);
+}
+
+.farm-shed--compact .farm-shed__compact-summary {
+  gap: 7px;
+  border-radius: 17px;
+  padding: 7px;
+}
+
+.farm-shed--compact .farm-shed__compact-summary::after {
+  height: 58px;
+  opacity: 0.44;
+}
+
+.farm-shed--compact .farm-shed__compact-top {
+  grid-template-columns: 41px minmax(0, 1fr) 74px;
+  gap: 7px;
+}
+
+.farm-shed--compact .farm-shed__compact-home {
+  width: 38px;
+  height: 38px;
+}
+
+.farm-shed--compact .farm-shed__compact-home svg {
+  width: 24px;
+  height: 24px;
+}
+
+.farm-shed--compact .farm-shed__compact-title {
+  gap: 1px;
+}
+
+.farm-shed--compact .farm-shed__compact-title strong {
+  font-size: clamp(1rem, 1.35vw, 1.22rem);
+}
+
+.farm-shed--compact .farm-shed__compact-title span {
+  gap: 4px;
+  font-size: 0.72rem;
+}
+
+.farm-shed--compact .farm-shed__compact-title span svg {
+  width: 13px;
+  height: 13px;
+}
+
+.farm-shed--compact .farm-shed__compact-capacity {
+  min-height: 42px;
+  border-radius: 9px;
+}
+
+.farm-shed--compact .farm-shed__compact-capacity small {
+  font-size: 0.5rem;
+}
+
+.farm-shed--compact .farm-shed__compact-capacity strong {
+  font-size: 0.98rem;
+}
+
+.farm-shed--compact .farm-shed__compact-capacity span {
+  font-size: 0.64rem;
+}
+
+.farm-shed--compact .farm-shed__compact-main {
+  grid-template-columns: 58px minmax(0, 1fr) 80px;
+  gap: 6px;
+  min-height: 72px;
+}
+
+.farm-shed--compact .farm-shed__compact-day small,
+.farm-shed--compact .farm-shed__compact-weight small {
+  font-size: 0.54rem;
+}
+
+.farm-shed--compact .farm-shed__compact-day strong {
+  font-size: 1.8rem;
+}
+
+.farm-shed--compact .farm-shed__compact-day span,
+.farm-shed--compact .farm-shed__compact-weight > span {
+  border-radius: 7px;
+  padding: 2px 6px;
+  font-size: 0.58rem;
+}
+
+.farm-shed--compact .farm-shed__compact-weight {
+  gap: 3px;
+}
+
+.farm-shed--compact .farm-shed__compact-weight strong {
+  gap: 3px;
+  font-size: 1.18rem;
+}
+
+.farm-shed--compact .farm-shed__compact-weight strong span {
+  font-size: 0.72rem;
+}
+
+.farm-shed--compact .farm-shed__compact-weight > span svg {
+  width: 12px;
+  height: 12px;
+}
+
+.farm-shed--compact .farm-shed__compact-bird {
+  min-height: 74px;
+}
+
+.farm-shed--compact .farm-shed__compact-bird::after {
+  right: 16%;
+  bottom: 6px;
+  left: 16%;
+  height: 14px;
+  filter: blur(7px);
+}
+
+.farm-shed--compact .farm-shed__compact-bird-image {
+  max-width: 112px;
+  height: 76px;
+  filter: drop-shadow(0 9px 9px rgb(94 63 27 / 14%));
+}
+
+.farm-shed--compact .farm-shed__compact-bird-image--day-1,
+.farm-shed--compact .farm-shed__compact-bird-image--day-8 {
+  height: 70px;
+}
+
+.farm-shed--compact .farm-shed__compact-bird-image--day-36,
+.farm-shed--compact .farm-shed__compact-bird-image--day-43,
+.farm-shed--compact .farm-shed__compact-bird-image--day-50,
+.farm-shed--compact .farm-shed__compact-bird-image--day-57 {
+  max-width: 132px;
+  height: 88px;
+}
+
+.farm-shed--compact .farm-shed__compact-bird .shed-progress-visual {
+  transform: scale(0.56);
+}
+
+.farm-shed--compact .farm-shed__compact-progress {
+  gap: 5px;
+}
+
+.farm-shed--compact .farm-shed__compact-progress > span {
+  height: 7px;
+}
+
+.farm-shed--compact .farm-shed__compact-progress strong {
+  font-size: 0.82rem;
+}
+
+.farm-shed--compact .farm-shed__compact-progress small {
+  font-size: 0.62rem;
+}
+
+.farm-shed--compact .farm-shed__compact-metrics {
+  border-radius: 11px;
+}
+
+.farm-shed--compact .farm-shed__compact-metric {
+  gap: 2px;
+  padding: 5px 2px;
+}
+
+.farm-shed--compact .farm-shed__compact-metric-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.farm-shed--compact .farm-shed__compact-metric-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.farm-shed--compact .farm-shed__compact-metric small {
+  font-size: 0.46rem;
+}
+
+.farm-shed--compact .farm-shed__compact-metric strong {
+  font-size: 0.7rem;
+}
+
+.farm-shed--compact .farm-shed__compact-metric em {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .farm-map__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .farm-shed--compact {
+    min-height: 206px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-title strong {
+    font-size: 0.98rem;
+  }
+
+  .farm-shed--compact .farm-shed__compact-main {
+    grid-template-columns: 52px minmax(0, 1fr) 72px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-day span,
+  .farm-shed--compact .farm-shed__compact-weight > span {
+    display: none;
+  }
+}
+
+@media (max-width: 719px) {
+  .farm-map-card {
+    padding: 10px;
+  }
+
+  .farm-map-card__header {
+    margin-bottom: 8px;
+  }
+
+  .farm-map__grid {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .farm-map__group,
+  .farm-map__group--horizontal,
+  .farm-map__group--vertical {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto;
+    gap: 7px;
+  }
+
+  .farm-map__group-label,
+  .farm-map__group--horizontal .farm-map__group-label {
+    grid-column: 1 / -1;
+  }
+
+  .farm-shed--story {
+    width: 100%;
+  }
+
+  .farm-shed--compact {
+    min-height: 158px;
+    border-radius: 18px;
+    padding: 6px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-summary {
+    gap: 5px;
+    border-radius: 14px;
+    padding: 6px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-top {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-home {
+    width: 28px;
+    height: 28px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-home svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-title strong {
+    font-size: 0.86rem;
+  }
+
+  .farm-shed--compact .farm-shed__compact-title span {
+    font-size: 0.62rem;
+  }
+
+  .farm-shed--compact .farm-shed__compact-capacity {
+    display: none;
+  }
+
+  .farm-shed--compact .farm-shed__compact-main {
+    grid-template-columns: 42px minmax(0, 1fr) 58px;
+    min-height: 56px;
+    gap: 4px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-day small,
+  .farm-shed--compact .farm-shed__compact-weight small {
+    font-size: 0.46rem;
+  }
+
+  .farm-shed--compact .farm-shed__compact-day strong {
+    font-size: 1.42rem;
+  }
+
+  .farm-shed--compact .farm-shed__compact-weight strong {
+    font-size: 0.92rem;
+  }
+
+  .farm-shed--compact .farm-shed__compact-bird {
+    min-height: 54px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-bird-image {
+    height: 56px;
+    max-width: 78px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-bird-image--day-1,
+  .farm-shed--compact .farm-shed__compact-bird-image--day-8 {
+    height: 52px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-bird-image--day-36,
+  .farm-shed--compact .farm-shed__compact-bird-image--day-43,
+  .farm-shed--compact .farm-shed__compact-bird-image--day-50,
+  .farm-shed--compact .farm-shed__compact-bird-image--day-57 {
+    height: 62px;
+    max-width: 90px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-progress > span {
+    height: 6px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-progress strong {
+    font-size: 0.72rem;
+  }
+
+  .farm-shed--compact .farm-shed__compact-progress small {
+    font-size: 0.5rem;
+  }
+
+  .farm-shed--compact .farm-shed__compact-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .farm-shed--compact .farm-shed__compact-metric {
+    padding-block: 4px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-metric:nth-child(2),
+  .farm-shed--compact .farm-shed__compact-metric:nth-child(4) {
+    display: none;
+  }
+
+  .farm-shed--compact .farm-shed__compact-metric-icon {
+    display: none;
+  }
+
+  .farm-shed--compact .farm-shed__compact-metric small {
+    font-size: 0.44rem;
+  }
+
+  .farm-shed--compact .farm-shed__compact-metric strong {
+    font-size: 0.66rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .farm-map-card__stats {
+    gap: 5px;
+  }
+
+  .farm-map-card__stats span {
+    min-width: 60px;
+    padding: 6px;
+  }
+
+  .farm-shed--compact {
+    min-height: 146px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-title span {
+    display: none;
+  }
+
+  .farm-shed--compact .farm-shed__compact-main {
+    grid-template-columns: 38px minmax(0, 1fr) 50px;
+    min-height: 50px;
+  }
+
+  .farm-shed--compact .farm-shed__compact-bird-image {
+    height: 50px;
+  }
+}
+
+/* Ultra-compact six-card fit */
+.farm-shed--compact {
+  min-height: 168px;
+  border-radius: 18px;
+  padding: 6px;
+}
+
+.farm-shed--compact .farm-shed__compact-summary {
+  gap: 4px;
+  border-radius: 14px;
+  padding: 6px;
+}
+
+.farm-shed--compact .farm-shed__compact-top {
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 6px;
+}
+
+.farm-shed--compact .farm-shed__compact-home {
+  width: 30px;
+  height: 30px;
+}
+
+.farm-shed--compact .farm-shed__compact-home svg {
+  width: 19px;
+  height: 19px;
+}
+
+.farm-shed--compact .farm-shed__compact-title strong {
+  font-size: clamp(0.9rem, 1.15vw, 1.06rem);
+  line-height: 1;
+}
+
+.farm-shed--compact .farm-shed__compact-title span {
+  font-size: 0.6rem;
+}
+
+.farm-shed--compact .farm-shed__compact-capacity {
+  display: none;
+}
+
+.farm-shed--compact .farm-shed__compact-main {
+  grid-template-columns: 43px minmax(0, 1fr) 58px;
+  gap: 4px;
+  min-height: 50px;
+}
+
+.farm-shed--compact .farm-shed__compact-day small,
+.farm-shed--compact .farm-shed__compact-weight small {
+  font-size: 0.44rem;
+}
+
+.farm-shed--compact .farm-shed__compact-day strong {
+  font-size: 1.34rem;
+}
+
+.farm-shed--compact .farm-shed__compact-day span,
+.farm-shed--compact .farm-shed__compact-weight > span {
+  display: none;
+}
+
+.farm-shed--compact .farm-shed__compact-weight {
+  justify-items: end;
+  gap: 1px;
+}
+
+.farm-shed--compact .farm-shed__compact-weight strong {
+  font-size: 0.92rem;
+}
+
+.farm-shed--compact .farm-shed__compact-weight strong span {
+  font-size: 0.58rem;
+}
+
+.farm-shed--compact .farm-shed__compact-bird {
+  min-height: 50px;
+}
+
+.farm-shed--compact .farm-shed__compact-bird::after {
+  bottom: 3px;
+  height: 10px;
+}
+
+.farm-shed--compact .farm-shed__compact-bird-image {
+  height: 52px;
+  max-width: 76px;
+}
+
+.farm-shed--compact .farm-shed__compact-bird-image--day-1,
+.farm-shed--compact .farm-shed__compact-bird-image--day-8 {
+  height: 48px;
+}
+
+.farm-shed--compact .farm-shed__compact-bird-image--day-36,
+.farm-shed--compact .farm-shed__compact-bird-image--day-43,
+.farm-shed--compact .farm-shed__compact-bird-image--day-50,
+.farm-shed--compact .farm-shed__compact-bird-image--day-57 {
+  height: 58px;
+  max-width: 86px;
+}
+
+.farm-shed--compact .farm-shed__compact-progress {
+  gap: 4px;
+}
+
+.farm-shed--compact .farm-shed__compact-progress > span {
+  height: 5px;
+}
+
+.farm-shed--compact .farm-shed__compact-progress strong {
+  font-size: 0.68rem;
+}
+
+.farm-shed--compact .farm-shed__compact-progress small {
+  font-size: 0.48rem;
+}
+
+.farm-shed--compact .farm-shed__compact-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-radius: 9px;
+}
+
+.farm-shed--compact .farm-shed__compact-metric {
+  min-height: 24px;
+  padding: 3px 2px;
+}
+
+.farm-shed--compact .farm-shed__compact-metric:nth-child(2),
+.farm-shed--compact .farm-shed__compact-metric:nth-child(4) {
+  display: none;
+}
+
+.farm-shed--compact .farm-shed__compact-metric-icon,
+.farm-shed--compact .farm-shed__compact-metric em {
+  display: none;
+}
+
+.farm-shed--compact .farm-shed__compact-metric small {
+  font-size: 0.42rem;
+}
+
+.farm-shed--compact .farm-shed__compact-metric strong {
+  font-size: 0.62rem;
+}
