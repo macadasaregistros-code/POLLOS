@@ -163,7 +163,7 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
 
   if (activeView === 'galpones' && selectedGalpon) {
     return (
-      <main className="page-shell page-shell--mobile page-shell--detail">
+      <main className="page-shell page-shell--mobile page-shell--detail page-shell--record-view">
         <GalponDetailHeader
           galpon={selectedGalpon}
           lote={selectedLote}
@@ -183,7 +183,7 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   }
 
   return (
-    <main className={`page-shell page-shell--mobile ${activeView === 'galpones' ? 'page-shell--galpones' : ''}`}>
+    <main className={`page-shell page-shell--mobile ${activeView === 'galpones' ? 'page-shell--galpones' : ''} ${activeActivityRecord || activeEntryRecord ? 'page-shell--record-view' : ''}`}>
       {activeView === 'actividades' && (
         activeActivityRecord ? (
           <GalponeroActivityRecords user={user} activeKind={activeActivityRecord} onActiveKindChange={setActiveActivityRecord} onSaved={onToast} />
@@ -331,15 +331,6 @@ function OccupiedGalponPanel({
           Mortalidad
         </span>
       </div>
-
-      <section className="daily-record-hero">
-        <div>
-          <span>Datos del dia</span>
-          <h2>Registro operativo</h2>
-          <p>Alimento, mortalidad y sacrificio del lote en una sola pantalla.</p>
-        </div>
-        <img src="/chickens/day-36.png" alt="" loading="lazy" decoding="async" />
-      </section>
 
       <MobileCard className="native-view-card" title="Registro diario" subtitle="Alimento, mortalidad y sacrificio">
         <RegistrarDiaForm lote={lote} user={user} onSaved={onSaved} />

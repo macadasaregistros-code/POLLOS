@@ -41,7 +41,6 @@ interface RecordOption<TKind extends string> {
   title: string;
   subtitle: string;
   eyebrow: string;
-  image: string;
   icon: ReactNode;
   tone: string;
 }
@@ -52,7 +51,6 @@ const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
     title: 'Vacunacion',
     subtitle: 'Producto, laboratorio, lote, responsable y foto',
     eyebrow: 'Sanidad',
-    image: '/chickens/day-15.png',
     icon: <Syringe size={28} />,
     tone: 'vaccine',
   },
@@ -61,7 +59,6 @@ const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
     title: 'Tratamiento de agua',
     subtitle: 'Dosificacion, pH, cloro y soporte visual',
     eyebrow: 'Agua',
-    image: '/galpon-dashboard/shed-scene.svg',
     icon: <Droplets size={28} />,
     tone: 'water',
   },
@@ -70,7 +67,6 @@ const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
     title: 'Control de plagas',
     subtitle: 'Roedores, mosca, producto y estaciones',
     eyebrow: 'Bioseguridad',
-    image: '/galpon-dashboard/straw-texture.svg',
     icon: <Bug size={28} />,
     tone: 'pest',
   },
@@ -79,7 +75,6 @@ const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
     title: 'Medicamento',
     subtitle: 'Dosis, via, motivo, responsable y retiro',
     eyebrow: 'Veterinaria',
-    image: '/chickens/day-22.png',
     icon: <Pill size={28} />,
     tone: 'medicine',
   },
@@ -88,7 +83,6 @@ const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
     title: 'Compostaje',
     subtitle: 'Cajon activo, tiempos y acumulado de mortalidad',
     eyebrow: 'Compostaje',
-    image: '/galpon-dashboard/straw-texture.svg',
     icon: <Sprout size={28} />,
     tone: 'compost',
   },
@@ -97,7 +91,6 @@ const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
     title: 'Perros',
     subtitle: 'Rabia, desparasitacion, producto y foto',
     eyebrow: 'Bioseguridad',
-    image: '/galpon-dashboard/shed-scene.svg',
     icon: <Dog size={28} />,
     tone: 'dogs',
   },
@@ -106,7 +99,6 @@ const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
     title: 'Capacitaciones',
     subtitle: 'Tema, capacitador, firmas y asistentes',
     eyebrow: 'Equipo',
-    image: '/galpon-dashboard/shed-scene.svg',
     icon: <Users size={28} />,
     tone: 'training',
   },
@@ -118,7 +110,6 @@ const entryOptions: Array<RecordOption<EntryKind>> = [
     title: 'Alimento',
     subtitle: 'Selecciona etapa y cantidad de bultos recibidos',
     eyebrow: 'Entrada',
-    image: '/chickens/day-29.png',
     icon: <PackagePlus size={30} />,
     tone: 'food',
   },
@@ -127,7 +118,6 @@ const entryOptions: Array<RecordOption<EntryKind>> = [
     title: 'Cisco',
     subtitle: 'Pacas recibidas para cama y alistamiento',
     eyebrow: 'Entrada',
-    image: '/galpon-dashboard/straw-texture.svg',
     icon: <Warehouse size={30} />,
     tone: 'cisco',
   },
@@ -136,7 +126,6 @@ const entryOptions: Array<RecordOption<EntryKind>> = [
     title: 'Gas',
     subtitle: 'Cilindros disponibles para calentadoras',
     eyebrow: 'Entrada',
-    image: '/galpon-dashboard/shed-scene.svg',
     icon: <Flame size={30} />,
     tone: 'gas',
   },
@@ -186,9 +175,6 @@ export function GalponeroActivityRecords({ user, activeKind, onActiveKindChange,
     <section className="record-launch-grid" aria-label="Registros operativos">
       {activityOptions.map((option) => (
         <button key={option.kind} className={`record-launch-card record-launch-card--${option.tone}`} type="button" onClick={() => setActiveKind(option.kind)}>
-          <span className="record-launch-card__image">
-            <img src={option.image} alt="" loading="lazy" decoding="async" />
-          </span>
           <span className="record-launch-card__icon">{option.icon}</span>
           <span className="record-launch-card__copy">
             <small>{option.eyebrow}</small>
@@ -226,9 +212,6 @@ export function GalponeroEntradaView({ user, activeEntry, onActiveEntryChange, o
     <section className="entry-card-grid" aria-label="Entradas de material">
       {entryOptions.map((option) => (
         <button key={option.kind} className={`entry-option-card entry-option-card--${option.tone}`} type="button" onClick={() => setActiveEntry(option.kind)}>
-          <span className="entry-option-card__image">
-            <img src={option.image} alt="" loading="lazy" decoding="async" />
-          </span>
           <span className="entry-option-card__icon">{option.icon}</span>
           <strong>{option.title}</strong>
           <small>{option.subtitle}</small>
@@ -261,7 +244,6 @@ function NativeRecordScreen({
           <p>{option.subtitle}</p>
         </div>
         <div className="native-record-hero__visual" aria-hidden="true">
-          <img src={option.image} alt="" />
           <span>{option.icon}</span>
         </div>
       </header>

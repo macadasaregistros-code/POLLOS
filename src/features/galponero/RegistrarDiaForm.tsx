@@ -95,8 +95,8 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
   }
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
-      <section className="form-section">
+    <form className="form-grid daily-register-form" onSubmit={handleSubmit}>
+      <section className="form-section daily-register-form__section daily-register-form__section--feed">
         <h3>Alimentación</h3>
         <div className="form-grid">
           <label className="field">
@@ -123,7 +123,7 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
         </div>
       </section>
 
-      <section className="form-section">
+      <section className="form-section daily-register-form__section daily-register-form__section--mortality">
         <h3>Mortalidad</h3>
         <div className="count-button-grid">
           <CountButton label="Machos" value={muertosM} onChange={setMuertosM} />
@@ -131,7 +131,7 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
         </div>
       </section>
 
-      <section className="form-section">
+      <section className="form-section daily-register-form__section daily-register-form__section--sacrifice">
         <h3>Sacrificio</h3>
         {sacrificioActivo ? (
           <div className="count-button-grid">
