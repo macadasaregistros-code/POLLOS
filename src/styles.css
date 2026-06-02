@@ -6531,3 +6531,161 @@ body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.galpon-premium-detail,
+.admin-galpon-detail {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.admin-galpon-detail > .mobile-card {
+  width: min(100%, 680px);
+}
+
+.farm-shed--premium.farm-shed--expanded {
+  width: min(100%, 520px);
+  min-height: 865px;
+  aspect-ratio: 9 / 16;
+  justify-self: center;
+  cursor: default;
+  grid-template-rows: auto minmax(280px, 1fr) auto minmax(225px, auto) auto;
+  border-radius: 34px;
+  padding: 16px;
+  box-shadow:
+    0 28px 72px rgb(20 33 29 / 16%),
+    0 6px 18px rgb(20 33 29 / 7%),
+    inset 0 0 0 1px rgb(255 255 255 / 90%);
+}
+
+.farm-shed--premium.farm-shed--expanded:hover {
+  transform: none;
+}
+
+.farm-shed--premium .farm-shed__hero-header {
+  grid-template-columns: minmax(0, 1fr) 134px 104px;
+  gap: 10px;
+  margin-bottom: -7px;
+  border-radius: 28px;
+  padding: 16px 18px;
+}
+
+.farm-shed--premium .farm-shed__title-block strong {
+  font-size: clamp(2.25rem, 7vw, 3rem);
+}
+
+.farm-shed--premium .farm-shed__status-pill {
+  width: 134px;
+}
+
+.farm-shed--premium .farm-shed__capacity-pill {
+  width: 104px;
+}
+
+.farm-shed--premium .farm-shed__visual {
+  min-height: 290px;
+}
+
+.farm-shed--premium .farm-shed__bird-image {
+  max-height: 230px;
+}
+
+.farm-shed--premium .growth-track,
+.farm-shed--premium .empty-state-track {
+  margin-block: 6px 8px;
+}
+
+.farm-shed--premium .farm-shed__occupancy-panel {
+  min-height: 232px;
+}
+
+.farm-shed__occupancy-badge {
+  position: absolute;
+  top: 74px;
+  left: 50%;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  min-width: 58px;
+  height: 34px;
+  border: 1px solid rgb(47 125 85 / 44%);
+  border-radius: 999px;
+  padding: 0 12px;
+  background: rgb(234 244 234 / 88%);
+  color: #2f7d55;
+  font-size: 1rem;
+  font-weight: 950;
+  box-shadow:
+    0 8px 18px rgb(20 33 29 / 8%),
+    inset 0 0 0 1px rgb(255 255 255 / 72%);
+  transform: translateX(-50%);
+}
+
+.farm-shed__occupancy-badge::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 1px;
+  height: 30px;
+  background: repeating-linear-gradient(180deg, rgb(47 125 85 / 54%) 0 4px, transparent 4px 8px);
+  transform: translateX(-50%);
+}
+
+.farm-shed__count-copy strong small {
+  color: #2c5a55;
+  font-size: 0.48em;
+  font-weight: 850;
+}
+
+.farm-shed--premium .farm-shed__metric-dock {
+  min-height: 126px;
+}
+
+@media (max-width: 560px) {
+  .farm-shed--premium.farm-shed--expanded {
+    width: min(100%, 456px);
+    min-height: 740px;
+    grid-template-rows: auto 236px auto 192px auto;
+    border-radius: 28px;
+    padding: 12px;
+  }
+
+  .farm-shed--premium .farm-shed__hero-header {
+    grid-template-columns: minmax(0, 1fr) 112px 82px;
+    gap: 6px;
+    padding: 10px;
+  }
+
+  .farm-shed--premium .farm-shed__title-block strong {
+    font-size: 1.72rem;
+  }
+
+  .farm-shed--premium .farm-shed__status-pill {
+    width: 112px;
+  }
+
+  .farm-shed--premium .farm-shed__capacity-pill {
+    width: 82px;
+  }
+
+  .farm-shed--premium .farm-shed__visual {
+    min-height: 236px;
+  }
+
+  .farm-shed--premium .farm-shed__bird-image {
+    max-height: 178px;
+  }
+
+  .farm-shed--premium .farm-shed__occupancy-panel {
+    min-height: 190px;
+  }
+
+  .farm-shed__occupancy-badge {
+    top: 64px;
+    height: 30px;
+    min-width: 52px;
+    font-size: 0.9rem;
+  }
+}

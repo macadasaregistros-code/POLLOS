@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { BarChart3, ClipboardList, Home, Map as MapIcon, Package } from 'lucide-react';
 import { AlertBadge } from '../../components/AlertBadge';
-import { GalponMap } from '../../components/GalponMap';
+import { buildGalponDashboardModel, GalponMap, GalponPremiumDashboardCard, getMaxGalponCapacity } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
 import { StatCard } from '../../components/StatCard';
 import { buildLoteResumen, gananciaDiaria, prediccionSalidaDias } from '../../services/calculationsService';
@@ -13,7 +13,7 @@ import { generarReporteLotePDF } from '../../services/reportsService';
 import { db } from '../../services/localDbService';
 import { addDays, todayISO } from '../../lib/date';
 import { fmtCurrency, fmtKg, fmtNumber, fmtPercent } from '../../lib/format';
-import type { Galpon, Lote, LoteResumen, Usuario } from '../../types/entities';
+import type { Lote, LoteResumen, Usuario } from '../../types/entities';
 import type { MainView } from '../../types/navigation';
 import { AdminAdvancedModules } from './AdminAdvancedModules';
 import { CrearLoteForm } from './CrearLoteForm';
@@ -69,7 +69,17 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
   const selectedSummary = summaries.find((summary) => summary.LoteID === selectedLote?.LoteID);
   const activeSummaries = summaries.filter((summary) => lotes?.find((lote) => lote.LoteID === summary.LoteID)?.EstadoLote === 'ACTIVO');
   const selectedGalpon = galpones?.find((galpon) => galpon.GalponID === selectedGalponId);
-  const selectedGalponSummary = getSummaryForGalpon(selectedGalpon, loteGalpones ?? [], summaries);
+  const selectedGalponDashboard = useMemo(() => {
+    if (!selectedGalpon) return undefined;
+    return buildGalponDashboardModel({
+      galpon: selectedGalpon,
+      loteGalpones: loteGalpones ?? [],
+      lotesById: new Map((lotes ?? []).map((lote) => [lote.LoteID, lote])),
+      summariesByLoteId: new Map(summaries.map((summary) => [summary.LoteID, summary])),
+      maxCapacity: getMaxGalponCapacity(galpones ?? []),
+    });
+  }, [galpones, loteGalpones, lotes, selectedGalpon, summaries]);
+  const selectedGalponSummary = selectedGalponDashboard?.summary;
   const totals = {
     avesIniciales: lotes?.reduce((sum, lote) => sum + lote.CantidadInicialTotal, 0) ?? 0,
     avesVivas: activeSummaries.reduce((sum, summary) => sum + summary.AvesVivasTotal, 0),
@@ -175,10 +185,19 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
             selectedGalponId={selectedGalponId}
             onSelectGalpon={(galponId) => setSelectedGalponId(galponId)}
           />
-          {selectedGalpon && (
-            <MobileCard title={`Galpon ${selectedGalpon.NombreGalpon}`} subtitle={selectedGalponSummary?.CodigoLote ?? 'Sin lote activo'}>
-              {selectedGalponSummary ? <LoteSummary summary={selectedGalponSummary} /> : <p className="empty-state">Galpon disponible para alistamiento.</p>}
-            </MobileCard>
+          {selectedGalponDashboard && (
+            <section className="admin-galpon-detail">
+              <GalponPremiumDashboardCard
+                data={selectedGalponDashboard.data}
+                empty={selectedGalponDashboard.empty}
+                vacating={selectedGalponDashboard.vacating}
+                emptyState={selectedGalponDashboard.emptyState}
+                capacityRatio={selectedGalponDashboard.capacityRatio}
+              />
+              <MobileCard title={`Galpon ${selectedGalpon?.NombreGalpon ?? selectedGalponDashboard.data.galpon}`} subtitle={selectedGalponSummary?.CodigoLote ?? 'Sin lote activo'}>
+                {selectedGalponSummary ? <LoteSummary summary={selectedGalponSummary} /> : <p className="empty-state">Galpon disponible para alistamiento.</p>}
+              </MobileCard>
+            </section>
           )}
         </>
       )}
@@ -486,14 +505,4 @@ function LoteSummary({ summary }: { summary: LoteResumen }) {
       </div>
     </div>
   );
-}
-
-function getSummaryForGalpon(
-  galpon: Galpon | undefined,
-  loteGalpones: Array<{ GalponID: string; LoteID: string; Estado: string }>,
-  summaries: LoteResumen[],
-): LoteResumen | undefined {
-  if (!galpon) return undefined;
-  const assignment = loteGalpones.find((item) => item.GalponID === galpon.GalponID && item.Estado === 'ACTIVO');
-  return summaries.find((summary) => summary.LoteID === assignment?.LoteID);
 }
