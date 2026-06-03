@@ -4,19 +4,25 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import {
   ArrowLeft,
   Bug,
+  CalendarDays,
+  Check,
   CheckCircle2,
   Dog,
   Droplets,
   Flame,
+  FlaskConical,
+  Info,
   NotebookPen,
   PackagePlus,
   Pill,
+  Save,
   Sprout,
   Syringe,
   Truck,
   Users,
   Warehouse,
 } from 'lucide-react';
+import { FormOptionalPanel } from '../../components/FormOptionalPanel';
 import {
   aplicarVacuna,
   registrarCapacitacion,
@@ -49,7 +55,7 @@ const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
   {
     kind: 'vacunacion',
     title: 'Vacunacion',
-    subtitle: 'Producto, laboratorio, lote, responsable y foto',
+    subtitle: 'Producto aplicado y soporte si aplica',
     eyebrow: 'Sanidad',
     icon: <Syringe size={28} />,
     tone: 'vaccine',
@@ -57,7 +63,7 @@ const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
   {
     kind: 'agua',
     title: 'Tratamiento de agua',
-    subtitle: 'Dosificacion, pH, cloro y soporte visual',
+    subtitle: 'pH, cloro y accion tomada',
     eyebrow: 'Agua',
     icon: <Droplets size={28} />,
     tone: 'water',
@@ -65,7 +71,7 @@ const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
   {
     kind: 'plagas',
     title: 'Control de plagas',
-    subtitle: 'Roedores, mosca, producto y estaciones',
+    subtitle: 'Tipo, producto y estaciones',
     eyebrow: 'Bioseguridad',
     icon: <Bug size={28} />,
     tone: 'pest',
@@ -73,7 +79,7 @@ const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
   {
     kind: 'medicamento',
     title: 'Medicamento',
-    subtitle: 'Dosis, via, motivo, responsable y retiro',
+    subtitle: 'Producto, dosis y motivo',
     eyebrow: 'Veterinaria',
     icon: <Pill size={28} />,
     tone: 'medicine',
@@ -89,7 +95,7 @@ const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
   {
     kind: 'perros',
     title: 'Perros',
-    subtitle: 'Rabia, desparasitacion, producto y foto',
+    subtitle: 'Rabia o desparasitacion',
     eyebrow: 'Bioseguridad',
     icon: <Dog size={28} />,
     tone: 'dogs',
@@ -97,7 +103,7 @@ const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
   {
     kind: 'capacitacion',
     title: 'Capacitaciones',
-    subtitle: 'Tema, capacitador, firmas y asistentes',
+    subtitle: 'Tema y asistentes',
     eyebrow: 'Equipo',
     icon: <Users size={28} />,
     tone: 'training',
@@ -132,6 +138,24 @@ const entryOptions: Array<RecordOption<EntryKind>> = [
 ];
 
 const foodOrder = ['preiniciador', 'iniciador', 'engorde'] as const;
+const waterRecordStatus = 'EN PROCESO';
+const phIdealValues = new Set(['6.0', '6.8']);
+const chlorineIdealValue = '3.0';
+const phOptions = [
+  { value: '6.0', tone: 'ph-60' },
+  { value: '6.8', tone: 'ph-68' },
+  { value: '7.2', tone: 'ph-72' },
+  { value: '7.6', tone: 'ph-76' },
+  { value: '7.8', tone: 'ph-78' },
+] as const;
+const chlorineOptions = [
+  { value: '0.3', tone: 'cl-03' },
+  { value: '0.5', tone: 'cl-05' },
+  { value: '1.0', tone: 'cl-10' },
+  { value: '1.5', tone: 'cl-15' },
+  { value: '3.0', tone: 'cl-30' },
+] as const;
+const shortMonths = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] as const;
 
 interface ActivityRecordsProps {
   user: Usuario;
@@ -307,32 +331,88 @@ function useLoteGalponSelection() {
 }
 
 function LoteGalponFields({ selection }: { selection: ReturnType<typeof useLoteGalponSelection> }) {
+  const hasMultipleLotes = selection.lotes.length > 1;
+  const hasMultipleGalpones = selection.assignmentsForLote.length > 1;
+  const loteName = selection.selectedLote?.CodigoLote ?? 'Sin lote activo';
+  const galponName = selection.selectedGalpon?.NombreGalpon ?? 'Sin galpon';
+
+  if (!selection.lotes.length || !selection.assignmentsForLote.length) {
+    return (
+      <div className="form-context-stack field--full">
+        <div className="form-context-card form-context-card--warning">
+          <span>No hay lote y galpon activos</span>
+          <strong>Activa un lote antes de guardar este registro.</strong>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <label className="field">
-        <span>Lote</span>
-        <select value={selection.loteId} onChange={(event) => selection.setLoteId(event.target.value)} required>
-          {selection.lotes.map((lote) => (
-            <option key={lote.LoteID} value={lote.LoteID}>
-              {lote.CodigoLote}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="field">
+    <div className="form-context-stack field--full">
+      <div className="form-context-card">
+        <span>Registro para</span>
+        <strong>{loteName} / {galponName}</strong>
+        <small>{hasMultipleLotes || hasMultipleGalpones ? 'Cambia solo si vas a registrar otro destino.' : 'Seleccionado automaticamente.'}</small>
+      </div>
+      {(hasMultipleLotes || hasMultipleGalpones) && (
+        <div className="form-context-selectors">
+          {hasMultipleLotes && (
+            <label className="field">
+              <span>Lote</span>
+              <select value={selection.loteId} onChange={(event) => selection.setLoteId(event.target.value)} required>
+                {selection.lotes.map((lote) => (
+                  <option key={lote.LoteID} value={lote.LoteID}>
+                    {lote.CodigoLote}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {hasMultipleGalpones && (
+            <label className="field">
+              <span>Galpon</span>
+              <select value={selection.galponId} onChange={(event) => selection.setGalponId(event.target.value)} required>
+                {selection.assignmentsForLote.map((assignment) => {
+                  const galpon = selection.galpones.find((item) => item.GalponID === assignment.GalponID);
+                  return (
+                    <option key={assignment.LoteGalponID} value={assignment.GalponID}>
+                      {galpon?.NombreGalpon ?? assignment.GalponID}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GalponField({ galpones, galponId, onChange }: { galpones: Array<{ GalponID: string; NombreGalpon: string }>; galponId: string; onChange: (value: string) => void }) {
+  const selected = galpones.find((galpon) => galpon.GalponID === galponId);
+
+  if (galpones.length <= 1) {
+    return (
+      <div className="form-context-card field--full">
         <span>Galpon</span>
-        <select value={selection.galponId} onChange={(event) => selection.setGalponId(event.target.value)} required>
-          {selection.assignmentsForLote.map((assignment) => {
-            const galpon = selection.galpones.find((item) => item.GalponID === assignment.GalponID);
-            return (
-              <option key={assignment.LoteGalponID} value={assignment.GalponID}>
-                {galpon?.NombreGalpon ?? assignment.GalponID}
-              </option>
-            );
-          })}
-        </select>
-      </label>
-    </>
+        <strong>{selected?.NombreGalpon ?? 'Sin galpon activo'}</strong>
+        <small>Seleccionado automaticamente.</small>
+      </div>
+    );
+  }
+
+  return (
+    <label className="field">
+      <span>Galpon</span>
+      <select value={galponId} onChange={(event) => onChange(event.target.value)} required>
+        {galpones.map((galpon) => (
+          <option key={galpon.GalponID} value={galpon.GalponID}>
+            {galpon.NombreGalpon}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -368,7 +448,7 @@ function FoodEntryForm({ user, onSaved }: { user: Usuario; onSaved: (message: st
   }
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
+    <form className="form-grid flow-form" onSubmit={handleSubmit}>
       <label className="field">
         <span>Tipo de alimento</span>
         <select value={tipoId} onChange={(event) => setTipoId(event.target.value)} required>
@@ -383,10 +463,7 @@ function FoodEntryForm({ user, onSaved }: { user: Usuario; onSaved: (message: st
         <span>Bultos</span>
         <input type="number" min="0" step="0.25" inputMode="decimal" value={bultos} onChange={(event) => setBultos(event.target.value)} />
       </label>
-      <label className="field field--full">
-        <span>Observaciones</span>
-        <textarea rows={3} value={observaciones} onChange={(event) => setObservaciones(event.target.value)} />
-      </label>
+      <ObservationField value={observaciones} onChange={setObservaciones} />
       <button className="primary-action">Guardar entrada</button>
     </form>
   );
@@ -427,15 +504,12 @@ function MaterialEntryForm({
   }
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
+    <form className="form-grid flow-form" onSubmit={handleSubmit}>
       <label className="field">
         <span>{label}</span>
         <input type="number" min="0" step="1" inputMode="numeric" value={cantidad} onChange={(event) => setCantidad(event.target.value)} />
       </label>
-      <label className="field field--full">
-        <span>Observaciones</span>
-        <textarea rows={3} value={observaciones} onChange={(event) => setObservaciones(event.target.value)} />
-      </label>
+      <ObservationField value={observaciones} onChange={setObservaciones} />
       <button className="primary-action">Guardar entrada</button>
     </form>
   );
@@ -501,7 +575,7 @@ function VaccinationRecordForm({ user, onSaved }: { user: Usuario; onSaved: (mes
   }
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
+    <form className="form-grid flow-form" onSubmit={handleSubmit}>
       <label className="field field--full">
         <span>Vacuna programada</span>
         <select value={vacunaId} onChange={(event) => setVacunaId(event.target.value)} required>
@@ -517,17 +591,21 @@ function VaccinationRecordForm({ user, onSaved }: { user: Usuario; onSaved: (mes
       </label>
       <ReadOnlyContext lote={lote} label={`Edad programada ${selected?.EdadDias || selected?.DiaProgramado || 0} dias`} />
       <TextField label="Producto" value={producto} onChange={setProducto} required />
-      <TextField label="Laboratorio" value={laboratorio} onChange={setLaboratorio} />
-      <TextField label="Lote del producto" value={loteProducto} onChange={setLoteProducto} />
-      <label className="field">
-        <span>Fecha vencimiento</span>
-        <input type="date" value={vencimiento} onChange={(event) => setVencimiento(event.target.value)} />
-      </label>
       <TextField label="Via de administracion" value={via} onChange={setVia} />
-      <TextField label="Cepa" value={cepa} onChange={setCepa} />
-      <TextField label="Enfermedad" value={enfermedad} onChange={setEnfermedad} />
-      <TextField label="Responsable" value={responsable} onChange={setResponsable} />
-      <TextField label="Firma" value={firma} onChange={setFirma} />
+      <FormOptionalPanel label="Detalles del producto">
+        <div className="form-grid form-grid--nested">
+          <TextField label="Laboratorio" value={laboratorio} onChange={setLaboratorio} />
+          <TextField label="Lote del producto" value={loteProducto} onChange={setLoteProducto} />
+          <label className="field">
+            <span>Fecha vencimiento</span>
+            <input type="date" value={vencimiento} onChange={(event) => setVencimiento(event.target.value)} />
+          </label>
+          <TextField label="Cepa" value={cepa} onChange={setCepa} />
+          <TextField label="Enfermedad" value={enfermedad} onChange={setEnfermedad} />
+          <TextField label="Responsable" value={responsable} onChange={setResponsable} />
+          <TextField label="Firma" value={firma} onChange={setFirma} />
+        </div>
+      </FormOptionalPanel>
       <PhotoField onChange={setFoto} />
       <ObservationField value={observacion} onChange={setObservacion} />
       <button className="primary-action">Guardar vacunacion</button>
@@ -537,25 +615,73 @@ function VaccinationRecordForm({ user, onSaved }: { user: Usuario; onSaved: (mes
 
 function WaterTreatmentForm({ user, onSaved }: { user: Usuario; onSaved: (message: string) => void }) {
   const selection = useLoteGalponSelection();
-  const [dosificacion, setDosificacion] = useState('');
-  const [ph, setPh] = useState('7.0');
-  const [cloro, setCloro] = useState('');
-  const [lugar, setLugar] = useState<ControlAgua['LugarMedicion']>('LINEA');
-  const [accion, setAccion] = useState('');
-  const [foto, setFoto] = useState('');
-  const [observacion, setObservacion] = useState('');
+  const [fechaRegistro] = useState(() => todayISO());
+  const [phSeleccionado, setPhSeleccionado] = useState('');
+  const [cloroAdicionado, setCloroAdicionado] = useState('');
+  const [cloroResidualSeleccionado, setCloroResidualSeleccionado] = useState('');
+  const lugar: ControlAgua['LugarMedicion'] = 'LINEA';
+  const accion = '';
+  const foto = '';
+  const observacion = '';
+  const [error, setError] = useState('');
+  const phCorrecto = phIdealValues.has(phSeleccionado);
+  const cloroCorrecto = cloroResidualSeleccionado === chlorineIdealValue;
+
+  useEffect(() => {
+    if (!phCorrecto && cloroAdicionado) setCloroAdicionado('');
+  }, [cloroAdicionado, phCorrecto]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!selection.loteId || !selection.galponId) return;
+    if (!fechaRegistro) {
+      setError('La fecha de registro es obligatoria.');
+      return;
+    }
+    if (!selection.loteId || !selection.galponId) {
+      setError('Selecciona un lote y galpon activo antes de guardar.');
+      return;
+    }
+    if (!phSeleccionado) {
+      setError('Selecciona un valor de pH.');
+      return;
+    }
+    if (!phCorrecto) {
+      setError('El pH debe estar en rango ideal para adicionar cloro y guardar.');
+      return;
+    }
+    if (!cloroAdicionado.trim()) {
+      setError('Ingresa el cloro adicionado en gramos.');
+      return;
+    }
+    if (!cloroResidualSeleccionado) {
+      setError('Selecciona un valor de cloro residual.');
+      return;
+    }
+
+    const phValue = Number(phSeleccionado);
+    const cloroResidualValue = Number(cloroResidualSeleccionado);
+    const cloroAdicionadoValue = Number(cloroAdicionado || 0);
+    if (!Number.isInteger(cloroAdicionadoValue) || cloroAdicionadoValue < 0) {
+      setError('El cloro adicionado debe ser un numero entero de gramos.');
+      return;
+    }
+
+    setError('');
     await registrarControlAgua(
       {
-        Fecha: todayISO(),
+        Fecha: fechaRegistro,
+        fechaRegistro,
+        estado: waterRecordStatus,
         LoteID: selection.loteId,
         GalponID: selection.galponId,
-        DosificacionCloroGr: Number(dosificacion || 0),
-        VerificacionPH: Number(ph || 0),
-        VerificacionCloro: Number(cloro || 0),
+        DosificacionCloroGr: cloroAdicionadoValue,
+        cloroAdicionadoGramos: cloroAdicionadoValue,
+        VerificacionPH: phValue,
+        phSeleccionado: phValue,
+        phCorrecto,
+        VerificacionCloro: cloroResidualValue,
+        cloroResidualSeleccionado: cloroResidualValue,
+        cloroCorrecto,
         LugarMedicion: lugar,
         AccionTomada: accion,
         Foto: foto,
@@ -563,34 +689,148 @@ function WaterTreatmentForm({ user, onSaved }: { user: Usuario; onSaved: (messag
       },
       user,
     );
-    setDosificacion('');
-    setCloro('');
-    setAccion('');
-    setFoto('');
-    setObservacion('');
+    setPhSeleccionado('');
+    setCloroAdicionado('');
+    setCloroResidualSeleccionado('');
     onSaved('Tratamiento de agua guardado offline.');
   }
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
-      <LoteGalponFields selection={selection} />
-      <label className="field">
-        <span>Lugar</span>
-        <select value={lugar} onChange={(event) => setLugar(event.target.value as ControlAgua['LugarMedicion'])}>
-          <option value="TANQUE">Tanque</option>
-          <option value="LINEA">Linea</option>
-          <option value="NIPPLE">Nipple</option>
-        </select>
-      </label>
-      <NumberField label="Dosificacion cloro (gr)" value={dosificacion} onChange={setDosificacion} step="0.1" />
-      <NumberField label="Verificacion pH" value={ph} onChange={setPh} step="0.1" />
-      <NumberField label="Verificacion cloro" value={cloro} onChange={setCloro} step="0.1" />
-      <TextField className="field--full" label="Accion tomada" value={accion} onChange={setAccion} />
-      <PhotoField onChange={setFoto} />
-      <ObservationField value={observacion} onChange={setObservacion} />
-      <button className="primary-action">Guardar agua</button>
+    <form className="form-grid flow-form water-treatment-form" onSubmit={handleSubmit}>
+      <section className="water-date-card" aria-label="Fecha y estado del registro">
+        <span className="water-date-card__icon">
+          <CalendarDays size={30} />
+        </span>
+        <div className="water-date-card__date">
+          <span>Fecha de Registro</span>
+          <strong>{formatWaterDate(fechaRegistro)}</strong>
+        </div>
+        <div className="water-date-card__status">
+          <span>Estado</span>
+          <strong>{waterRecordStatus}</strong>
+        </div>
+      </section>
+
+      <section className="water-form-card">
+        <WaterSectionTitle icon={<FlaskConical size={26} />} title="Verificacion de pH" />
+        <WaterOptionGrid
+          name="ph"
+          options={phOptions}
+          selectedValue={phSeleccionado}
+          onSelect={(value) => {
+            setPhSeleccionado(value);
+            setError('');
+          }}
+        />
+        <p className="water-range-note">Rango ideal: 6.0 - 6.8 pH</p>
+
+        <div className="water-form-divider" />
+
+        <div className="water-input-heading">
+          <span>
+            <Droplets size={24} />
+            <strong>Cloro Adicionado</strong>
+          </span>
+          <em>(gramos)</em>
+        </div>
+        <label className={`water-amount-input ${!phCorrecto ? 'is-disabled' : ''}`}>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="0"
+            value={cloroAdicionado}
+            disabled={!phCorrecto}
+            onChange={(event) => setCloroAdicionado(toWholeGramInput(event.target.value))}
+          />
+          <span>g</span>
+        </label>
+        <p className="water-helper-text">
+          <Info size={18} />
+          <span>Ingrese la cantidad si el pH es correcto para asegurar la desinfeccion optima.</span>
+        </p>
+
+        <div className="water-form-divider" />
+
+        <WaterSectionTitle icon={<CheckCircle2 size={26} />} title="Verificacion de Cloro" unit="(ppm)" />
+        <WaterOptionGrid
+          name="cloro"
+          options={chlorineOptions}
+          selectedValue={cloroResidualSeleccionado}
+          onSelect={(value) => {
+            setCloroResidualSeleccionado(value);
+            setError('');
+          }}
+        />
+        <p className="water-range-note">Rango ideal: 3 ppm</p>
+      </section>
+
+      {error && <p className="water-form-error" role="alert">{error}</p>}
+
+      <button className="primary-action water-save-button">
+        <Save size={24} />
+        <span>Guardar Registro</span>
+      </button>
     </form>
   );
+}
+
+function WaterSectionTitle({ icon, title, unit }: { icon: ReactNode; title: string; unit?: string }) {
+  return (
+    <header className="water-section-title">
+      <span>
+        {icon}
+        <strong>{title}</strong>
+      </span>
+      {unit && <em>{unit}</em>}
+    </header>
+  );
+}
+
+function WaterOptionGrid({
+  name,
+  options,
+  selectedValue,
+  onSelect,
+}: {
+  name: string;
+  options: ReadonlyArray<{ value: string; tone: string }>;
+  selectedValue: string;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <div className="water-option-grid" role="radiogroup" aria-label={name}>
+      {options.map((option) => {
+        const selected = selectedValue === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            className={`water-test-option water-test-option--${option.tone} ${selected ? 'is-selected' : ''}`}
+            onClick={() => onSelect(option.value)}
+          >
+            <strong>{option.value}</strong>
+            {selected && (
+              <span className="water-test-option__check" aria-hidden="true">
+                <Check size={18} />
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function formatWaterDate(dateISO: string): string {
+  const [year, month, day] = dateISO.split('-').map(Number);
+  return `${day} ${shortMonths[month - 1] ?? ''} ${year}`;
+}
+
+function toWholeGramInput(value: string): string {
+  return value.split(/[.,]/)[0].replace(/\D/g, '');
 }
 
 function PestControlForm({ user, onSaved }: { user: Usuario; onSaved: (message: string) => void }) {
@@ -634,7 +874,7 @@ function PestControlForm({ user, onSaved }: { user: Usuario; onSaved: (message: 
   }
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
+    <form className="form-grid flow-form" onSubmit={handleSubmit}>
       <label className="field field--full">
         <span>Tipo</span>
         <div className="segmented-control">
@@ -646,16 +886,7 @@ function PestControlForm({ user, onSaved }: { user: Usuario; onSaved: (message: 
           </button>
         </div>
       </label>
-      <label className="field">
-        <span>Galpon</span>
-        <select value={galponId} onChange={(event) => setGalponId(event.target.value)} required>
-          {galpones?.map((galpon) => (
-            <option key={galpon.GalponID} value={galpon.GalponID}>
-              {galpon.NombreGalpon}
-            </option>
-          ))}
-        </select>
-      </label>
+      <GalponField galpones={galpones ?? []} galponId={galponId} onChange={setGalponId} />
       <TextField label="Producto" value={producto} onChange={setProducto} />
       <TextField label="Dosificacion" value={dosificacion} onChange={setDosificacion} />
       {tipo === 'ROEDORES' && <NumberField label="Estaciones con veneno" value={estaciones} onChange={setEstaciones} step="1" />}
@@ -706,14 +937,18 @@ function MedicationForm({ user, onSaved }: { user: Usuario; onSaved: (message: s
   }
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
+    <form className="form-grid flow-form" onSubmit={handleSubmit}>
       <LoteGalponFields selection={selection} />
       <TextField label="Producto" value={producto} onChange={setProducto} required />
       <TextField label="Dosis" value={dosis} onChange={setDosis} />
-      <TextField label="Via" value={via} onChange={setVia} />
       <TextField className="field--full" label="Motivo" value={motivo} onChange={setMotivo} />
-      <TextField label="Responsable" value={responsable} onChange={setResponsable} />
-      <NumberField label="Retiro si aplica (dias)" value={retiro} onChange={setRetiro} step="1" />
+      <FormOptionalPanel label="Aplicacion y retiro" value={via !== 'Agua de bebida' || responsable !== user.Nombre || retiro !== '0' ? '1' : ''}>
+        <div className="form-grid form-grid--nested">
+          <TextField label="Via" value={via} onChange={setVia} />
+          <TextField label="Responsable" value={responsable} onChange={setResponsable} />
+          <NumberField label="Retiro si aplica (dias)" value={retiro} onChange={setRetiro} step="1" />
+        </div>
+      </FormOptionalPanel>
       <PhotoField onChange={setFoto} />
       <ObservationField value={observaciones} onChange={setObservaciones} />
       <button className="primary-action">Guardar medicamento</button>

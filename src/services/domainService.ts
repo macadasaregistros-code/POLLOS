@@ -87,11 +87,18 @@ export interface SalidaInput {
 
 export interface ControlAguaInput {
   Fecha: string;
+  fechaRegistro?: string;
+  estado?: string;
   LoteID: string;
   GalponID: string;
   DosificacionCloroGr: number;
+  cloroAdicionadoGramos?: number;
   VerificacionPH: number;
+  phSeleccionado?: number;
+  phCorrecto?: boolean;
   VerificacionCloro: number;
+  cloroResidualSeleccionado?: number;
+  cloroCorrecto?: boolean;
   LugarMedicion: ControlAgua['LugarMedicion'];
   AccionTomada: string;
   Foto: string;
@@ -822,17 +829,27 @@ export async function registrarSalida(input: SalidaInput, user: Usuario): Promis
 }
 
 export async function registrarControlAgua(input: ControlAguaInput, user: Usuario): Promise<ControlAgua> {
+  const phSeleccionado = input.phSeleccionado ?? input.VerificacionPH;
+  const cloroResidualSeleccionado = input.cloroResidualSeleccionado ?? input.VerificacionCloro;
+  const cloroAdicionadoGramos = input.cloroAdicionadoGramos ?? input.DosificacionCloroGr;
   const control: ControlAgua = {
     ControlAguaID: createId('agua'),
     Fecha: input.Fecha,
     FechaHoraRegistro: nowISO(),
+    fechaRegistro: input.fechaRegistro ?? input.Fecha,
+    estado: input.estado ?? 'EN PROCESO',
     LoteID: input.LoteID,
     GalponID: input.GalponID,
-    DosificacionCloroGr: input.DosificacionCloroGr,
-    PH: input.VerificacionPH,
-    CloroLibrePPM: input.VerificacionCloro,
-    VerificacionPH: input.VerificacionPH,
-    VerificacionCloro: input.VerificacionCloro,
+    DosificacionCloroGr: cloroAdicionadoGramos,
+    cloroAdicionadoGramos,
+    PH: phSeleccionado,
+    CloroLibrePPM: cloroResidualSeleccionado,
+    VerificacionPH: phSeleccionado,
+    phSeleccionado,
+    phCorrecto: input.phCorrecto ?? (phSeleccionado === 6 || phSeleccionado === 6.8),
+    VerificacionCloro: cloroResidualSeleccionado,
+    cloroResidualSeleccionado,
+    cloroCorrecto: input.cloroCorrecto ?? cloroResidualSeleccionado === 3,
     Foto: input.Foto,
     LugarMedicion: input.LugarMedicion,
     AccionTomada: input.AccionTomada,

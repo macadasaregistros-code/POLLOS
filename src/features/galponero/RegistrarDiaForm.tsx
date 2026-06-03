@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { FormOptionalPanel } from '../../components/FormOptionalPanel';
 import { registrarDia } from '../../services/domainService';
 import { db } from '../../services/localDbService';
 import { getDiaLote, todayISO } from '../../lib/date';
@@ -24,7 +25,6 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
   const [bultos, setBultos] = useState('0');
   const [muertosM, setMuertosM] = useState('0');
   const [muertosH, setMuertosH] = useState('0');
-  const [muertosSinClasificar, setMuertosSinClasificar] = useState('0');
   const [sacrificadosM, setSacrificadosM] = useState('0');
   const [sacrificadosH, setSacrificadosH] = useState('0');
   const [sacrificioActivo, setSacrificioActivo] = useState(false);
@@ -74,7 +74,7 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
           KgConsumidos: kgConsumidos,
           MuertosMachos: Number(muertosM || 0),
           MuertosHembras: Number(muertosH || 0),
-          MuertosSinClasificar: Number(muertosSinClasificar || 0),
+          MuertosSinClasificar: 0,
           SacrificadosMachos: sacrificioActivo ? Number(sacrificadosM || 0) : 0,
           SacrificadosHembras: sacrificioActivo ? Number(sacrificadosH || 0) : 0,
           Observaciones: observacion,
@@ -84,7 +84,6 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
       setBultos('0');
       setMuertosM('0');
       setMuertosH('0');
-      setMuertosSinClasificar('0');
       setSacrificadosM('0');
       setSacrificadosH('0');
       setObservacion('');
@@ -95,7 +94,13 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
   }
 
   return (
-    <form className="form-grid daily-register-form" onSubmit={handleSubmit}>
+    <form className="form-grid daily-register-form flow-form" onSubmit={handleSubmit}>
+      <div className="daily-form-intro field--full">
+        <span>Dia {diaLote}</span>
+        <strong>Registra solo lo que cambio hoy</strong>
+        <small>{lote.CodigoLote}</small>
+      </div>
+
       <section className="form-section daily-register-form__section daily-register-form__section--feed">
         <h3>Alimentación</h3>
         <div className="form-grid">
@@ -110,7 +115,7 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
             </select>
           </label>
           <label className="field">
-            <span>Bultos consumidos</span>
+            <span>Bultos hoy</span>
             <input
               inputMode="decimal"
               type="number"
@@ -131,6 +136,7 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
         </div>
       </section>
 
+      {sacrificeCanStart && (
       <section className="form-section daily-register-form__section daily-register-form__section--sacrifice">
         <h3>Sacrificio</h3>
         {sacrificioActivo ? (
@@ -149,11 +155,14 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
           </div>
         )}
       </section>
+      )}
 
-      <label className="field field--full">
+      <FormOptionalPanel label="Observacion" value={observacion}>
+      <label className="field field--full field--nested">
         <span>Observación</span>
         <textarea value={observacion} onChange={(event) => setObservacion(event.target.value)} rows={3} />
       </label>
+      </FormOptionalPanel>
       <button className="primary-action" disabled={saving || !currentTipoId}>
         Guardar registro diario
       </button>

@@ -483,6 +483,397 @@
   }
 }
 
+.native-record-screen--water {
+  background: #f3f4f1;
+}
+
+.native-record-screen--water .record-form-surface {
+  min-height: calc(100svh - 128px - var(--safe-bottom));
+  margin-inline: -2px;
+  padding: 12px 0 calc(var(--bottom-nav-height) + var(--sticky-action-height) + var(--safe-bottom) + 18px);
+  background: #f3f4f1;
+}
+
+.native-record-screen--water .native-record-hero {
+  border-bottom-color: rgb(36 99 79 / 14%);
+}
+
+.native-record-screen .water-treatment-form {
+  grid-template-columns: 1fr;
+  gap: 14px;
+  padding-bottom: 0;
+}
+
+.water-date-card,
+.water-form-card {
+  border: 1px solid rgb(22 34 29 / 7%);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgb(22 34 29 / 10%);
+}
+
+.water-date-card {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 16px;
+}
+
+.water-date-card__icon {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #b8f68b 0%, #a9f083 100%);
+  color: #1f6417;
+}
+
+.water-date-card__date,
+.water-date-card__status {
+  display: grid;
+  gap: 4px;
+}
+
+.water-date-card__date span,
+.water-date-card__status span {
+  color: #1f2925;
+  font-size: 0.98rem;
+  font-weight: 650;
+}
+
+.water-date-card__date strong {
+  color: #11181d;
+  font-size: 1.45rem;
+  line-height: 1.05;
+}
+
+.water-date-card__status {
+  justify-items: end;
+}
+
+.water-date-card__status strong {
+  width: max-content;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #dff5cf;
+  color: #1c6a1b;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.water-form-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.water-section-title,
+.water-input-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.water-section-title > span,
+.water-input-heading > span {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.water-section-title svg,
+.water-input-heading svg,
+.water-helper-text svg {
+  flex: 0 0 auto;
+  color: #267b1b;
+  stroke-width: 2.3;
+}
+
+.water-section-title strong,
+.water-input-heading strong {
+  color: #11181d;
+  font-size: 1.2rem;
+  line-height: 1.08;
+}
+
+.water-section-title em,
+.water-input-heading em {
+  color: #26312d;
+  font-size: 0.92rem;
+  font-style: normal;
+  font-weight: 650;
+}
+
+.water-option-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.water-test-option {
+  position: relative;
+  min-height: 76px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--option-border, #dfc60a);
+  border-radius: 8px;
+  background: var(--option-bg, #fff6bf);
+  color: #16222c;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 52%);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+}
+
+.water-test-option:active {
+  transform: scale(0.98);
+}
+
+.water-test-option strong {
+  font-size: 1.42rem;
+  font-weight: 760;
+  letter-spacing: 0;
+}
+
+.water-test-option.is-selected {
+  border-color: #267b1b;
+  border-width: 2px;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 58%),
+    0 0 0 2px rgb(38 123 27 / 10%);
+}
+
+.water-test-option__check {
+  position: absolute;
+  top: -12px;
+  right: -8px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #267b1b;
+  color: #ffffff;
+  box-shadow: 0 5px 14px rgb(38 123 27 / 32%);
+}
+
+.water-test-option--ph-60 {
+  --option-bg: linear-gradient(135deg, #fff8e7 0%, #fff0bf 100%);
+  --option-border: #f5a400;
+}
+
+.water-test-option--ph-68 {
+  --option-bg: linear-gradient(135deg, #fff9e6 0%, #fff2c8 100%);
+  --option-border: #e8b400;
+}
+
+.water-test-option--ph-72 {
+  --option-bg: linear-gradient(135deg, #ecfaff 0%, #dff4ff 100%);
+  --option-border: #43a9ee;
+}
+
+.water-test-option--ph-76 {
+  --option-bg: linear-gradient(135deg, #f4efff 0%, #eee3ff 100%);
+  --option-border: #7a2fd8;
+}
+
+.water-test-option--ph-78 {
+  --option-bg: linear-gradient(135deg, #f8efff 0%, #f1ddff 100%);
+  --option-border: #ba62ee;
+}
+
+.water-test-option--cl-03 {
+  --option-bg: linear-gradient(135deg, #fffbe8 0%, #fff4c8 100%);
+  --option-border: #e6c300;
+}
+
+.water-test-option--cl-05 {
+  --option-bg: linear-gradient(135deg, #fff8d7 0%, #fff0a9 100%);
+  --option-border: #e0bd00;
+}
+
+.water-test-option--cl-10 {
+  --option-bg: linear-gradient(135deg, #fff5b6 0%, #ffec82 100%);
+  --option-border: #ddb700;
+}
+
+.water-test-option--cl-15 {
+  --option-bg: linear-gradient(135deg, #fbeda0 0%, #f5df66 100%);
+  --option-border: #d5b300;
+}
+
+.water-test-option--cl-30 {
+  --option-bg: linear-gradient(135deg, #e4d954 0%, #cfc742 100%);
+  --option-border: #b7ad2d;
+}
+
+.water-range-note {
+  margin: -2px 0 0;
+  color: #25312d;
+  font-size: 0.92rem;
+  font-weight: 560;
+}
+
+.water-form-divider {
+  height: 1px;
+  background: rgb(22 34 29 / 13%);
+}
+
+.water-amount-input {
+  position: relative;
+  display: block;
+}
+
+.water-amount-input input {
+  width: 100%;
+  min-height: 58px;
+  border: 1.5px solid #a9aca9;
+  border-radius: 8px;
+  padding: 0 48px 0 16px;
+  background: #ffffff;
+  color: #11181d;
+  font-size: 1.18rem;
+  font-weight: 700;
+  outline: none;
+}
+
+.water-amount-input input::placeholder {
+  color: #a3a8a5;
+}
+
+.water-amount-input input:focus {
+  border-color: #267b1b;
+  box-shadow: 0 0 0 3px rgb(38 123 27 / 14%);
+}
+
+.water-amount-input span {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  color: #267b1b;
+  font-size: 1.15rem;
+  font-weight: 760;
+  transform: translateY(-50%);
+}
+
+.water-amount-input.is-disabled input {
+  background: #f1f3f1;
+  color: #8d948f;
+}
+
+.water-amount-input.is-disabled span {
+  color: #98a09a;
+}
+
+.water-helper-text {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  margin: -2px 0 0;
+  color: #26312d;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.water-form-error {
+  margin: -2px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgb(179 38 30 / 18%);
+  border-radius: 8px;
+  background: #fde9e7;
+  color: #8c1d18;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.native-record-screen .form-grid > .water-save-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #2b7d1f 0%, #18670f 100%);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+@media (max-width: 430px) {
+  .native-record-screen--water .record-form-surface {
+    padding-top: 10px;
+  }
+
+  .water-date-card {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .water-date-card__icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .water-date-card__date span,
+  .water-date-card__status span {
+    font-size: 0.82rem;
+  }
+
+  .water-date-card__date strong {
+    font-size: 1.18rem;
+  }
+
+  .water-date-card__status strong {
+    padding: 6px 9px;
+    font-size: 0.72rem;
+  }
+
+  .water-form-card {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .water-section-title strong,
+  .water-input-heading strong {
+    font-size: 1rem;
+  }
+
+  .water-option-grid {
+    gap: 6px;
+  }
+
+  .water-test-option {
+    min-height: 68px;
+  }
+
+  .water-test-option strong {
+    font-size: 1.18rem;
+  }
+}
+
+@media (max-width: 350px) {
+  .water-date-card {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .water-date-card__status {
+    grid-column: 2;
+    justify-items: start;
+  }
+
+  .water-option-grid {
+    grid-template-columns: repeat(5, minmax(42px, 1fr));
+  }
+
+  .water-test-option {
+    min-height: 62px;
+  }
+}
+
 @keyframes form-surface-in {
   from {
     opacity: 0;
@@ -6687,5 +7078,25 @@ body {
     height: 30px;
     min-width: 52px;
     font-size: 0.9rem;
+  }
+}
+
+.native-record-screen .water-treatment-form,
+.native-record-screen--water .water-treatment-form {
+  grid-template-columns: 1fr !important;
+  align-items: stretch;
+}
+
+.native-record-screen--water .water-date-card,
+.native-record-screen--water .water-form-card,
+.native-record-screen--water .form-optional-panel,
+.native-record-screen--water .water-form-error {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 760px) {
+  .native-record-screen .water-treatment-form,
+  .native-record-screen--water .water-treatment-form {
+    grid-template-columns: 1fr !important;
   }
 }
