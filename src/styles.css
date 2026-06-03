@@ -513,6 +513,10 @@
   border-bottom-color: rgb(36 99 79 / 14%);
 }
 
+.native-record-screen--pest .native-record-hero__copy p {
+  display: none;
+}
+
 .native-record-screen .water-treatment-form {
   grid-template-columns: 1fr;
   gap: 14px;
@@ -1154,6 +1158,7 @@
 }
 
 html {
+  font-size: 16.5px;
   min-height: 100%;
   background: var(--bg);
   -webkit-text-size-adjust: 100%;
@@ -1197,7 +1202,7 @@ button:disabled {
 input,
 select,
 textarea {
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 .boot-screen {
@@ -7669,7 +7674,7 @@ body:has(.native-record-screen--water) {
 
 .native-record-screen--water .native-record-hero__copy h2 {
   color: #11181d;
-  font-size: clamp(1.06rem, 4.4vw, 1.22rem);
+  font-size: clamp(1.14rem, 4.7vw, 1.34rem);
   font-weight: 950;
   line-height: 1.02;
 }
@@ -7708,20 +7713,20 @@ body:has(.native-record-screen--water) {
 }
 
 .native-record-screen--water .water-date-card {
-  min-height: 52px;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-  gap: 9px;
-  padding: 8px 10px;
+  min-height: 70px;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 10px 12px;
 }
 
 .native-record-screen--water .water-date-card__icon {
-  width: 42px;
-  height: 42px;
+  width: 52px;
+  height: 52px;
 }
 
 .native-record-screen--water .water-date-card__icon svg {
-  width: 24px;
-  height: 24px;
+  width: 29px;
+  height: 29px;
 }
 
 .native-record-screen--water .water-date-card__date,
@@ -7731,23 +7736,23 @@ body:has(.native-record-screen--water) {
 
 .native-record-screen--water .water-date-card__date span,
 .native-record-screen--water .water-date-card__status span {
-  font-size: 0.72rem;
+  font-size: 0.82rem;
 }
 
 .native-record-screen--water .water-date-card__date strong {
-  font-size: 1.02rem;
+  font-size: 1.28rem;
 }
 
 .native-record-screen--water .water-date-card__status strong {
-  padding: 5px 8px;
-  font-size: 0.66rem;
+  padding: 6px 10px;
+  font-size: 0.76rem;
 }
 
 .native-record-screen--water .water-form-card {
   min-height: 0;
   align-content: space-between;
-  gap: 8px;
-  padding: 10px;
+  gap: 10px;
+  padding: 12px;
   overflow: hidden;
 }
 
@@ -7763,19 +7768,19 @@ body:has(.native-record-screen--water) {
 
 .native-record-screen--water .water-section-title svg,
 .native-record-screen--water .water-input-heading svg {
-  width: 21px;
-  height: 21px;
+  width: 25px;
+  height: 25px;
 }
 
 .native-record-screen--water .water-section-title strong,
 .native-record-screen--water .water-input-heading strong {
-  font-size: 0.98rem;
+  font-size: 1.16rem;
   line-height: 1.05;
 }
 
 .native-record-screen--water .water-section-title em,
 .native-record-screen--water .water-input-heading em {
-  font-size: 0.78rem;
+  font-size: 0.9rem;
 }
 
 .native-record-screen--water .water-option-grid {
@@ -7783,11 +7788,11 @@ body:has(.native-record-screen--water) {
 }
 
 .native-record-screen--water .water-test-option {
-  min-height: 54px;
+  min-height: 64px;
 }
 
 .native-record-screen--water .water-test-option strong {
-  font-size: 1.06rem;
+  font-size: 1.28rem;
 }
 
 .native-record-screen--water .water-test-option__check {
@@ -7799,7 +7804,7 @@ body:has(.native-record-screen--water) {
 
 .native-record-screen--water .water-range-note {
   margin: -1px 0 0;
-  font-size: 0.76rem;
+  font-size: 0.88rem;
 }
 
 .native-record-screen--water .water-form-divider {
@@ -7807,27 +7812,27 @@ body:has(.native-record-screen--water) {
 }
 
 .native-record-screen--water .water-amount-input input {
-  min-height: 42px;
+  min-height: 48px;
   padding-inline: 12px 38px;
-  font-size: 1rem;
+  font-size: 1.12rem;
 }
 
 .native-record-screen--water .water-amount-input span {
   right: 14px;
-  font-size: 0.98rem;
+  font-size: 1.08rem;
 }
 
 .native-record-screen--water .water-helper-text {
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 7px;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 8px;
   margin: -1px 0 0;
-  font-size: 0.7rem;
-  line-height: 1.22;
+  font-size: 0.8rem;
+  line-height: 1.25;
 }
 
 .native-record-screen--water .water-helper-text svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
 }
 
 .native-record-screen--water .water-form-error {
@@ -7837,9 +7842,9 @@ body:has(.native-record-screen--water) {
 }
 
 .native-record-screen--water .water-save-button {
-  min-height: 48px;
+  min-height: 50px;
   border-radius: 10px;
-  font-size: 0.96rem;
+  font-size: 1.08rem;
 }
 
 @media (max-height: 760px) {

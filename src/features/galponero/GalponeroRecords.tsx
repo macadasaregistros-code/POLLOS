@@ -73,7 +73,7 @@ const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
   {
     kind: 'plagas',
     title: 'Control de plagas',
-    subtitle: 'Tipo, producto y estaciones',
+    subtitle: 'Roedores, mosca y estaciones',
     eyebrow: 'Bioseguridad',
     icon: <Bug size={28} />,
     tone: 'pest',
