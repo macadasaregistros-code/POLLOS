@@ -498,6 +498,21 @@
   border-bottom-color: rgb(36 99 79 / 14%);
 }
 
+.native-record-screen--pest {
+  background: #f3f4f1;
+}
+
+.native-record-screen--pest .record-form-surface {
+  min-height: calc(100svh - 128px - var(--safe-bottom));
+  margin-inline: -2px;
+  padding: 12px 0 calc(var(--bottom-nav-height) + var(--safe-bottom) + 18px);
+  background: #f3f4f1;
+}
+
+.native-record-screen--pest .native-record-hero {
+  border-bottom-color: rgb(36 99 79 / 14%);
+}
+
 .native-record-screen .water-treatment-form {
   grid-template-columns: 1fr;
   gap: 14px;
@@ -7195,7 +7210,15 @@ body {
 }
 
 .native-record-screen .pest-control-form {
+  grid-template-columns: 1fr !important;
+  gap: 14px;
   padding-bottom: 0;
+}
+
+.native-record-screen .pest-control-form > .water-date-card,
+.native-record-screen .pest-control-form > .water-form-card,
+.native-record-screen .pest-control-form > .water-form-error {
+  grid-column: 1 / -1;
 }
 
 .native-record-screen .pest-control-form > .primary-action {
@@ -7207,8 +7230,41 @@ body {
   width: 100%;
 }
 
-.rodent-station-field {
-  gap: 10px !important;
+.pest-section-card {
+  overflow: hidden;
+}
+
+.pest-section-card--rodents {
+  gap: 10px;
+}
+
+.pest-map-heading,
+.pest-dosage-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #11181d;
+}
+
+.pest-map-heading svg,
+.pest-dosage-heading svg {
+  flex: 0 0 auto;
+  color: #267b1b;
+  stroke-width: 2.35;
+}
+
+.pest-map-heading strong,
+.pest-dosage-heading strong {
+  min-width: 0;
+  color: #11181d;
+  font-size: 1rem;
+  font-weight: 850;
+  line-height: 1.1;
+}
+
+.rodent-station-panel {
+  display: grid;
+  gap: 10px;
   overflow: hidden;
 }
 
@@ -7319,6 +7375,67 @@ body {
   text-transform: none !important;
 }
 
+.pest-dosage-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pest-dosage-option {
+  position: relative;
+  min-height: 104px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid #d8ded7;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #11181d;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 58%),
+    0 8px 18px rgb(22 34 29 / 6%);
+  text-align: center;
+  touch-action: manipulation;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease,
+    background 0.15s ease;
+}
+
+.pest-dosage-option:active {
+  transform: scale(0.98);
+}
+
+.pest-dosage-option strong {
+  color: #11181d;
+  font-size: 0.98rem;
+  font-weight: 780;
+  line-height: 1.15;
+}
+
+.pest-dosage-option.is-selected {
+  border-color: #267b1b;
+  border-width: 2px;
+  background: linear-gradient(135deg, #fbfff9 0%, #eef9ea 100%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 64%),
+    0 0 0 2px rgb(38 123 27 / 10%);
+}
+
+.pest-dosage-option__check {
+  position: absolute;
+  top: -12px;
+  right: -8px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #267b1b;
+  color: #ffffff;
+  box-shadow: 0 5px 14px rgb(38 123 27 / 32%);
+}
+
 .pest-form-error {
   margin: 0;
   border: 1px solid rgb(160 52 32 / 18%);
@@ -7328,6 +7445,21 @@ body {
   color: #a03320;
   font-size: 0.86rem;
   font-weight: 850;
+}
+
+@media (max-width: 420px) {
+  .pest-dosage-grid {
+    gap: 8px;
+  }
+
+  .pest-dosage-option {
+    min-height: 88px;
+    padding-inline: 6px;
+  }
+
+  .pest-dosage-option strong {
+    font-size: 0.88rem;
+  }
 }
 
 .form-optional-panel {

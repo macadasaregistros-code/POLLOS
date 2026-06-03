@@ -7,11 +7,13 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
+  Crosshair,
   Dog,
   Droplets,
   Flame,
   FlaskConical,
   Info,
+  MapPin,
   NotebookPen,
   PackagePlus,
   Pill,
@@ -37,7 +39,7 @@ import { db } from '../../services/localDbService';
 import { addDays, todayISO } from '../../lib/date';
 import { fileToDataUrl } from '../../lib/photo';
 import { fmtNumber } from '../../lib/format';
-import type { CompostajeCajon, ControlAgua, Lote, TipoAlimento, TipoMaterialInventario, TipoPlaga, Usuario } from '../../types/entities';
+import type { CompostajeCajon, ControlAgua, Lote, TipoAlimento, TipoMaterialInventario, Usuario } from '../../types/entities';
 
 export type ActivityRecordKind = 'vacunacion' | 'agua' | 'plagas' | 'medicamento' | 'compostaje' | 'perros' | 'capacitacion';
 export type EntryKind = 'alimento' | 'cisco' | 'gas';
@@ -155,6 +157,8 @@ const chlorineOptions = [
   { value: '1.5', tone: 'cl-15' },
   { value: '3.0', tone: 'cl-30' },
 ] as const;
+const flyDosageOptions = ['0 cc/bomba', '30 cc/bomba', '80 cc/bomba'] as const;
+type FlyDosageOption = (typeof flyDosageOptions)[number];
 const shortMonths = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] as const;
 const rodentStationPoints = [
   { id: 1, x: 58.3, y: 65.0, label: 'Bodega superior' },
@@ -854,23 +858,15 @@ function toWholeGramInput(value: string): string {
 
 function PestControlForm({ user, onSaved }: { user: Usuario; onSaved: (message: string) => void }) {
   const galpones = useLiveQuery(() => db.galpones.toArray(), []);
-  const [tipo, setTipo] = useState<TipoPlaga>('ROEDORES');
+  const [fechaRegistro] = useState(() => todayISO());
   const [galponId, setGalponId] = useState('');
-  const [producto, setProducto] = useState('Veneno para roedores');
-  const [dosificacion, setDosificacion] = useState('');
   const [selectedStationIds, setSelectedStationIds] = useState<number[]>([]);
-  const [foto, setFoto] = useState('');
-  const [observaciones, setObservaciones] = useState('');
+  const [selectedFlyDosage, setSelectedFlyDosage] = useState<FlyDosageOption>('30 cc/bomba');
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!galponId && galpones?.[0]) setGalponId(galpones[0].GalponID);
   }, [galponId, galpones]);
-
-  useEffect(() => {
-    setProducto(tipo === 'ROEDORES' ? 'Veneno para roedores' : 'Cipermetrina');
-    setError('');
-  }, [tipo]);
 
   function toggleStation(stationId: number) {
     if ('vibrate' in navigator) navigator.vibrate(16);
@@ -882,65 +878,110 @@ function PestControlForm({ user, onSaved }: { user: Usuario; onSaved: (message: 
     });
   }
 
+  function selectFlyDosage(value: FlyDosageOption) {
+    if ('vibrate' in navigator) navigator.vibrate(12);
+    setSelectedFlyDosage(value);
+    setError('');
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    const selectedStations = tipo === 'ROEDORES' ? selectedStationIds : [];
 
     if (!galponId) {
-      setError('Selecciona un galpon antes de guardar.');
+      setError('Selecciona un galpon activo antes de guardar.');
       return;
     }
 
-    if (tipo === 'ROEDORES' && selectedStations.length === 0) {
-      setError('Selecciona al menos una estacion con veneno.');
+    if (selectedStationIds.length === 0 && !selectedFlyDosage) {
+      setError('Selecciona estaciones o una dosificacion de mosca.');
       return;
     }
 
-    await registrarPlaga(
-      {
-        Fecha: todayISO(),
-        TipoPlaga: tipo,
-        GalponID: galponId,
-        Producto: producto,
-        Dosificacion: dosificacion,
-        EstacionesVeneno: selectedStations.length,
-        EstacionesVenenoDetalle: selectedStations.join(','),
-        Foto: foto,
-        Observaciones: observaciones,
-      },
-      user,
-    );
-    setDosificacion('');
+    if (selectedStationIds.length > 0) {
+      await registrarPlaga(
+        {
+          Fecha: fechaRegistro,
+          TipoPlaga: 'ROEDORES',
+          GalponID: galponId,
+          Producto: 'Veneno para roedores',
+          Dosificacion: '',
+          EstacionesVeneno: selectedStationIds.length,
+          EstacionesVenenoDetalle: selectedStationIds.join(','),
+          Foto: '',
+          Observaciones: '',
+        },
+        user,
+      );
+    }
+
+    if (selectedFlyDosage) {
+      await registrarPlaga(
+        {
+          Fecha: fechaRegistro,
+          TipoPlaga: 'MOSCA',
+          GalponID: galponId,
+          Producto: 'Cipermetrina',
+          Dosificacion: selectedFlyDosage,
+          EstacionesVeneno: 0,
+          EstacionesVenenoDetalle: '',
+          Foto: '',
+          Observaciones: '',
+        },
+        user,
+      );
+    }
+
     setSelectedStationIds([]);
-    setFoto('');
-    setObservaciones('');
+    setSelectedFlyDosage('30 cc/bomba');
     setError('');
     onSaved('Control de plagas guardado offline.');
   }
 
   return (
     <form className="form-grid flow-form pest-control-form" onSubmit={handleSubmit}>
-      <div className="field field--full">
-        <span id="pest-type-label">Tipo</span>
-        <div className="segmented-control" role="radiogroup" aria-labelledby="pest-type-label">
-          <button type="button" role="radio" aria-checked={tipo === 'ROEDORES'} className={tipo === 'ROEDORES' ? 'is-active' : ''} onClick={() => setTipo('ROEDORES')}>
-            Roedores
-          </button>
-          <button type="button" role="radio" aria-checked={tipo === 'MOSCA'} className={tipo === 'MOSCA' ? 'is-active' : ''} onClick={() => setTipo('MOSCA')}>
-            Mosca
-          </button>
+      <section className="water-date-card" aria-label="Fecha y estado del registro">
+        <span className="water-date-card__icon">
+          <CalendarDays size={30} />
+        </span>
+        <div className="water-date-card__date">
+          <span>Fecha de Registro</span>
+          <strong>{formatWaterDate(fechaRegistro)}</strong>
         </div>
-      </div>
-      <GalponField galpones={galpones ?? []} galponId={galponId} onChange={setGalponId} />
-      {tipo === 'ROEDORES' && <RodentStationMap selectedStationIds={selectedStationIds} onToggleStation={toggleStation} />}
-      <TextField label="Producto" value={producto} onChange={setProducto} />
-      <TextField label="Dosificacion" value={dosificacion} onChange={setDosificacion} />
-      <PhotoField onChange={setFoto} />
-      <ObservationField value={observaciones} onChange={setObservaciones} />
-      {error && <p className="pest-form-error field--full" role="alert">{error}</p>}
-      <button className="primary-action">
-        <Save size={21} />
-        <span>Guardar plagas</span>
+        <div className="water-date-card__status">
+          <span>Estado</span>
+          <strong>{waterRecordStatus}</strong>
+        </div>
+      </section>
+
+      <section className="water-form-card pest-section-card pest-section-card--rodents">
+        <WaterSectionTitle icon={<Crosshair size={30} />} title="ROEDORES" />
+        <div className="pest-map-heading">
+          <MapPin size={20} />
+          <strong>Mapa de Roedores</strong>
+        </div>
+        <RodentStationMap selectedStationIds={selectedStationIds} onToggleStation={toggleStation} />
+      </section>
+
+      <section className="water-form-card pest-section-card pest-section-card--flies">
+        <WaterSectionTitle icon={<Bug size={30} />} title="MOSCA" />
+        <div className="water-input-heading pest-dosage-heading">
+          <span>
+            <FlaskConical size={24} />
+            <strong>Dosificacion de Cipermetrina</strong>
+          </span>
+        </div>
+        <FlyDosageSelector selectedValue={selectedFlyDosage} onSelect={selectFlyDosage} />
+      </section>
+
+      {error && (
+        <p className="water-form-error pest-form-error" role="alert">
+          {error}
+        </p>
+      )}
+
+      <button className="primary-action pest-save-button">
+        <Save size={24} />
+        <span>Guardar Registro</span>
       </button>
     </form>
   );
@@ -951,8 +992,7 @@ function RodentStationMap({ selectedStationIds, onToggleStation }: { selectedSta
   const selectedLabel = selectedStationIds.length > 0 ? selectedStationIds.join(', ') : 'Ninguna';
 
   return (
-    <section className="rodent-station-field field field--full" aria-label="Estaciones de control de roedores">
-      <span>Estaciones con veneno</span>
+    <div className="rodent-station-panel" aria-label="Estaciones de control de roedores">
       <div className="rodent-station-map" role="group" aria-label="Mapa de estaciones de control">
         <img src="/pest-control/rodent-stations-map.png" alt="" loading="lazy" decoding="async" />
         {rodentStationPoints.map((station) => {
@@ -976,7 +1016,40 @@ function RodentStationMap({ selectedStationIds, onToggleStation }: { selectedSta
         <strong>{selectedStationIds.length} seleccionada(s)</strong>
         <span>{selectedLabel}</span>
       </div>
-    </section>
+    </div>
+  );
+}
+
+function FlyDosageSelector({
+  selectedValue,
+  onSelect,
+}: {
+  selectedValue: FlyDosageOption;
+  onSelect: (value: FlyDosageOption) => void;
+}) {
+  return (
+    <div className="pest-dosage-grid" role="radiogroup" aria-label="Dosificacion de Cipermetrina">
+      {flyDosageOptions.map((option) => {
+        const selected = selectedValue === option;
+        return (
+          <button
+            key={option}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            className={`pest-dosage-option ${selected ? 'is-selected' : ''}`}
+            onClick={() => onSelect(option)}
+          >
+            <strong>{option}</strong>
+            {selected && (
+              <span className="pest-dosage-option__check" aria-hidden="true">
+                <Check size={18} />
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
