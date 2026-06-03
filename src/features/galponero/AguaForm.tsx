@@ -53,7 +53,7 @@ export function AguaForm({ lote, user, onSaved }: AguaFormProps) {
   }
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
+    <form className="form-grid flow-form" onSubmit={handleSubmit}>
       <label className="field">
         <span>Galpon</span>
         <select value={galponId} onChange={(event) => setGalponId(event.target.value)}>

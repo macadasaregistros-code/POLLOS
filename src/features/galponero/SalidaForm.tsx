@@ -48,7 +48,7 @@ export function SalidaForm({ lote, user, onSaved, initialTipoSalida = 'VENTA' }:
   }
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
+    <form className="form-grid flow-form" onSubmit={handleSubmit}>
       <label className="field">
         <span>Tipo salida</span>
         <select value={tipoSalida} onChange={(event) => setTipoSalida(event.target.value as 'VENTA' | 'SACRIFICIO')}>

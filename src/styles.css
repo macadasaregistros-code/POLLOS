@@ -7100,3 +7100,247 @@ body {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Shared visual form style */
+.native-record-screen:not(.native-record-screen--water) .record-form-surface {
+  min-height: calc(100svh - 128px - var(--safe-bottom));
+  margin-inline: -2px;
+  padding: 12px 0 calc(var(--bottom-nav-height) + var(--sticky-action-height) + var(--safe-bottom) + 18px);
+  background: #f3f4f1;
+}
+
+.native-record-screen .flow-form:not(.water-treatment-form),
+.mobile-card .flow-form,
+.daily-register-form {
+  grid-template-columns: 1fr !important;
+  gap: 12px;
+  align-items: stretch;
+  padding-bottom: calc(var(--sticky-action-height) + 10px);
+}
+
+.mobile-card .flow-form {
+  padding-bottom: 0;
+}
+
+.native-record-screen .flow-form:not(.water-treatment-form) > .field,
+.native-record-screen .flow-form:not(.water-treatment-form) > .form-context-card,
+.native-record-screen .flow-form:not(.water-treatment-form) > .form-context-stack,
+.native-record-screen .flow-form:not(.water-treatment-form) > .form-optional-panel,
+.native-record-screen .flow-form:not(.water-treatment-form) > .assistant-list,
+.daily-register-form > .form-section,
+.daily-register-form > .form-optional-panel,
+.daily-form-intro,
+.mobile-card .flow-form > .field,
+.mobile-card .flow-form > .form-section,
+.mobile-card .flow-form > .form-optional-panel {
+  grid-column: 1 / -1;
+  border: 1px solid rgb(22 34 29 / 7%);
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgb(22 34 29 / 10%);
+}
+
+.native-record-screen .flow-form:not(.water-treatment-form) > .field,
+.mobile-card .flow-form > .field,
+.form-optional-panel__body .field {
+  gap: 6px;
+}
+
+.native-record-screen .flow-form:not(.water-treatment-form) .field span,
+.mobile-card .flow-form .field span,
+.daily-register-form .field span {
+  color: #24634f;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.native-record-screen .flow-form:not(.water-treatment-form) .field input,
+.native-record-screen .flow-form:not(.water-treatment-form) .field select,
+.native-record-screen .flow-form:not(.water-treatment-form) .field textarea,
+.mobile-card .flow-form .field input,
+.mobile-card .flow-form .field select,
+.mobile-card .flow-form .field textarea,
+.daily-register-form .field input,
+.daily-register-form .field select,
+.daily-register-form .field textarea {
+  min-height: 48px;
+  border: 1.5px solid #d8ded7;
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: #ffffff;
+  color: #11181d;
+  box-shadow: none;
+  font-weight: 700;
+}
+
+.native-record-screen .flow-form:not(.water-treatment-form) .field input:focus,
+.native-record-screen .flow-form:not(.water-treatment-form) .field select:focus,
+.native-record-screen .flow-form:not(.water-treatment-form) .field textarea:focus,
+.mobile-card .flow-form .field input:focus,
+.mobile-card .flow-form .field select:focus,
+.mobile-card .flow-form .field textarea:focus,
+.daily-register-form .field input:focus,
+.daily-register-form .field select:focus,
+.daily-register-form .field textarea:focus {
+  border-color: #267b1b;
+  box-shadow: 0 0 0 3px rgb(38 123 27 / 14%);
+}
+
+.native-record-screen .flow-form:not(.water-treatment-form) textarea,
+.mobile-card .flow-form textarea,
+.daily-register-form textarea {
+  min-height: 70px;
+}
+
+.form-optional-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.form-optional-panel__toggle {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0;
+  background: transparent;
+  color: #11181d;
+  text-align: left;
+}
+
+.form-optional-panel__label {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-optional-panel__label strong {
+  font-size: 0.98rem;
+  line-height: 1.1;
+}
+
+.form-optional-panel__icon {
+  color: #24634f;
+}
+
+.form-optional-panel__toggle small {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #e7f0ea;
+  color: #24634f;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.form-optional-panel__body {
+  display: grid;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgb(22 34 29 / 10%);
+}
+
+.form-grid--nested {
+  grid-template-columns: 1fr !important;
+  gap: 10px;
+  padding-bottom: 0 !important;
+}
+
+.form-grid--nested .field,
+.form-optional-panel__body .field {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.daily-form-intro {
+  display: grid;
+  gap: 3px;
+}
+
+.daily-form-intro span {
+  color: #24634f;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.daily-form-intro strong {
+  color: #11181d;
+  font-size: 1.08rem;
+}
+
+.daily-form-intro small {
+  color: #64706a;
+  font-weight: 750;
+}
+
+.daily-register-form .form-section {
+  gap: 10px;
+}
+
+.daily-register-form .form-section h3 {
+  color: #11181d;
+  font-size: 1rem;
+}
+
+.daily-register-form .form-section > .form-grid {
+  grid-template-columns: 1fr !important;
+  gap: 10px;
+  padding-bottom: 0;
+}
+
+.native-record-screen .form-grid > .primary-action,
+.galpon-entry .form-grid > .primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #2b7d1f 0%, #18670f 100%);
+  color: #ffffff;
+  font-size: 0.98rem;
+  font-weight: 900;
+}
+
+.mobile-card .flow-form > .primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #2b7d1f 0%, #18670f 100%);
+  box-shadow: 0 8px 20px rgb(20 33 29 / 14%);
+}
+
+.assistant-list,
+.assistant-row {
+  display: grid;
+  gap: 10px;
+}
+
+.assistant-row {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .native-record-screen .flow-form:not(.water-treatment-form),
+  .mobile-card .flow-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .native-record-screen .flow-form:not(.water-treatment-form) > .field:not(.field--full),
+  .mobile-card .flow-form > .field:not(.field--full) {
+    grid-column: auto;
+  }
+
+  .daily-register-form .form-section > .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}

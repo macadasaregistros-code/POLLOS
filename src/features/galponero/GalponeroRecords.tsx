@@ -464,7 +464,10 @@ function FoodEntryForm({ user, onSaved }: { user: Usuario; onSaved: (message: st
         <input type="number" min="0" step="0.25" inputMode="decimal" value={bultos} onChange={(event) => setBultos(event.target.value)} />
       </label>
       <ObservationField value={observaciones} onChange={setObservaciones} />
-      <button className="primary-action">Guardar entrada</button>
+      <button className="primary-action">
+        <Save size={21} />
+        <span>Guardar entrada</span>
+      </button>
     </form>
   );
 }
@@ -510,7 +513,10 @@ function MaterialEntryForm({
         <input type="number" min="0" step="1" inputMode="numeric" value={cantidad} onChange={(event) => setCantidad(event.target.value)} />
       </label>
       <ObservationField value={observaciones} onChange={setObservaciones} />
-      <button className="primary-action">Guardar entrada</button>
+      <button className="primary-action">
+        <Save size={21} />
+        <span>Guardar entrada</span>
+      </button>
     </form>
   );
 }
@@ -608,7 +614,10 @@ function VaccinationRecordForm({ user, onSaved }: { user: Usuario; onSaved: (mes
       </FormOptionalPanel>
       <PhotoField onChange={setFoto} />
       <ObservationField value={observacion} onChange={setObservacion} />
-      <button className="primary-action">Guardar vacunacion</button>
+      <button className="primary-action">
+        <Save size={21} />
+        <span>Guardar vacunacion</span>
+      </button>
     </form>
   );
 }
@@ -892,7 +901,10 @@ function PestControlForm({ user, onSaved }: { user: Usuario; onSaved: (message: 
       {tipo === 'ROEDORES' && <NumberField label="Estaciones con veneno" value={estaciones} onChange={setEstaciones} step="1" />}
       <PhotoField onChange={setFoto} />
       <ObservationField value={observaciones} onChange={setObservaciones} />
-      <button className="primary-action">Guardar plagas</button>
+      <button className="primary-action">
+        <Save size={21} />
+        <span>Guardar plagas</span>
+      </button>
     </form>
   );
 }
@@ -951,7 +963,10 @@ function MedicationForm({ user, onSaved }: { user: Usuario; onSaved: (message: s
       </FormOptionalPanel>
       <PhotoField onChange={setFoto} />
       <ObservationField value={observaciones} onChange={setObservaciones} />
-      <button className="primary-action">Guardar medicamento</button>
+      <button className="primary-action">
+        <Save size={21} />
+        <span>Guardar medicamento</span>
+      </button>
     </form>
   );
 }
@@ -1062,7 +1077,7 @@ function DogRecordForm({ user, onSaved }: { user: Usuario; onSaved: (message: st
   }
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
+    <form className="form-grid flow-form" onSubmit={handleSubmit}>
       <TextField label="Nombre" value={nombre} onChange={setNombre} required />
       <label className="field">
         <span>Tipo</span>
@@ -1082,7 +1097,10 @@ function DogRecordForm({ user, onSaved }: { user: Usuario; onSaved: (message: st
       <TextField label="Firma" value={firma} onChange={setFirma} />
       <PhotoField onChange={setFoto} />
       <ObservationField value={observaciones} onChange={setObservaciones} />
-      <button className="primary-action">Guardar registro</button>
+      <button className="primary-action">
+        <Save size={21} />
+        <span>Guardar registro</span>
+      </button>
     </form>
   );
 }
@@ -1120,7 +1138,7 @@ function TrainingForm({ user, onSaved }: { user: Usuario; onSaved: (message: str
   }
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
+    <form className="form-grid flow-form" onSubmit={handleSubmit}>
       <TextField className="field--full" label="Tema" value={tema} onChange={setTema} required />
       <TextField label="Capacitador" value={capacitador} onChange={setCapacitador} />
       <TextField label="Firma capacitador" value={firmaCapacitador} onChange={setFirmaCapacitador} />
@@ -1139,7 +1157,10 @@ function TrainingForm({ user, onSaved }: { user: Usuario; onSaved: (message: str
         </button>
       </div>
       <ObservationField value={observaciones} onChange={setObservaciones} />
-      <button className="primary-action">Guardar capacitacion</button>
+      <button className="primary-action">
+        <Save size={21} />
+        <span>Guardar capacitacion</span>
+      </button>
     </form>
   );
 }

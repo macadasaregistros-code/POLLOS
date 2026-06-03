@@ -41,7 +41,7 @@ export function EventoSanitarioForm({ lote, user, onSaved }: EventoSanitarioForm
   }
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
+    <form className="form-grid flow-form" onSubmit={handleSubmit}>
       <label className="field">
         <span>Galpón</span>
         <select value={galponId} onChange={(event) => setGalponId(event.target.value)}>

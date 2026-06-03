@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { Save } from 'lucide-react';
 import { FormOptionalPanel } from '../../components/FormOptionalPanel';
 import { registrarDia } from '../../services/domainService';
 import { db } from '../../services/localDbService';
@@ -164,7 +165,8 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
       </label>
       </FormOptionalPanel>
       <button className="primary-action" disabled={saving || !currentTipoId}>
-        Guardar registro diario
+        <Save size={21} />
+        <span>Guardar registro diario</span>
       </button>
     </form>
   );

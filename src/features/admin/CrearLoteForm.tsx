@@ -58,7 +58,7 @@ export function CrearLoteForm({ user, onSaved }: CrearLoteFormProps) {
   }
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
+    <form className="form-grid flow-form" onSubmit={handleSubmit}>
       <label className="field">
         <span>Código lote</span>
         <input value={codigo} onChange={(event) => setCodigo(event.target.value)} required />

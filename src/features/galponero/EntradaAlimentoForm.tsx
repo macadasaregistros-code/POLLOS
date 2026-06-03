@@ -52,7 +52,7 @@ export function EntradaAlimentoForm({ user, onSaved }: EntradaAlimentoFormProps)
   }
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
+    <form className="form-grid flow-form" onSubmit={handleSubmit}>
       <label className="field">
         <span>Tipo alimento</span>
         <select value={tipoId} onChange={(event) => setTipoId(event.target.value)} required>
