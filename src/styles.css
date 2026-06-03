@@ -7613,7 +7613,7 @@ body:has(.native-record-screen--water) {
 
 .native-record-screen--water .water-form-card {
   min-height: 0;
-  align-content: start;
+  align-content: space-between;
   gap: 8px;
   padding: 10px;
   overflow: hidden;
