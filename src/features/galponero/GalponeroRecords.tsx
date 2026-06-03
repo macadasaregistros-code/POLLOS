@@ -157,14 +157,14 @@ const chlorineOptions = [
 ] as const;
 const shortMonths = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] as const;
 const rodentStationPoints = [
-  { id: 1, x: 58.4, y: 66.2, label: 'Bodega superior' },
-  { id: 2, x: 66.3, y: 78.6, label: 'Bodega lateral' },
-  { id: 3, x: 50.2, y: 83.3, label: 'Casa y bodega' },
-  { id: 4, x: 79.0, y: 72.8, label: 'Camino lateral' },
-  { id: 5, x: 61.2, y: 92.8, label: 'Bodega inferior' },
-  { id: 6, x: 32.2, y: 57.2, label: 'Galpon 1' },
-  { id: 7, x: 55.0, y: 35.9, label: 'Galpon 2' },
-  { id: 8, x: 69.2, y: 55.2, label: 'Galpon 3' },
+  { id: 1, x: 58.3, y: 65.0, label: 'Bodega superior' },
+  { id: 2, x: 67.0, y: 76.3, label: 'Bodega lateral' },
+  { id: 3, x: 50.2, y: 81.9, label: 'Casa y bodega' },
+  { id: 4, x: 70.8, y: 71.5, label: 'Camino lateral' },
+  { id: 5, x: 61.2, y: 91.2, label: 'Bodega inferior' },
+  { id: 6, x: 32.2, y: 56.1, label: 'Galpon 1' },
+  { id: 7, x: 55.0, y: 35.2, label: 'Galpon 2' },
+  { id: 8, x: 69.3, y: 54.2, label: 'Galpon 3' },
 ] as const;
 
 interface ActivityRecordsProps {
@@ -954,7 +954,7 @@ function RodentStationMap({ selectedStationIds, onToggleStation }: { selectedSta
     <section className="rodent-station-field field field--full" aria-label="Estaciones de control de roedores">
       <span>Estaciones con veneno</span>
       <div className="rodent-station-map" role="group" aria-label="Mapa de estaciones de control">
-        <img src="/pest-control/rodent-stations-map.svg" alt="" loading="lazy" decoding="async" />
+        <img src="/pest-control/rodent-stations-map.png" alt="" loading="lazy" decoding="async" />
         {rodentStationPoints.map((station) => {
           const selected = selectedSet.has(station.id);
           return (
