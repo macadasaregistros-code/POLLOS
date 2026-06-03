@@ -36,9 +36,10 @@ import {
   registrarPlaga,
 } from '../../services/domainService';
 import { db } from '../../services/localDbService';
-import { addDays, todayISO } from '../../lib/date';
+import { getDiaLote, todayISO } from '../../lib/date';
 import { fileToDataUrl } from '../../lib/photo';
 import { fmtNumber } from '../../lib/format';
+import { avesVivasTotal, sumLoteTotals } from '../../services/calculationsService';
 import type { CompostajeCajon, ControlAgua, Lote, TipoAlimento, TipoMaterialInventario, Usuario } from '../../types/entities';
 
 export type ActivityRecordKind = 'vacunacion' | 'agua' | 'plagas' | 'medicamento' | 'compostaje' | 'perros' | 'capacitacion';
@@ -141,6 +142,15 @@ const entryOptions: Array<RecordOption<EntryKind>> = [
 
 const foodOrder = ['preiniciador', 'iniciador', 'engorde'] as const;
 const waterRecordStatus = 'EN PROCESO';
+const vaccinationRecordStatus = 'EN PROCESO';
+const vaccinationViaAplicacion = 'Agua de bebida';
+const vaccinationProductCatalog = [
+  { nombreProducto: 'Newcastle', enfermedad: 'Newcastle', cepa: 'Según producto' },
+  { nombreProducto: 'Gumboro', enfermedad: 'Gumboro', cepa: 'Según producto' },
+] as const;
+const veterinaryDoctors = ['Esteban Salazar', 'Leidy Murillo'] as const;
+type VaccinationProductName = (typeof vaccinationProductCatalog)[number]['nombreProducto'];
+type VeterinaryDoctor = (typeof veterinaryDoctors)[number];
 const phIdealValues = new Set(['6.0', '6.8']);
 const chlorineIdealValue = '3.0';
 const phOptions = [
@@ -538,102 +548,304 @@ function MaterialEntryForm({
 function VaccinationRecordForm({ user, onSaved }: { user: Usuario; onSaved: (message: string) => void }) {
   const vacunas = useLiveQuery(() => db.vacunasLote.toArray(), []);
   const lotes = useLiveQuery(() => db.lotes.toArray(), []);
-  const [vacunaId, setVacunaId] = useState('');
-  const [producto, setProducto] = useState('');
-  const [laboratorio, setLaboratorio] = useState('');
+  const registrosDiarios = useLiveQuery(() => db.registroDiarioLote.toArray(), []);
+  const [fechaRegistro] = useState(() => todayISO());
+  const [nombreProducto, setNombreProducto] = useState<VaccinationProductName | ''>('');
+  const [loteId, setLoteId] = useState('');
   const [loteProducto, setLoteProducto] = useState('');
   const [vencimiento, setVencimiento] = useState('');
-  const [via, setVia] = useState('Agua de bebida');
-  const [cepa, setCepa] = useState('');
-  const [enfermedad, setEnfermedad] = useState('');
-  const [responsable, setResponsable] = useState(user.Nombre);
-  const [firma, setFirma] = useState('');
-  const [foto, setFoto] = useState('');
-  const [observacion, setObservacion] = useState('');
+  const [medicoVeterinario, setMedicoVeterinario] = useState<VeterinaryDoctor | ''>('');
+  const [error, setError] = useState('');
   const sortedVacunas = useMemo(
     () => (vacunas ?? []).slice().sort((left, right) => left.FechaProgramada.localeCompare(right.FechaProgramada)),
     [vacunas],
   );
-  const selected = sortedVacunas.find((vacuna) => vacuna.VacunaLoteID === vacunaId);
-  const lote = lotes?.find((item) => item.LoteID === selected?.LoteID);
+  const lotesById = useMemo(() => new Map((lotes ?? []).map((loteItem) => [loteItem.LoteID, loteItem])), [lotes]);
+  const selectedProductInfo = vaccinationProductCatalog.find((product) => product.nombreProducto === nombreProducto);
+  const productVacunas = useMemo(
+    () =>
+      nombreProducto
+        ? sortedVacunas.filter((vacuna) => vacuna.Estado !== 'APLICADA' && matchesVaccinationProduct(vacuna, nombreProducto))
+        : [],
+    [nombreProducto, sortedVacunas],
+  );
+  const loteOptions = useMemo(() => {
+    const seen = new Set<string>();
+    return productVacunas.reduce<Lote[]>((options, vacuna) => {
+      const optionLote = lotesById.get(vacuna.LoteID);
+      if (optionLote && !seen.has(optionLote.LoteID)) {
+        seen.add(optionLote.LoteID);
+        options.push(optionLote);
+      }
+      return options;
+    }, []);
+  }, [lotesById, productVacunas]);
+  const selected = productVacunas.find((vacuna) => vacuna.LoteID === loteId) ?? productVacunas[0];
+  const lote = selected ? lotesById.get(selected.LoteID) : undefined;
+  const registrosLote = useMemo(
+    () => (registrosDiarios ?? []).filter((registro) => registro.LoteID === lote?.LoteID),
+    [lote?.LoteID, registrosDiarios],
+  );
+  const loteTotals = useMemo(() => sumLoteTotals(registrosLote), [registrosLote]);
+  const enfermedad = selected?.Enfermedad || selectedProductInfo?.enfermedad || '';
+  const cepa = selected?.Cepa || selectedProductInfo?.cepa || '';
+  const edadAvesDias = lote ? getDiaLote(lote.FechaLlegada, fechaRegistro) : selected?.EdadDias || selected?.DiaProgramado || 0;
+  const numeroAnimalesVacunados = lote ? avesVivasTotal(lote, loteTotals) : selected?.NumeroAves || 0;
 
   useEffect(() => {
-    if (!vacunaId && sortedVacunas[0]) setVacunaId(sortedVacunas[0].VacunaLoteID);
-  }, [sortedVacunas, vacunaId]);
-
-  useEffect(() => {
-    if (!selected) return;
-    setProducto(selected.Producto || selected.NombreVacuna);
-    setVia(selected.ViaAdministracion || 'Agua de bebida');
-    setEnfermedad(selected.Enfermedad || selected.NombreVacuna);
-  }, [selected?.VacunaLoteID]);
+    if (!nombreProducto) {
+      if (loteId) setLoteId('');
+      return;
+    }
+    if (loteId && productVacunas.some((vacuna) => vacuna.LoteID === loteId)) return;
+    setLoteId(productVacunas[0]?.LoteID ?? '');
+  }, [loteId, nombreProducto, productVacunas]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!selected) return;
+    if (!fechaRegistro) {
+      setError('La fecha de registro es obligatoria.');
+      return;
+    }
+    if (!nombreProducto) {
+      setError('Selecciona un producto.');
+      return;
+    }
+    if (!selected || !lote) {
+      setError('No hay una vacuna programada pendiente para ese producto y lote.');
+      return;
+    }
+    if (!enfermedad || !cepa) {
+      setError('La informacion automatica del producto esta incompleta.');
+      return;
+    }
+    if (!loteProducto.trim()) {
+      setError('Ingresa el numero de lote del producto.');
+      return;
+    }
+    if (!vencimiento) {
+      setError('Selecciona la fecha de vencimiento.');
+      return;
+    }
+    if (!medicoVeterinario) {
+      setError('Selecciona el medico veterinario.');
+      return;
+    }
+
     await aplicarVacuna(selected.VacunaLoteID, user, {
-      Producto: producto,
-      Laboratorio: laboratorio,
-      LoteProducto: loteProducto,
+      Producto: nombreProducto,
+      Laboratorio: '',
+      LoteProducto: loteProducto.trim(),
       FechaVencimientoProducto: vencimiento,
-      ViaAdministracion: via,
+      ViaAdministracion: vaccinationViaAplicacion,
       Cepa: cepa,
       Enfermedad: enfermedad,
-      Responsable: responsable,
-      FirmaResponsable: firma,
-      Foto: foto,
-      Observacion: observacion,
+      NumeroAves: numeroAnimalesVacunados,
+      EdadDias: edadAvesDias,
+      Responsable: medicoVeterinario,
+      FirmaResponsable: '',
+      Foto: '',
+      Observacion: '',
     });
-    setLaboratorio('');
     setLoteProducto('');
     setVencimiento('');
-    setCepa('');
-    setFirma('');
-    setFoto('');
-    setObservacion('');
-    onSaved('Vacunacion registrada offline.');
+    setMedicoVeterinario('');
+    setError('');
+    onSaved('Vacunación registrada offline.');
   }
 
   return (
-    <form className="form-grid flow-form" onSubmit={handleSubmit}>
-      <label className="field field--full">
-        <span>Vacuna programada</span>
-        <select value={vacunaId} onChange={(event) => setVacunaId(event.target.value)} required>
-          {sortedVacunas.map((vacuna) => {
-            const vacunaLote = lotes?.find((item) => item.LoteID === vacuna.LoteID);
-            return (
-              <option key={vacuna.VacunaLoteID} value={vacuna.VacunaLoteID}>
-                {vacuna.NombreVacuna} - {vacunaLote?.CodigoLote ?? vacuna.LoteID} - {vacuna.Estado}
-              </option>
-            );
-          })}
-        </select>
-      </label>
-      <ReadOnlyContext lote={lote} label={`Edad programada ${selected?.EdadDias || selected?.DiaProgramado || 0} dias`} />
-      <TextField label="Producto" value={producto} onChange={setProducto} required />
-      <TextField label="Via de administracion" value={via} onChange={setVia} />
-      <FormOptionalPanel label="Detalles del producto">
-        <div className="form-grid form-grid--nested">
-          <TextField label="Laboratorio" value={laboratorio} onChange={setLaboratorio} />
-          <TextField label="Lote del producto" value={loteProducto} onChange={setLoteProducto} />
-          <label className="field">
-            <span>Fecha vencimiento</span>
-            <input type="date" value={vencimiento} onChange={(event) => setVencimiento(event.target.value)} />
-          </label>
-          <TextField label="Cepa" value={cepa} onChange={setCepa} />
-          <TextField label="Enfermedad" value={enfermedad} onChange={setEnfermedad} />
-          <TextField label="Responsable" value={responsable} onChange={setResponsable} />
-          <TextField label="Firma" value={firma} onChange={setFirma} />
+    <form className="form-grid flow-form vaccination-record-form" onSubmit={handleSubmit}>
+      <section className="water-date-card vaccination-date-card" aria-label="Fecha y estado del registro">
+        <span className="water-date-card__icon">
+          <CalendarDays size={30} />
+        </span>
+        <div className="water-date-card__date">
+          <span>Fecha de Registro</span>
+          <strong>{formatWaterDate(fechaRegistro)}</strong>
         </div>
-      </FormOptionalPanel>
-      <PhotoField onChange={setFoto} />
-      <ObservationField value={observacion} onChange={setObservacion} />
-      <button className="primary-action">
-        <Save size={21} />
-        <span>Guardar vacunacion</span>
+        <div className="water-date-card__status">
+          <span>Estado</span>
+          <strong>{vaccinationRecordStatus}</strong>
+        </div>
+      </section>
+
+      <section className="water-form-card vaccination-main-card">
+        <header className="vaccination-main-card__header">
+          <span className="vaccination-main-card__icon" aria-hidden="true">
+            <Syringe size={44} />
+          </span>
+          <strong>VACUNACIÓN</strong>
+        </header>
+
+        <VaccinationStepTitle number={1} title="Nombre del Producto" />
+        <div className="vaccination-option-grid" role="radiogroup" aria-label="Nombre del Producto">
+          {vaccinationProductCatalog.map((product) => (
+            <VaccinationOptionTile
+              key={product.nombreProducto}
+              label={product.nombreProducto}
+              selected={nombreProducto === product.nombreProducto}
+              onSelect={() => {
+                setNombreProducto(product.nombreProducto);
+                setError('');
+              }}
+            />
+          ))}
+        </div>
+        <p className="vaccination-helper-text">Seleccione el producto</p>
+
+        <div className="water-form-divider" />
+
+        <VaccinationStepTitle number={2} title="Información del producto" detail="(automática)" />
+        <div className="vaccination-field-grid">
+          <VaccinationReadOnlyField label="Enfermedad" value={enfermedad || 'Seleccione producto'} helper="Se selecciona automáticamente" />
+          <VaccinationReadOnlyField label="Cepa" value={cepa || 'Seleccione producto'} helper="Se selecciona automáticamente" />
+        </div>
+
+        <div className="water-form-divider" />
+
+        <VaccinationStepTitle number={3} title="Información manual" />
+        <div className="vaccination-field-grid vaccination-field-grid--manual">
+          <label className="vaccination-field">
+            <span>Número de lote producto</span>
+            <input
+              value={loteProducto}
+              placeholder="Ingrese el lote"
+              required
+              onChange={(event) => {
+                setLoteProducto(event.target.value);
+                setError('');
+              }}
+            />
+          </label>
+          <label className="vaccination-field">
+            <span>Fecha de vencimiento</span>
+            <input
+              type="date"
+              value={vencimiento}
+              required
+              aria-label="Seleccionar fecha"
+              onChange={(event) => {
+                setVencimiento(event.target.value);
+                setError('');
+              }}
+            />
+          </label>
+          <VaccinationReadOnlyField label="Vía de Aplicación" value={vaccinationViaAplicacion} />
+        </div>
+
+        {nombreProducto && loteOptions.length > 1 && (
+          <label className="vaccination-lote-selector">
+            <span>Lote de aves</span>
+            <select
+              value={loteId}
+              required
+              onChange={(event) => {
+                setLoteId(event.target.value);
+                setError('');
+              }}
+            >
+              {loteOptions.map((loteOption) => (
+                <option key={loteOption.LoteID} value={loteOption.LoteID}>
+                  {loteOption.CodigoLote}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {nombreProducto && productVacunas.length === 0 && (
+          <p className="vaccination-helper-text vaccination-helper-text--warning">
+            No hay vacuna programada pendiente para este producto.
+          </p>
+        )}
+
+        <div className="water-form-divider" />
+
+        <VaccinationStepTitle number={4} title="Información calculada" />
+        <div className="vaccination-field-grid">
+          <VaccinationReadOnlyField label="Edad de las aves" value={edadAvesDias ? `${edadAvesDias} días` : 'Sin lote'} helper="Calculada por la app" />
+          <VaccinationReadOnlyField
+            label="Número de animales vacunados"
+            value={numeroAnimalesVacunados ? fmtNumber(numeroAnimalesVacunados) : 'Sin lote'}
+            helper="Calculado según el lote"
+          />
+        </div>
+
+        <div className="water-form-divider" />
+
+        <VaccinationStepTitle number={5} title="Médico Veterinario" />
+        <div className="vaccination-option-grid" role="radiogroup" aria-label="Médico Veterinario">
+          {veterinaryDoctors.map((doctor) => (
+            <VaccinationOptionTile
+              key={doctor}
+              label={doctor}
+              selected={medicoVeterinario === doctor}
+              onSelect={() => {
+                setMedicoVeterinario(doctor);
+                setError('');
+              }}
+            />
+          ))}
+        </div>
+      </section>
+
+      {error && <p className="water-form-error vaccination-form-error" role="alert">{error}</p>}
+
+      <button className="primary-action vaccination-save-button">
+        <Save size={24} />
+        <span>Guardar Registro</span>
       </button>
     </form>
   );
+}
+
+function VaccinationStepTitle({ number, title, detail }: { number: number; title: string; detail?: string }) {
+  return (
+    <header className="vaccination-step-title">
+      <span>{number}</span>
+      <strong>{title}</strong>
+      {detail && <em>{detail}</em>}
+    </header>
+  );
+}
+
+function VaccinationOptionTile({ label, selected, onSelect }: { label: string; selected: boolean; onSelect: () => void }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      className={`vaccination-option-tile ${selected ? 'is-selected' : ''}`}
+      onClick={onSelect}
+    >
+      <strong>{label}</strong>
+      {selected && (
+        <span className="vaccination-option-tile__check" aria-hidden="true">
+          <Check size={18} />
+        </span>
+      )}
+    </button>
+  );
+}
+
+function VaccinationReadOnlyField({ label, value, helper }: { label: string; value: string; helper?: string }) {
+  return (
+    <div className="vaccination-field vaccination-field--readonly">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {helper && <small>{helper}</small>}
+    </div>
+  );
+}
+
+function matchesVaccinationProduct(vacuna: { NombreVacuna: string; Producto: string }, productName: string): boolean {
+  const normalizedProduct = normalizeVaccinationName(productName);
+  return [vacuna.NombreVacuna, vacuna.Producto].some((value) => normalizeVaccinationName(value).includes(normalizedProduct));
+}
+
+function normalizeVaccinationName(name: string): string {
+  return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
 function WaterTreatmentForm({ user, onSaved }: { user: Usuario; onSaved: (message: string) => void }) {

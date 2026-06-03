@@ -122,6 +122,8 @@ export interface AplicarVacunaInput {
   ViaAdministracion: string;
   Cepa: string;
   Enfermedad: string;
+  NumeroAves?: number;
+  EdadDias?: number;
   Responsable: string;
   FirmaResponsable: string;
   Foto: string;
@@ -656,8 +658,8 @@ export async function aplicarVacuna(vacunaId: string, user: Usuario, detalles: A
     ViaAdministracion: input.ViaAdministracion || vacuna.ViaAdministracion || 'Agua de bebida',
     Cepa: input.Cepa || vacuna.Cepa || '',
     Enfermedad: input.Enfermedad || vacuna.Enfermedad || vacuna.NombreVacuna,
-    NumeroAves: vacuna.NumeroAves || lote?.CantidadInicialTotal || 0,
-    EdadDias: lote ? getDiaLote(lote.FechaLlegada, todayISO()) : vacuna.EdadDias,
+    NumeroAves: input.NumeroAves ?? (vacuna.NumeroAves || lote?.CantidadInicialTotal || 0),
+    EdadDias: input.EdadDias ?? (lote ? getDiaLote(lote.FechaLlegada, todayISO()) : vacuna.EdadDias),
     Responsable: input.Responsable || user.Nombre,
     FirmaResponsable: input.FirmaResponsable || '',
     Foto: input.Foto || vacuna.Foto || '',
