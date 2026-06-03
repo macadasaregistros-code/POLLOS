@@ -135,6 +135,7 @@ export interface RegistroPlagaInput {
   Producto: string;
   Dosificacion: string;
   EstacionesVeneno: number;
+  EstacionesVenenoDetalle: string;
   Foto: string;
   Observaciones: string;
 }
@@ -872,6 +873,7 @@ export async function registrarPlaga(input: RegistroPlagaInput, user: Usuario): 
     Producto: input.Producto,
     Dosificacion: input.Dosificacion,
     EstacionesVeneno: input.EstacionesVeneno,
+    EstacionesVenenoDetalle: input.EstacionesVenenoDetalle,
     Responsable: user.UsuarioID,
     Foto: input.Foto,
     Observaciones: input.Observaciones,

@@ -156,6 +156,16 @@ const chlorineOptions = [
   { value: '3.0', tone: 'cl-30' },
 ] as const;
 const shortMonths = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] as const;
+const rodentStationPoints = [
+  { id: 1, x: 58.4, y: 66.2, label: 'Bodega superior' },
+  { id: 2, x: 66.3, y: 78.6, label: 'Bodega lateral' },
+  { id: 3, x: 50.2, y: 83.3, label: 'Casa y bodega' },
+  { id: 4, x: 79.0, y: 72.8, label: 'Camino lateral' },
+  { id: 5, x: 61.2, y: 92.8, label: 'Bodega inferior' },
+  { id: 6, x: 32.2, y: 57.2, label: 'Galpon 1' },
+  { id: 7, x: 55.0, y: 35.9, label: 'Galpon 2' },
+  { id: 8, x: 69.2, y: 55.2, label: 'Galpon 3' },
+] as const;
 
 interface ActivityRecordsProps {
   user: Usuario;
@@ -848,9 +858,10 @@ function PestControlForm({ user, onSaved }: { user: Usuario; onSaved: (message: 
   const [galponId, setGalponId] = useState('');
   const [producto, setProducto] = useState('Veneno para roedores');
   const [dosificacion, setDosificacion] = useState('');
-  const [estaciones, setEstaciones] = useState('');
+  const [selectedStationIds, setSelectedStationIds] = useState<number[]>([]);
   const [foto, setFoto] = useState('');
   const [observaciones, setObservaciones] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!galponId && galpones?.[0]) setGalponId(galpones[0].GalponID);
@@ -858,10 +869,33 @@ function PestControlForm({ user, onSaved }: { user: Usuario; onSaved: (message: 
 
   useEffect(() => {
     setProducto(tipo === 'ROEDORES' ? 'Veneno para roedores' : 'Cipermetrina');
+    setError('');
   }, [tipo]);
+
+  function toggleStation(stationId: number) {
+    if ('vibrate' in navigator) navigator.vibrate(16);
+    setError('');
+    setSelectedStationIds((current) => {
+      const selected = current.includes(stationId);
+      const next = selected ? current.filter((id) => id !== stationId) : [...current, stationId];
+      return next.sort((left, right) => left - right);
+    });
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    const selectedStations = tipo === 'ROEDORES' ? selectedStationIds : [];
+
+    if (!galponId) {
+      setError('Selecciona un galpon antes de guardar.');
+      return;
+    }
+
+    if (tipo === 'ROEDORES' && selectedStations.length === 0) {
+      setError('Selecciona al menos una estacion con veneno.');
+      return;
+    }
+
     await registrarPlaga(
       {
         Fecha: todayISO(),
@@ -869,43 +903,80 @@ function PestControlForm({ user, onSaved }: { user: Usuario; onSaved: (message: 
         GalponID: galponId,
         Producto: producto,
         Dosificacion: dosificacion,
-        EstacionesVeneno: tipo === 'ROEDORES' ? Number(estaciones || 0) : 0,
+        EstacionesVeneno: selectedStations.length,
+        EstacionesVenenoDetalle: selectedStations.join(','),
         Foto: foto,
         Observaciones: observaciones,
       },
       user,
     );
     setDosificacion('');
-    setEstaciones('');
+    setSelectedStationIds([]);
     setFoto('');
     setObservaciones('');
+    setError('');
     onSaved('Control de plagas guardado offline.');
   }
 
   return (
-    <form className="form-grid flow-form" onSubmit={handleSubmit}>
-      <label className="field field--full">
-        <span>Tipo</span>
-        <div className="segmented-control">
-          <button type="button" className={tipo === 'ROEDORES' ? 'is-active' : ''} onClick={() => setTipo('ROEDORES')}>
+    <form className="form-grid flow-form pest-control-form" onSubmit={handleSubmit}>
+      <div className="field field--full">
+        <span id="pest-type-label">Tipo</span>
+        <div className="segmented-control" role="radiogroup" aria-labelledby="pest-type-label">
+          <button type="button" role="radio" aria-checked={tipo === 'ROEDORES'} className={tipo === 'ROEDORES' ? 'is-active' : ''} onClick={() => setTipo('ROEDORES')}>
             Roedores
           </button>
-          <button type="button" className={tipo === 'MOSCA' ? 'is-active' : ''} onClick={() => setTipo('MOSCA')}>
+          <button type="button" role="radio" aria-checked={tipo === 'MOSCA'} className={tipo === 'MOSCA' ? 'is-active' : ''} onClick={() => setTipo('MOSCA')}>
             Mosca
           </button>
         </div>
-      </label>
+      </div>
       <GalponField galpones={galpones ?? []} galponId={galponId} onChange={setGalponId} />
+      {tipo === 'ROEDORES' && <RodentStationMap selectedStationIds={selectedStationIds} onToggleStation={toggleStation} />}
       <TextField label="Producto" value={producto} onChange={setProducto} />
       <TextField label="Dosificacion" value={dosificacion} onChange={setDosificacion} />
-      {tipo === 'ROEDORES' && <NumberField label="Estaciones con veneno" value={estaciones} onChange={setEstaciones} step="1" />}
       <PhotoField onChange={setFoto} />
       <ObservationField value={observaciones} onChange={setObservaciones} />
+      {error && <p className="pest-form-error field--full" role="alert">{error}</p>}
       <button className="primary-action">
         <Save size={21} />
         <span>Guardar plagas</span>
       </button>
     </form>
+  );
+}
+
+function RodentStationMap({ selectedStationIds, onToggleStation }: { selectedStationIds: number[]; onToggleStation: (stationId: number) => void }) {
+  const selectedSet = new Set(selectedStationIds);
+  const selectedLabel = selectedStationIds.length > 0 ? selectedStationIds.join(', ') : 'Ninguna';
+
+  return (
+    <section className="rodent-station-field field field--full" aria-label="Estaciones de control de roedores">
+      <span>Estaciones con veneno</span>
+      <div className="rodent-station-map" role="group" aria-label="Mapa de estaciones de control">
+        <img src="/pest-control/rodent-stations-map.svg" alt="" loading="lazy" decoding="async" />
+        {rodentStationPoints.map((station) => {
+          const selected = selectedSet.has(station.id);
+          return (
+            <button
+              key={station.id}
+              type="button"
+              className={`rodent-station-marker ${selected ? 'is-selected' : ''}`}
+              style={{ left: `${station.x}%`, top: `${station.y}%` }}
+              aria-pressed={selected}
+              aria-label={`Estacion ${station.id}: ${station.label}`}
+              onClick={() => onToggleStation(station.id)}
+            >
+              {station.id}
+            </button>
+          );
+        })}
+      </div>
+      <div className="rodent-station-summary">
+        <strong>{selectedStationIds.length} seleccionada(s)</strong>
+        <span>{selectedLabel}</span>
+      </div>
+    </section>
   );
 }
 

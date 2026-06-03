@@ -7194,6 +7194,142 @@ body {
   min-height: 70px;
 }
 
+.native-record-screen .pest-control-form {
+  padding-bottom: 0;
+}
+
+.native-record-screen .pest-control-form > .primary-action {
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+  width: 100%;
+}
+
+.rodent-station-field {
+  gap: 10px !important;
+  overflow: hidden;
+}
+
+.rodent-station-map {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  aspect-ratio: 846 / 779;
+  overflow: hidden;
+  border: 1px solid rgb(22 34 29 / 14%);
+  border-radius: 10px;
+  background: #dbeec5;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 52%);
+}
+
+.rodent-station-map img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.rodent-station-marker {
+  position: absolute;
+  z-index: 2;
+  width: clamp(30px, 9vw, 44px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  display: inline-grid;
+  place-items: center;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: #0d6588;
+  color: #ffffff;
+  box-shadow: 0 7px 16px rgb(9 28 35 / 30%);
+  font-size: clamp(0.9rem, 3.6vw, 1.1rem);
+  font-weight: 950;
+  line-height: 1;
+  touch-action: manipulation;
+  transition:
+    transform 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease,
+    border-color 150ms ease;
+}
+
+.rodent-station-marker::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border: 2px solid rgb(13 101 136 / 18%);
+  border-radius: inherit;
+  opacity: 0;
+  transform: scale(0.72);
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
+}
+
+.rodent-station-marker:hover,
+.rodent-station-marker:focus-visible {
+  border-color: #f9e3a4;
+  outline: none;
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+.rodent-station-marker:active {
+  transform: translate(-50%, -50%) scale(0.92);
+}
+
+.rodent-station-marker.is-selected {
+  background: #2f8f37;
+  box-shadow: 0 9px 18px rgb(33 92 34 / 34%);
+}
+
+.rodent-station-marker.is-selected::after {
+  opacity: 1;
+  transform: scale(1);
+  border-color: rgb(47 143 55 / 28%);
+}
+
+.rodent-station-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+  border: 1px solid rgb(36 99 79 / 13%);
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: #eef6ec;
+  color: #21352b;
+}
+
+.rodent-station-summary strong {
+  font-size: 0.92rem;
+  font-weight: 950;
+}
+
+.rodent-station-summary span {
+  min-width: 0;
+  color: #24634f !important;
+  font-size: 0.9rem !important;
+  font-weight: 900 !important;
+  text-align: right;
+  text-transform: none !important;
+}
+
+.pest-form-error {
+  margin: 0;
+  border: 1px solid rgb(160 52 32 / 18%);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff1ec;
+  color: #a03320;
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
 .form-optional-panel {
   display: grid;
   gap: 10px;

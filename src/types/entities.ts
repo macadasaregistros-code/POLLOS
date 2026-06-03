@@ -473,6 +473,7 @@ export interface RegistroPlaga extends SyncFields {
   Producto: string;
   Dosificacion: string;
   EstacionesVeneno: number;
+  EstacionesVenenoDetalle: string;
   Responsable: string;
   Foto: string;
   Observaciones: string;
