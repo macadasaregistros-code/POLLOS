@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Activity, BarChart3, ClipboardList, Home, Map, Package, RefreshCcw, Shield, Truck, UserRound } from 'lucide-react';
+import { Activity, BarChart3, CalendarClock, ClipboardList, Home, Map, Package, RefreshCcw, Shield, Truck, UserRound } from 'lucide-react';
 import { RoleGuard } from './components/RoleGuard';
 import { SyncStatusBadge } from './components/SyncStatusBadge';
 import { AdminDashboard } from './features/admin/AdminDashboard';
@@ -21,12 +21,13 @@ const adminNavItems: Array<{ view: MainView; label: string; icon: typeof Home }>
   { view: 'inicio', label: 'Inicio', icon: Home },
   { view: 'galpones', label: 'Galpones', icon: Map },
   { view: 'lotes', label: 'Lotes', icon: ClipboardList },
+  { view: 'programacion', label: 'Programacion', icon: CalendarClock },
   { view: 'inventario', label: 'Inventario', icon: Package },
   { view: 'reportes', label: 'Reportes', icon: BarChart3 },
 ];
 
 const galponeroNavItems: Array<{ view: MainView; label: string; icon: typeof Home }> = [
-  { view: 'actividades', label: 'Actividades', icon: Activity },
+  { view: 'actividades', label: 'Hoy', icon: Activity },
   { view: 'galpones', label: 'Galpones', icon: Map },
   { view: 'entrada', label: 'Entrada', icon: Truck },
 ];

@@ -84,6 +84,227 @@
   background: #1d4ed8;
 }
 
+.natural-agenda,
+.programming-view {
+  display: grid;
+  gap: 12px;
+}
+
+.agenda-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.agenda-section__header strong {
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.agenda-section__header span {
+  min-width: 36px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #edf4ef;
+  color: var(--brand-strong);
+  font-weight: 900;
+}
+
+.agenda-task-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.agenda-task {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+  padding: 12px;
+  border: 1px solid rgb(20 33 29 / 10%);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.agenda-task > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.agenda-task span,
+.agenda-task small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.agenda-task strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 0.98rem;
+  line-height: 1.15;
+}
+
+.agenda-task button,
+.programming-row button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--brand);
+  color: #ffffff;
+  font-weight: 850;
+}
+
+.agenda-task--vaccine {
+  border-left: 4px solid #2f80ed;
+}
+
+.agenda-task--dog {
+  border-left: 4px solid #8a5a2b;
+}
+
+.agenda-task--daily {
+  border-left: 4px solid var(--brand);
+}
+
+.agenda-task--prep {
+  border-left: 4px solid #d46a31;
+}
+
+.manual-record-panel {
+  border: 1px solid rgb(20 33 29 / 10%);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 72%);
+  padding: 10px;
+}
+
+.manual-record-panel summary {
+  cursor: pointer;
+  color: var(--brand-strong);
+  font-weight: 900;
+}
+
+.manual-record-panel .record-launch-grid {
+  margin-top: 12px;
+}
+
+.programming-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.programming-summary span {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f4f7f4;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.programming-summary strong {
+  display: block;
+  color: var(--text);
+  font-size: 1.25rem;
+}
+
+.programming-add-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.programming-list {
+  display: grid;
+  gap: 8px;
+}
+
+.programming-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.3fr) minmax(110px, 0.8fr) minmax(120px, 0.8fr) 70px 70px 70px 72px minmax(70px, auto) 42px;
+  gap: 6px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid rgb(20 33 29 / 10%);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.programming-row--compact {
+  grid-template-columns: minmax(150px, 1fr) 86px minmax(120px, 1fr) minmax(70px, auto) 42px;
+}
+
+.programming-row--dog {
+  grid-template-columns: minmax(110px, 1fr) 140px 74px 140px 74px minmax(160px, 1.2fr) minmax(70px, auto) 42px;
+}
+
+.programming-row input,
+.programming-row select {
+  min-width: 0;
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgb(20 33 29 / 14%);
+  border-radius: 8px;
+  padding: 0 9px;
+  background: #fbfcfb;
+  color: var(--text);
+  font: inherit;
+}
+
+.programming-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.programming-row label input {
+  width: 16px;
+  min-height: 16px;
+}
+
+.programming-row button {
+  display: grid;
+  place-items: center;
+}
+
+.programming-row__next {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .programming-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .programming-row,
+  .programming-row--compact,
+  .programming-row--dog {
+    grid-template-columns: 1fr;
+  }
+
+  .programming-row button {
+    width: 100%;
+  }
+}
+
 .activity-item-list {
   display: grid;
   gap: 8px;
@@ -617,6 +838,37 @@
   color: #11181d;
   font-size: 1.2rem;
   line-height: 1.08;
+}
+
+.record-form-card-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 2px 0 4px;
+}
+
+.record-form-card-title__icon {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: #267b1b;
+}
+
+.record-form-card-title__icon svg {
+  width: 48px;
+  height: 48px;
+  stroke-width: 2.25;
+}
+
+.record-form-card-title strong {
+  min-width: 0;
+  color: #11181d;
+  font-size: clamp(1.65rem, 5.4vw, 2.25rem);
+  font-weight: 950;
+  line-height: 1.02;
 }
 
 .water-section-title em,
@@ -7295,37 +7547,41 @@ body {
 }
 
 .rodent-station-marker {
+  --station-color: #0b4f9e;
+  --station-halo: rgb(11 79 158 / 18%);
   position: absolute;
   z-index: 2;
-  width: clamp(30px, 9vw, 44px);
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
+  width: clamp(42px, 10.5vw, 54px);
+  aspect-ratio: 72 / 88;
+  transform: translate(-50%, -82%);
   display: inline-grid;
   place-items: center;
-  border: 2px solid #ffffff;
-  border-radius: 999px;
-  background: #0d6588;
-  color: #ffffff;
-  box-shadow: 0 7px 16px rgb(9 28 35 / 30%);
-  font-size: clamp(0.9rem, 3.6vw, 1.1rem);
-  font-weight: 950;
-  line-height: 1;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--station-color);
+  filter: drop-shadow(0 8px 13px rgb(9 28 35 / 32%));
+  isolation: isolate;
   touch-action: manipulation;
   transition:
     transform 150ms ease,
-    background 150ms ease,
-    box-shadow 150ms ease,
-    border-color 150ms ease;
+    color 150ms ease,
+    filter 150ms ease;
 }
 
 .rodent-station-marker::after {
   content: '';
   position: absolute;
-  inset: -7px;
-  border: 2px solid rgb(13 101 136 / 18%);
-  border-radius: inherit;
+  left: 50%;
+  top: 38%;
+  z-index: -1;
+  width: 74%;
+  aspect-ratio: 1;
+  border: 2px solid var(--station-halo);
+  border-radius: 999px;
   opacity: 0;
-  transform: scale(0.72);
+  transform: translate(-50%, -50%) scale(0.72);
   transition:
     opacity 150ms ease,
     transform 150ms ease;
@@ -7333,24 +7589,83 @@ body {
 
 .rodent-station-marker:hover,
 .rodent-station-marker:focus-visible {
-  border-color: #f9e3a4;
   outline: none;
-  transform: translate(-50%, -50%) scale(1.06);
+  transform: translate(-50%, -82%) scale(1.06);
+  filter: drop-shadow(0 10px 16px rgb(9 28 35 / 36%));
 }
 
 .rodent-station-marker:active {
-  transform: translate(-50%, -50%) scale(0.92);
+  transform: translate(-50%, -82%) scale(0.92);
 }
 
 .rodent-station-marker.is-selected {
-  background: #2f8f37;
-  box-shadow: 0 9px 18px rgb(33 92 34 / 34%);
+  --station-color: #2f8f37;
+  --station-halo: rgb(47 143 55 / 28%);
+  filter: drop-shadow(0 9px 15px rgb(33 92 34 / 36%));
 }
 
 .rodent-station-marker.is-selected::after {
   opacity: 1;
-  transform: scale(1);
-  border-color: rgb(47 143 55 / 28%);
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.rodent-station-pin {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+.rodent-station-pin__icon {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.rodent-station-pin__body {
+  fill: currentColor;
+  stroke: #ffffff;
+  stroke-width: 3.2;
+  stroke-linejoin: round;
+}
+
+.rodent-station-pin__ring {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 4.2;
+}
+
+.rodent-station-pin__mouse path {
+  fill: none;
+  stroke: #ffffff;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4.7;
+}
+
+.rodent-station-pin__mouse ellipse,
+.rodent-station-pin__mouse circle {
+  fill: #ffffff;
+}
+
+.rodent-station-marker__number {
+  position: absolute;
+  top: 1%;
+  right: -2%;
+  min-width: 20px;
+  width: 36%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #ffffff;
+  color: currentColor;
+  box-shadow: 0 2px 7px rgb(9 28 35 / 20%);
+  font-size: clamp(0.7rem, 2.4vw, 0.9rem);
+  font-weight: 950;
+  line-height: 1;
 }
 
 .rodent-station-summary {
@@ -9164,6 +9479,25 @@ body:has(.native-record-screen--water) {
   line-height: 1.05;
 }
 
+.native-record-screen--water .record-form-card-title {
+  gap: 8px;
+  padding: 0;
+}
+
+.native-record-screen--water .record-form-card-title__icon {
+  width: 34px;
+  height: 34px;
+}
+
+.native-record-screen--water .record-form-card-title__icon svg {
+  width: 31px;
+  height: 31px;
+}
+
+.native-record-screen--water .record-form-card-title strong {
+  font-size: clamp(1.18rem, 4.8vw, 1.42rem);
+}
+
 .native-record-screen--water .water-section-title em,
 .native-record-screen--water .water-input-heading em {
   font-size: 0.9rem;
@@ -9292,4 +9626,16 @@ body:has(.native-record-screen--water) {
   .native-record-screen--water .water-helper-text {
     font-size: 0.66rem;
   }
+}
+
+.native-record-screen--no-hero .record-form-surface {
+  margin-top: 0;
+}
+
+.native-record-screen:not(.native-record-screen--water).native-record-screen--no-hero .record-form-surface {
+  padding-top: 0;
+}
+
+.page-shell--record-view:has(.native-record-screen--water.native-record-screen--no-hero) .native-record-screen--water {
+  grid-template-rows: minmax(0, 1fr);
 }

@@ -529,8 +529,20 @@ export interface MedicamentoRegistro extends SyncFields {
   Observaciones: string;
 }
 
+export interface Perro extends SyncFields {
+  PerroID: string;
+  NombrePerro: string;
+  Activo: boolean;
+  FechaUltimaRabia: FechaISO;
+  FechaUltimaDesparasitacion: FechaISO;
+  FrecuenciaRabiaDias: number;
+  FrecuenciaDesparasitacionDias: number;
+  Observaciones: string;
+}
+
 export interface PerroRegistro extends SyncFields {
   PerroRegistroID: string;
+  PerroID: string;
   Fecha: FechaISO;
   FechaHoraRegistro: FechaHoraISO;
   NombrePerro: string;
@@ -673,7 +685,9 @@ export type SyncEntityTable =
   | 'Pesajes'
   | 'PesajeDetalle'
   | 'SalidasPollo'
+  | 'ActividadesProgramadas'
   | 'ActividadesLote'
+  | 'PlanVacunalBase'
   | 'VacunasLote'
   | 'EntradasAlimento'
   | 'ConsumoAlimentoLote'
@@ -688,6 +702,7 @@ export type SyncEntityTable =
   | 'CompostajeCajones'
   | 'CompostajeRegistros'
   | 'Medicamentos'
+  | 'Perros'
   | 'PerrosRegistros'
   | 'Capacitaciones'
   | 'CapacitacionAsistentes'

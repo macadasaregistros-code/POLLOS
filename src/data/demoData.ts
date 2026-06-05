@@ -13,6 +13,7 @@ import type {
   Pesaje,
   PesajeDetalle,
   PlanVacunalBase,
+  Perro,
   Proveedor,
   RegistroDiarioLote,
   TipoAlimento,
@@ -36,6 +37,7 @@ export interface DemoData {
   actividadesLote: ActividadLote[];
   planVacunalBase: PlanVacunalBase[];
   vacunasLote: VacunaLote[];
+  perros: Perro[];
   inventarioAlimento: InventarioAlimento[];
   curvasEstandar: CurvaEstandar[];
   alertas: Alerta[];
@@ -421,6 +423,31 @@ export function createDemoData(): DemoData {
     EstadoSync: 'SINCRONIZADO',
   }));
 
+  const perros: Perro[] = [
+    {
+      PerroID: 'perro_demo_akira',
+      NombrePerro: 'Akira',
+      Activo: true,
+      FechaUltimaRabia: addDays(today, -366),
+      FechaUltimaDesparasitacion: addDays(today, -35),
+      FrecuenciaRabiaDias: 365,
+      FrecuenciaDesparasitacionDias: 90,
+      Observaciones: '',
+      EstadoSync: 'SINCRONIZADO',
+    },
+    {
+      PerroID: 'perro_demo_toby',
+      NombrePerro: 'Toby',
+      Activo: true,
+      FechaUltimaRabia: addDays(today, -150),
+      FechaUltimaDesparasitacion: addDays(today, -86),
+      FrecuenciaRabiaDias: 365,
+      FrecuenciaDesparasitacionDias: 90,
+      Observaciones: '',
+      EstadoSync: 'SINCRONIZADO',
+    },
+  ];
+
   const inventarioAlimento: InventarioAlimento[] = tiposAlimento.map((tipo, index) => ({
     InventarioID: `inv_${tipo.TipoAlimentoID}`,
     TipoAlimentoID: tipo.TipoAlimentoID,
@@ -477,6 +504,7 @@ export function createDemoData(): DemoData {
     actividadesLote,
     planVacunalBase,
     vacunasLote,
+    perros,
     inventarioAlimento,
     curvasEstandar,
     alertas,

@@ -1,9 +1,11 @@
 import { createId } from '../lib/id';
-import { nowISO, todayISO } from '../lib/date';
+import { addDays, nowISO, todayISO } from '../lib/date';
 import { db } from './localDbService';
 import { enqueueSync } from './syncService';
 import { construirCierreLote, construirCierreSemanal } from './adminAnalyticsService';
 import type {
+  ActividadLote,
+  ActividadProgramada,
   CierreLote,
   CierreSemanal,
   Cliente,
@@ -15,11 +17,14 @@ import type {
   FacturaVenta,
   InventarioAlimento,
   MovimientoInventarioAlimento,
+  PlanVacunalBase,
+  Perro,
   Proveedor,
   SalidaPollo,
   TipoAlimento,
   TratamientoVeterinario,
   Usuario,
+  VacunaLote,
 } from '../types/entities';
 
 export type ProveedorInput = Omit<Proveedor, 'ProveedorID' | 'Activo'> & { Activo?: boolean };
@@ -113,6 +118,10 @@ export interface TratamientoInput {
   Estado: TratamientoVeterinario['Estado'];
   Observaciones: string;
 }
+
+export type ActividadProgramadaInput = Omit<ActividadProgramada, 'ActividadProgramadaID'> & { ActividadProgramadaID?: string };
+export type PlanVacunalInput = Omit<PlanVacunalBase, 'VacunaBaseID'> & { VacunaBaseID?: string };
+export type PerroProgramacionInput = Omit<Perro, 'PerroID' | 'EstadoSync'> & { PerroID?: string };
 
 export async function crearProveedor(input: ProveedorInput): Promise<Proveedor> {
   const proveedor: Proveedor = {
@@ -302,6 +311,181 @@ export async function crearTratamiento(input: TratamientoInput): Promise<Tratami
   await db.tratamientosVeterinarios.add(tratamiento);
   await enqueueSync('TratamientosVeterinarios', tratamiento.TratamientoID, 'CREATE', tratamiento);
   return tratamiento;
+}
+
+export async function guardarActividadProgramada(input: ActividadProgramadaInput): Promise<ActividadProgramada> {
+  const actividad: ActividadProgramada = {
+    ActividadProgramadaID: input.ActividadProgramadaID || createId('act_base'),
+    NombreActividad: input.NombreActividad.trim(),
+    Categoria: input.Categoria.trim(),
+    TipoFrecuencia: input.TipoFrecuencia,
+    DiaLote: input.DiaLote,
+    HoraSugerida: input.HoraSugerida.trim(),
+    AplicaDesdeDia: input.AplicaDesdeDia,
+    AplicaHastaDia: input.AplicaHastaDia,
+    RequiereDato: input.RequiereDato,
+    RequiereFoto: input.RequiereFoto,
+    Activa: input.Activa,
+  };
+  const exists = Boolean(input.ActividadProgramadaID && await db.actividadesProgramadas.get(input.ActividadProgramadaID));
+  await db.actividadesProgramadas.put(actividad);
+  await enqueueSync('ActividadesProgramadas', actividad.ActividadProgramadaID, exists ? 'UPDATE' : 'CREATE', actividad);
+  return actividad;
+}
+
+export async function guardarPlanVacunalBase(input: PlanVacunalInput): Promise<PlanVacunalBase> {
+  const vacuna: PlanVacunalBase = {
+    VacunaBaseID: input.VacunaBaseID || createId('vac_base'),
+    NombreVacuna: input.NombreVacuna.trim(),
+    DiaProgramado: input.DiaProgramado,
+    ViaAplicacion: input.ViaAplicacion.trim(),
+    Activa: input.Activa,
+  };
+  const exists = Boolean(input.VacunaBaseID && await db.planVacunalBase.get(input.VacunaBaseID));
+  await db.planVacunalBase.put(vacuna);
+  await enqueueSync('PlanVacunalBase', vacuna.VacunaBaseID, exists ? 'UPDATE' : 'CREATE', vacuna);
+  return vacuna;
+}
+
+export async function guardarPerroProgramacion(input: PerroProgramacionInput): Promise<Perro> {
+  const perro: Perro = {
+    PerroID: input.PerroID || createId('perro'),
+    NombrePerro: input.NombrePerro.trim(),
+    Activo: input.Activo,
+    FechaUltimaRabia: input.FechaUltimaRabia,
+    FechaUltimaDesparasitacion: input.FechaUltimaDesparasitacion,
+    FrecuenciaRabiaDias: input.FrecuenciaRabiaDias || 365,
+    FrecuenciaDesparasitacionDias: input.FrecuenciaDesparasitacionDias || 90,
+    Observaciones: input.Observaciones,
+    EstadoSync: 'PENDIENTE',
+  };
+  const exists = Boolean(input.PerroID && await db.perros.get(input.PerroID));
+  await db.perros.put(perro);
+  await enqueueSync('Perros', perro.PerroID, exists ? 'UPDATE' : 'CREATE', perro);
+  return perro;
+}
+
+export async function regenerarProgramacionFutura(user: Usuario): Promise<{ actividades: number; vacunas: number }> {
+  const today = todayISO();
+  const [lotes, assignments, templates, vacunasBase, oldActivities, oldVaccines] = await Promise.all([
+    db.lotes.where('EstadoLote').equals('ACTIVO').toArray(),
+    db.loteGalpones.where('Estado').equals('ACTIVO').toArray(),
+    db.actividadesProgramadas.toArray(),
+    db.planVacunalBase.toArray(),
+    db.actividadesLote.toArray(),
+    db.vacunasLote.toArray(),
+  ]);
+  const activeLoteIds = new Set(lotes.map((lote) => lote.LoteID));
+  const futureActivities = oldActivities.filter(
+    (actividad) =>
+      activeLoteIds.has(actividad.LoteID) &&
+      actividad.FechaProgramada >= today &&
+      actividad.Estado !== 'REALIZADA' &&
+      actividad.Estado !== 'NO_APLICA',
+  );
+  const futureVaccines = oldVaccines.filter(
+    (vacuna) => activeLoteIds.has(vacuna.LoteID) && vacuna.FechaProgramada >= today && vacuna.Estado !== 'APLICADA' && vacuna.Estado !== 'NO_APLICADA',
+  );
+  const newActivities: ActividadLote[] = [];
+  const newVaccines: VacunaLote[] = [];
+
+  for (const lote of lotes) {
+    const assignment = assignments.find((item) => item.LoteID === lote.LoteID);
+    if (!assignment) continue;
+    newActivities.push(
+      ...buildFutureActivitiesForLote(lote, assignment.GalponID, templates.filter((template) => template.Activa), today),
+    );
+    newVaccines.push(
+      ...vacunasBase
+        .filter((vacuna) => vacuna.Activa)
+        .map((vacuna): VacunaLote => ({
+          VacunaLoteID: createId('vac_lote'),
+          LoteID: lote.LoteID,
+          GalponID: assignment.GalponID,
+          NombreVacuna: vacuna.NombreVacuna,
+          Producto: vacuna.NombreVacuna,
+          Laboratorio: '',
+          LoteProducto: '',
+          FechaVencimientoProducto: '',
+          ViaAdministracion: vacuna.ViaAplicacion || 'Agua de bebida',
+          Cepa: '',
+          Enfermedad: vacuna.NombreVacuna,
+          NumeroAves: lote.CantidadInicialTotal,
+          EdadDias: vacuna.DiaProgramado,
+          DiaProgramado: vacuna.DiaProgramado,
+          FechaProgramada: addDays(lote.FechaLlegada, vacuna.DiaProgramado - 1),
+          Estado: 'PENDIENTE',
+          FechaAplicacion: '',
+          AplicadaPor: '',
+          Responsable: '',
+          FirmaResponsable: '',
+          Foto: '',
+          Observacion: '',
+          EstadoSync: 'PENDIENTE',
+        }))
+        .filter((vacuna) => vacuna.FechaProgramada >= today),
+    );
+  }
+
+  await db.transaction('rw', [db.actividadesLote, db.vacunasLote, db.syncQueue], async () => {
+    await Promise.all(
+      futureActivities.map(async (actividad) => {
+        const patch: Partial<ActividadLote> = { Estado: 'NO_APLICA', Observacion: 'Reprogramada por admin', EstadoSync: 'PENDIENTE' };
+        await db.actividadesLote.update(actividad.ActividadLoteID, patch);
+        await enqueueSync('ActividadesLote', actividad.ActividadLoteID, 'UPDATE', { ...actividad, ...patch });
+      }),
+    );
+    await Promise.all(
+      futureVaccines.map(async (vacuna) => {
+        const patch: Partial<VacunaLote> = { Estado: 'NO_APLICADA', Observacion: 'Reprogramada por admin', EstadoSync: 'PENDIENTE' };
+        await db.vacunasLote.update(vacuna.VacunaLoteID, patch);
+        await enqueueSync('VacunasLote', vacuna.VacunaLoteID, 'UPDATE', { ...vacuna, ...patch });
+      }),
+    );
+    if (newActivities.length) await db.actividadesLote.bulkAdd(newActivities);
+    if (newVaccines.length) await db.vacunasLote.bulkAdd(newVaccines);
+    await Promise.all(newActivities.map((actividad) => enqueueSync('ActividadesLote', actividad.ActividadLoteID, 'CREATE', actividad)));
+    await Promise.all(newVaccines.map((vacuna) => enqueueSync('VacunasLote', vacuna.VacunaLoteID, 'CREATE', vacuna)));
+  });
+
+  void user;
+  return { actividades: newActivities.length, vacunas: newVaccines.length };
+}
+
+function buildFutureActivitiesForLote(lote: { LoteID: string; FechaLlegada: string }, galponId: string, templates: ActividadProgramada[], today: string): ActividadLote[] {
+  return templates.flatMap((template) =>
+    getTemplateDays(template)
+      .map((day): ActividadLote => ({
+        ActividadLoteID: createId('act_lote'),
+        LoteID: lote.LoteID,
+        GalponID: galponId,
+        FechaProgramada: addDays(lote.FechaLlegada, day - 1),
+        DiaLote: day,
+        NombreActividad: template.NombreActividad,
+        Categoria: template.Categoria,
+        Estado: 'PENDIENTE',
+        FechaRealizada: '',
+        RealizadaPor: '',
+        Observacion: '',
+        CerradaComoPendiente: false,
+        EstadoSync: 'PENDIENTE',
+      }))
+      .filter((actividad) => actividad.FechaProgramada >= today),
+  );
+}
+
+function getTemplateDays(template: ActividadProgramada): number[] {
+  const days: number[] = [];
+  if (template.TipoFrecuencia === 'DIARIA') {
+    for (let day = Math.max(1, template.AplicaDesdeDia); day <= template.AplicaHastaDia; day += 1) days.push(day);
+  } else if (template.TipoFrecuencia === 'CADA_3_DIAS') {
+    for (let day = Math.max(1, template.AplicaDesdeDia); day <= template.AplicaHastaDia; day += 3) days.push(day);
+  } else if (template.TipoFrecuencia === 'SEMANAL') {
+    for (let day = Math.max(1, template.AplicaDesdeDia); day <= template.AplicaHastaDia; day += 7) days.push(day);
+  } else {
+    days.push(Math.max(1, template.DiaLote));
+  }
+  return days;
 }
 
 export async function generarCierreSemanal(loteId: string, semana: number): Promise<CierreSemanal> {

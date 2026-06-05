@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { BarChart3, ClipboardList, Home, Map as MapIcon, Package } from 'lucide-react';
+import { BarChart3, CalendarClock, ClipboardList, Home, Map as MapIcon, Package } from 'lucide-react';
 import { AlertBadge } from '../../components/AlertBadge';
 import { buildGalponDashboardModel, GalponMap, GalponPremiumDashboardCard, getMaxGalponCapacity } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
@@ -17,6 +17,7 @@ import type { Lote, LoteResumen, Usuario } from '../../types/entities';
 import type { MainView } from '../../types/navigation';
 import { AdminAdvancedModules } from './AdminAdvancedModules';
 import { CrearLoteForm } from './CrearLoteForm';
+import { ProgramacionView } from './ProgramacionView';
 
 interface AdminDashboardProps {
   user: Usuario;
@@ -243,6 +244,13 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
             <MaterialAuditList inventario={inventarioMaterial ?? []} movimientos={movimientosMaterial ?? []} entradas={entradasMaterial ?? []} />
           </MobileCard>
           <AdminAdvancedModules user={user} onToast={onToast} initialTab="inventario" visibleTabs={['inventario']} />
+        </>
+      )}
+
+      {activeView === 'programacion' && (
+        <>
+          <AdminTitle eyebrow="AGENDA" title="Programacion" icon={<CalendarClock size={34} />} />
+          <ProgramacionView user={user} onToast={onToast} />
         </>
       )}
 

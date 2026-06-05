@@ -22,6 +22,7 @@ import type {
   MovimientoInventarioMaterial,
   Pesaje,
   PesajeDetalle,
+  Perro,
   PerroRegistro,
   RegistroDiarioLote,
   RegistroPlaga,
@@ -162,6 +163,7 @@ export interface MedicamentoInput {
 }
 
 export interface PerroInput {
+  PerroID?: string;
   Fecha: string;
   NombrePerro: string;
   TipoRegistro: PerroRegistro['TipoRegistro'];
@@ -919,11 +921,38 @@ export async function registrarMedicamento(input: MedicamentoInput, user: Usuari
 }
 
 export async function registrarPerro(input: PerroInput, user: Usuario): Promise<PerroRegistro> {
+  const nombre = input.NombrePerro.trim();
+  const existingById = input.PerroID ? await db.perros.get(input.PerroID) : undefined;
+  const existingByName = existingById
+    ? undefined
+    : await db.perros
+        .where('NombrePerro')
+        .equalsIgnoreCase(nombre)
+        .first();
+  const perro: Perro = existingById ?? existingByName ?? {
+    PerroID: createId('perro'),
+    NombrePerro: nombre,
+    Activo: true,
+    FechaUltimaRabia: '',
+    FechaUltimaDesparasitacion: '',
+    FrecuenciaRabiaDias: 365,
+    FrecuenciaDesparasitacionDias: 90,
+    Observaciones: '',
+    EstadoSync: 'PENDIENTE',
+  };
+  const nextPerro: Perro = {
+    ...perro,
+    NombrePerro: nombre || perro.NombrePerro,
+    FechaUltimaRabia: input.TipoRegistro === 'RABIA' ? input.Fecha : perro.FechaUltimaRabia,
+    FechaUltimaDesparasitacion: input.TipoRegistro === 'DESPARASITACION' ? input.Fecha : perro.FechaUltimaDesparasitacion,
+    EstadoSync: 'PENDIENTE',
+  };
   const registro: PerroRegistro = {
     PerroRegistroID: createId('perro'),
+    PerroID: nextPerro.PerroID,
     Fecha: input.Fecha,
     FechaHoraRegistro: nowISO(),
-    NombrePerro: input.NombrePerro,
+    NombrePerro: nextPerro.NombrePerro,
     TipoRegistro: input.TipoRegistro,
     Producto: input.Producto,
     Laboratorio: input.Laboratorio,
@@ -935,8 +964,12 @@ export async function registrarPerro(input: PerroInput, user: Usuario): Promise<
     Observaciones: input.Observaciones,
     EstadoSync: 'PENDIENTE',
   };
-  await db.perrosRegistros.add(registro);
-  await enqueueSync('PerrosRegistros', registro.PerroRegistroID, 'CREATE', registro);
+  await db.transaction('rw', [db.perros, db.perrosRegistros, db.syncQueue], async () => {
+    await db.perros.put(nextPerro);
+    await db.perrosRegistros.add(registro);
+    await enqueueSync('Perros', nextPerro.PerroID, existingById || existingByName ? 'UPDATE' : 'CREATE', nextPerro);
+    await enqueueSync('PerrosRegistros', registro.PerroRegistroID, 'CREATE', registro);
+  });
   return registro;
 }
 

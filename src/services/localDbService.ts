@@ -1,4 +1,4 @@
-import Dexie, { type Table } from 'dexie';
+import Dexie, { type Table, type Transaction } from 'dexie';
 import { createDemoData } from '../data/demoData';
 import type {
   ActividadLote,
@@ -36,6 +36,7 @@ import type {
   Pesaje,
   PesajeDetalle,
   PlanVacunalBase,
+  Perro,
   PerroRegistro,
   Proveedor,
   RegistroDiarioLote,
@@ -118,6 +119,7 @@ export class PollosDb extends Dexie {
   compostajeCajones!: Table<CompostajeCajon, string>;
   compostajeRegistros!: Table<CompostajeRegistro, string>;
   medicamentos!: Table<MedicamentoRegistro, string>;
+  perros!: Table<Perro, string>;
   perrosRegistros!: Table<PerroRegistro, string>;
   capacitaciones!: Table<Capacitacion, string>;
   capacitacionAsistentes!: Table<CapacitacionAsistente, string>;
@@ -228,6 +230,46 @@ export class PollosDb extends Dexie {
       reportesPDF: '&ReporteID, LoteID, FechaGeneracion, TipoReporte',
       syncQueue: '&SyncID, Tabla, RegistroID, EstadoSync, CreadoEn',
     });
+
+    this.version(4).stores({
+      perros: '&PerroID, NombrePerro, Activo, EstadoSync',
+      perrosRegistros: '&PerroRegistroID, PerroID, NombrePerro, TipoRegistro, Fecha, EstadoSync',
+    }).upgrade(async (transaction: Transaction) => {
+      const perros = transaction.table('perros') as Table<Perro, string>;
+      const registros = transaction.table('perrosRegistros') as Table<PerroRegistro, string>;
+      const registrosActuales = await registros.toArray();
+      const perrosByName = new Map<string, Perro>();
+      const updatedRegistros: PerroRegistro[] = [];
+
+      for (const registro of registrosActuales) {
+        const nombre = registro.NombrePerro.trim();
+        if (!nombre) continue;
+        const key = nombre.toLowerCase();
+        const existing = perrosByName.get(key);
+        const perro: Perro = existing ?? {
+          PerroID: `perro_migrado_${key.replace(/[^a-z0-9]+/g, '_')}`,
+          NombrePerro: nombre,
+          Activo: true,
+          FechaUltimaRabia: '',
+          FechaUltimaDesparasitacion: '',
+          FrecuenciaRabiaDias: 365,
+          FrecuenciaDesparasitacionDias: 90,
+          Observaciones: '',
+          EstadoSync: registro.EstadoSync,
+        };
+
+        if (registro.TipoRegistro === 'RABIA' && registro.Fecha > perro.FechaUltimaRabia) perro.FechaUltimaRabia = registro.Fecha;
+        if (registro.TipoRegistro === 'DESPARASITACION' && registro.Fecha > perro.FechaUltimaDesparasitacion) {
+          perro.FechaUltimaDesparasitacion = registro.Fecha;
+        }
+
+        perrosByName.set(key, perro);
+        updatedRegistros.push({ ...registro, PerroID: registro.PerroID || perro.PerroID });
+      }
+
+      if (perrosByName.size) await perros.bulkPut([...perrosByName.values()]);
+      if (updatedRegistros.length) await registros.bulkPut(updatedRegistros);
+    });
   }
 }
 
@@ -258,6 +300,8 @@ function isDemoPrimaryKey(key: unknown): boolean {
     'peso_h_',
     'act_lote_',
     'vac_lote_',
+    'perro_demo_',
+    'perro_reg_demo_',
     'inv_alimento_',
   ].some((prefix) => key.startsWith(prefix));
 }
@@ -426,6 +470,7 @@ export async function seedDemoDataIfNeeded(): Promise<void> {
         db.actividadesLote,
         db.planVacunalBase,
         db.vacunasLote,
+        db.perros,
         db.inventarioAlimento,
         db.curvasEstandar,
         db.alertas,
@@ -446,6 +491,7 @@ export async function seedDemoDataIfNeeded(): Promise<void> {
         await db.actividadesLote.bulkPut(demo.actividadesLote);
         await db.planVacunalBase.bulkPut(demo.planVacunalBase);
         await db.vacunasLote.bulkPut(demo.vacunasLote);
+        await db.perros.bulkPut(demo.perros);
         await db.inventarioAlimento.bulkPut(demo.inventarioAlimento);
         await db.curvasEstandar.bulkPut(demo.curvasEstandar);
         await db.alertas.bulkPut(demo.alertas);
@@ -472,6 +518,8 @@ export async function prepareRemoteLocalData(): Promise<void> {
       deleteDemoRows(db.pesajeDetalle as unknown as Table<object, string>),
       deleteDemoRows(db.actividadesLote as unknown as Table<object, string>),
       deleteDemoRows(db.vacunasLote as unknown as Table<object, string>),
+      deleteDemoRows(db.perros as unknown as Table<object, string>),
+      deleteDemoRows(db.perrosRegistros as unknown as Table<object, string>),
       deleteDemoRows(db.inventarioAlimento as unknown as Table<object, string>),
       deleteDemoRows(db.alertas as unknown as Table<object, string>),
     ]);
@@ -583,7 +631,9 @@ export function getTableForSync(table: SyncEntityTable): Table<object, string> {
     Pesajes: db.pesajes as unknown as Table<object, string>,
     PesajeDetalle: db.pesajeDetalle as unknown as Table<object, string>,
     SalidasPollo: db.salidasPollo as unknown as Table<object, string>,
+    ActividadesProgramadas: db.actividadesProgramadas as unknown as Table<object, string>,
     ActividadesLote: db.actividadesLote as unknown as Table<object, string>,
+    PlanVacunalBase: db.planVacunalBase as unknown as Table<object, string>,
     VacunasLote: db.vacunasLote as unknown as Table<object, string>,
     EntradasAlimento: db.entradasAlimento as unknown as Table<object, string>,
     ConsumoAlimentoLote: db.consumosAlimentoLote as unknown as Table<object, string>,
@@ -598,6 +648,7 @@ export function getTableForSync(table: SyncEntityTable): Table<object, string> {
     CompostajeCajones: db.compostajeCajones as unknown as Table<object, string>,
     CompostajeRegistros: db.compostajeRegistros as unknown as Table<object, string>,
     Medicamentos: db.medicamentos as unknown as Table<object, string>,
+    Perros: db.perros as unknown as Table<object, string>,
     PerrosRegistros: db.perrosRegistros as unknown as Table<object, string>,
     Capacitaciones: db.capacitaciones as unknown as Table<object, string>,
     CapacitacionAsistentes: db.capacitacionAsistentes as unknown as Table<object, string>,
@@ -649,6 +700,7 @@ export function getLocalTableBySheetName(table: string): Table<object, string> |
     CompostajeCajones: db.compostajeCajones as unknown as Table<object, string>,
     CompostajeRegistros: db.compostajeRegistros as unknown as Table<object, string>,
     Medicamentos: db.medicamentos as unknown as Table<object, string>,
+    Perros: db.perros as unknown as Table<object, string>,
     PerrosRegistros: db.perrosRegistros as unknown as Table<object, string>,
     Capacitaciones: db.capacitaciones as unknown as Table<object, string>,
     CapacitacionAsistentes: db.capacitacionAsistentes as unknown as Table<object, string>,

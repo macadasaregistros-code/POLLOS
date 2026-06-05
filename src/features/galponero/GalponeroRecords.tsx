@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import {
   aplicarVacuna,
+  actualizarActividad,
   registrarCapacitacion,
   registrarControlAgua,
   registrarEntradaAlimento,
@@ -43,6 +44,7 @@ import {
   registrarPlaga,
 } from '../../services/domainService';
 import { db } from '../../services/localDbService';
+import type { AgendaRecordContext } from '../../services/agendaService';
 import { getDiaLote, todayISO } from '../../lib/date';
 import { fileToDataUrl } from '../../lib/photo';
 import { fmtNumber } from '../../lib/format';
@@ -159,7 +161,6 @@ const vaccinationProductCatalog = [
   { nombreProducto: 'Gumboro', enfermedad: 'Gumboro', cepa: 'Según producto' },
 ] as const;
 const veterinaryDoctors = ['Esteban Salazar', 'Leidy Murillo'] as const;
-type VaccinationProductName = (typeof vaccinationProductCatalog)[number]['nombreProducto'];
 type VeterinaryDoctor = (typeof veterinaryDoctors)[number];
 const phIdealValues = new Set(['6.0', '6.8']);
 const chlorineIdealValue = '3.0';
@@ -199,6 +200,7 @@ const rodentStationPoints = [
 interface ActivityRecordsProps {
   user: Usuario;
   activeKind?: ActivityRecordKind | '';
+  recordContext?: AgendaRecordContext;
   onActiveKindChange?: (kind: ActivityRecordKind | '') => void;
   onSaved: (message: string) => void;
 }
@@ -210,7 +212,7 @@ interface EntradaViewProps {
   onSaved: (message: string) => void;
 }
 
-export function GalponeroActivityRecords({ user, activeKind, onActiveKindChange, onSaved }: ActivityRecordsProps) {
+export function GalponeroActivityRecords({ user, activeKind, recordContext, onActiveKindChange, onSaved }: ActivityRecordsProps) {
   const [localActiveKind, setLocalActiveKind] = useState<ActivityRecordKind | ''>('');
   const resolvedActiveKind = activeKind ?? localActiveKind;
   const activeOption = activityOptions.find((option) => option.kind === resolvedActiveKind);
@@ -223,12 +225,12 @@ export function GalponeroActivityRecords({ user, activeKind, onActiveKindChange,
   if (resolvedActiveKind && activeOption) {
     return (
       <NativeRecordScreen option={activeOption} context="Registro" onBack={() => setActiveKind('')}>
-        {resolvedActiveKind === 'vacunacion' && <VaccinationRecordForm user={user} onSaved={onSaved} />}
-        {resolvedActiveKind === 'agua' && <WaterTreatmentForm user={user} onSaved={onSaved} />}
-        {resolvedActiveKind === 'plagas' && <PestControlForm user={user} onSaved={onSaved} />}
+        {resolvedActiveKind === 'vacunacion' && <VaccinationRecordForm user={user} context={recordContext} onSaved={onSaved} />}
+        {resolvedActiveKind === 'agua' && <WaterTreatmentForm user={user} context={recordContext} onSaved={onSaved} />}
+        {resolvedActiveKind === 'plagas' && <PestControlForm user={user} context={recordContext} onSaved={onSaved} />}
         {resolvedActiveKind === 'medicamento' && <MedicationForm user={user} onSaved={onSaved} />}
         {resolvedActiveKind === 'compostaje' && <CompostingPanel />}
-        {resolvedActiveKind === 'perros' && <DogRecordForm user={user} onSaved={onSaved} />}
+        {resolvedActiveKind === 'perros' && <DogRecordForm user={user} context={recordContext} onSaved={onSaved} />}
         {resolvedActiveKind === 'capacitacion' && <TrainingForm user={user} onSaved={onSaved} />}
       </NativeRecordScreen>
     );
@@ -249,6 +251,12 @@ export function GalponeroActivityRecords({ user, activeKind, onActiveKindChange,
       <ReminderPanel />
     </section>
   );
+}
+
+async function completeLinkedActivities(context: AgendaRecordContext | undefined, user: Usuario): Promise<void> {
+  const activityIds = context?.activityIds ?? [];
+  if (!activityIds.length) return;
+  await Promise.all(activityIds.map((activityId) => actualizarActividad(activityId, 'REALIZADA', user)));
 }
 
 export function GalponeroEntradaView({ user, activeEntry, onActiveEntryChange, onSaved }: EntradaViewProps) {
@@ -295,21 +303,25 @@ function NativeRecordScreen({
   onBack: () => void;
   children: ReactNode;
 }) {
+  const showHero = context !== 'Registro';
+
   return (
-    <section className={`native-record-screen native-record-screen--${option.tone}`}>
-      <header className="native-record-hero">
-        <button className="native-back-button native-record-hero__back" type="button" aria-label={`Volver a ${context.toLowerCase()}`} onClick={onBack}>
-          <ArrowLeft size={21} />
-        </button>
-        <div className="native-record-hero__copy">
-          <span>{option.eyebrow}</span>
-          <h2>{option.title}</h2>
-          <p>{option.subtitle}</p>
-        </div>
-        <div className="native-record-hero__visual" aria-hidden="true">
-          <span>{option.icon}</span>
-        </div>
-      </header>
+    <section className={`native-record-screen native-record-screen--${option.tone} ${showHero ? '' : 'native-record-screen--no-hero'}`}>
+      {showHero && (
+        <header className="native-record-hero">
+          <button className="native-back-button native-record-hero__back" type="button" aria-label={`Volver a ${context.toLowerCase()}`} onClick={onBack}>
+            <ArrowLeft size={21} />
+          </button>
+          <div className="native-record-hero__copy">
+            <span>{option.eyebrow}</span>
+            <h2>{option.title}</h2>
+            <p>{option.subtitle}</p>
+          </div>
+          <div className="native-record-hero__visual" aria-hidden="true">
+            <span>{option.icon}</span>
+          </div>
+        </header>
+      )}
       <div className="record-form-surface">{children}</div>
     </section>
   );
@@ -560,12 +572,12 @@ function MaterialEntryForm({
   );
 }
 
-function VaccinationRecordForm({ user, onSaved }: { user: Usuario; onSaved: (message: string) => void }) {
+function VaccinationRecordForm({ user, context, onSaved }: { user: Usuario; context?: AgendaRecordContext; onSaved: (message: string) => void }) {
   const vacunas = useLiveQuery(() => db.vacunasLote.toArray(), []);
   const lotes = useLiveQuery(() => db.lotes.toArray(), []);
   const registrosDiarios = useLiveQuery(() => db.registroDiarioLote.toArray(), []);
   const [fechaRegistro] = useState(() => todayISO());
-  const [nombreProducto, setNombreProducto] = useState<VaccinationProductName | ''>('');
+  const [nombreProducto, setNombreProducto] = useState('');
   const [loteId, setLoteId] = useState('');
   const [loteProducto, setLoteProducto] = useState('');
   const [vencimiento, setVencimiento] = useState('');
@@ -575,6 +587,10 @@ function VaccinationRecordForm({ user, onSaved }: { user: Usuario; onSaved: (mes
   const sortedVacunas = useMemo(
     () => (vacunas ?? []).slice().sort((left, right) => left.FechaProgramada.localeCompare(right.FechaProgramada)),
     [vacunas],
+  );
+  const contextVacuna = useMemo(
+    () => sortedVacunas.find((vacuna) => vacuna.VacunaLoteID === context?.vacunaId),
+    [context?.vacunaId, sortedVacunas],
   );
   const lotesById = useMemo(() => new Map((lotes ?? []).map((loteItem) => [loteItem.LoteID, loteItem])), [lotes]);
   const selectedProductInfo = vaccinationProductCatalog.find((product) => product.nombreProducto === nombreProducto);
@@ -596,7 +612,7 @@ function VaccinationRecordForm({ user, onSaved }: { user: Usuario; onSaved: (mes
       return options;
     }, []);
   }, [lotesById, productVacunas]);
-  const selected = productVacunas.find((vacuna) => vacuna.LoteID === loteId) ?? productVacunas[0];
+  const selected = contextVacuna && contextVacuna.Estado !== 'APLICADA' ? contextVacuna : productVacunas.find((vacuna) => vacuna.LoteID === loteId) ?? productVacunas[0];
   const lote = selected ? lotesById.get(selected.LoteID) : undefined;
   const registrosLote = useMemo(
     () => (registrosDiarios ?? []).filter((registro) => registro.LoteID === lote?.LoteID),
@@ -604,18 +620,24 @@ function VaccinationRecordForm({ user, onSaved }: { user: Usuario; onSaved: (mes
   );
   const loteTotals = useMemo(() => sumLoteTotals(registrosLote), [registrosLote]);
   const enfermedad = selected?.Enfermedad || selectedProductInfo?.enfermedad || '';
-  const cepa = selected?.Cepa || selectedProductInfo?.cepa || '';
+  const cepa = selected?.Cepa || selectedProductInfo?.cepa || (selected ? 'Segun producto' : '');
   const edadAvesDias = lote ? getDiaLote(lote.FechaLlegada, fechaRegistro) : selected?.EdadDias || selected?.DiaProgramado || 0;
   const numeroAnimalesVacunados = lote ? avesVivasTotal(lote, loteTotals) : selected?.NumeroAves || 0;
 
   useEffect(() => {
+    if (contextVacuna) {
+      const catalogProduct = vaccinationProductCatalog.find((product) => matchesVaccinationProduct(contextVacuna, product.nombreProducto));
+      setNombreProducto(catalogProduct?.nombreProducto ?? contextVacuna.NombreVacuna);
+      setLoteId(contextVacuna.LoteID);
+      return;
+    }
     if (!nombreProducto) {
       if (loteId) setLoteId('');
       return;
     }
     if (loteId && productVacunas.some((vacuna) => vacuna.LoteID === loteId)) return;
     setLoteId(productVacunas[0]?.LoteID ?? '');
-  }, [loteId, nombreProducto, productVacunas]);
+  }, [contextVacuna, loteId, nombreProducto, productVacunas]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -663,6 +685,7 @@ function VaccinationRecordForm({ user, onSaved }: { user: Usuario; onSaved: (mes
       Foto: foto,
       Observacion: '',
     });
+    await completeLinkedActivities(context, user);
     setLoteProducto('');
     setVencimiento('');
     setMedicoVeterinario('');
@@ -884,7 +907,7 @@ function normalizeVaccinationName(name: string): string {
   return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
-function WaterTreatmentForm({ user, onSaved }: { user: Usuario; onSaved: (message: string) => void }) {
+function WaterTreatmentForm({ user, context, onSaved }: { user: Usuario; context?: AgendaRecordContext; onSaved: (message: string) => void }) {
   const selection = useLoteGalponSelection();
   const [fechaRegistro] = useState(() => todayISO());
   const [phSeleccionado, setPhSeleccionado] = useState('');
@@ -901,6 +924,11 @@ function WaterTreatmentForm({ user, onSaved }: { user: Usuario; onSaved: (messag
   useEffect(() => {
     if (!phCorrecto && cloroAdicionado) setCloroAdicionado('');
   }, [cloroAdicionado, phCorrecto]);
+
+  useEffect(() => {
+    if (context?.loteId) selection.setLoteId(context.loteId);
+    if (context?.galponId) selection.setGalponId(context.galponId);
+  }, [context?.galponId, context?.loteId, selection.setGalponId, selection.setLoteId]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -960,6 +988,7 @@ function WaterTreatmentForm({ user, onSaved }: { user: Usuario; onSaved: (messag
       },
       user,
     );
+    await completeLinkedActivities(context, user);
     setPhSeleccionado('');
     setCloroAdicionado('');
     setCloroResidualSeleccionado('');
@@ -983,6 +1012,7 @@ function WaterTreatmentForm({ user, onSaved }: { user: Usuario; onSaved: (messag
       </section>
 
       <section className="water-form-card">
+        <RecordFormCardTitle icon={<Droplets size={38} />} title="TRATAMIENTO DE AGUA" />
         <WaterSectionTitle icon={<FlaskConical size={26} />} title="Verificacion de pH" />
         <WaterOptionGrid
           name="ph"
@@ -1046,6 +1076,17 @@ function WaterTreatmentForm({ user, onSaved }: { user: Usuario; onSaved: (messag
   );
 }
 
+function RecordFormCardTitle({ icon, title }: { icon: ReactNode; title: string }) {
+  return (
+    <header className="record-form-card-title">
+      <span className="record-form-card-title__icon" aria-hidden="true">
+        {icon}
+      </span>
+      <strong>{title}</strong>
+    </header>
+  );
+}
+
 function WaterSectionTitle({ icon, title, unit }: { icon: ReactNode; title: string; unit?: string }) {
   return (
     <header className="water-section-title">
@@ -1104,7 +1145,7 @@ function toWholeGramInput(value: string): string {
   return value.split(/[.,]/)[0].replace(/\D/g, '');
 }
 
-function PestControlForm({ user, onSaved }: { user: Usuario; onSaved: (message: string) => void }) {
+function PestControlForm({ user, context, onSaved }: { user: Usuario; context?: AgendaRecordContext; onSaved: (message: string) => void }) {
   const galpones = useLiveQuery(() => db.galpones.toArray(), []);
   const [fechaRegistro] = useState(() => todayISO());
   const [galponId, setGalponId] = useState('');
@@ -1113,8 +1154,12 @@ function PestControlForm({ user, onSaved }: { user: Usuario; onSaved: (message: 
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (context?.galponId) {
+      setGalponId(context.galponId);
+      return;
+    }
     if (!galponId && galpones?.[0]) setGalponId(galpones[0].GalponID);
-  }, [galponId, galpones]);
+  }, [context?.galponId, galponId, galpones]);
 
   function toggleStation(stationId: number) {
     if ('vibrate' in navigator) navigator.vibrate(16);
@@ -1179,6 +1224,7 @@ function PestControlForm({ user, onSaved }: { user: Usuario; onSaved: (message: 
       );
     }
 
+    await completeLinkedActivities(context, user);
     setSelectedStationIds([]);
     setSelectedFlyDosage('30 cc/bomba');
     setError('');
@@ -1199,6 +1245,10 @@ function PestControlForm({ user, onSaved }: { user: Usuario; onSaved: (message: 
           <span>Estado</span>
           <strong>{waterRecordStatus}</strong>
         </div>
+      </section>
+
+      <section className="water-form-card pest-title-card">
+        <RecordFormCardTitle icon={<Bug size={38} />} title="CONTROL DE PLAGAS" />
       </section>
 
       <section className="water-form-card pest-section-card pest-section-card--rodents">
@@ -1255,7 +1305,7 @@ function RodentStationMap({ selectedStationIds, onToggleStation }: { selectedSta
               aria-label={`Estacion ${station.id}: ${station.label}`}
               onClick={() => onToggleStation(station.id)}
             >
-              {station.id}
+              <RodentStationPin stationId={station.id} />
             </button>
           );
         })}
@@ -1265,6 +1315,30 @@ function RodentStationMap({ selectedStationIds, onToggleStation }: { selectedSta
         <span>{selectedLabel}</span>
       </div>
     </div>
+  );
+}
+
+function RodentStationPin({ stationId }: { stationId: number }) {
+  return (
+    <span className="rodent-station-pin" aria-hidden="true">
+      <svg className="rodent-station-pin__icon" viewBox="0 0 72 88" focusable="false">
+        <path
+          className="rodent-station-pin__body"
+          d="M36 84C31.2 78.4 8 55.2 8 34.2 8 16.9 20.2 5 36 5s28 11.9 28 29.2C64 55.2 40.8 78.4 36 84Z"
+        />
+        <circle className="rodent-station-pin__ring" cx="36" cy="34.8" r="22.4" />
+        <g className="rodent-station-pin__mouse">
+          <path d="M52.3 43.4c7.9-.4 13 2.5 13 7.3 0 5.9-7.5 8.7-19.2 7.6" />
+          <ellipse cx="40.6" cy="41.2" rx="16.4" ry="11.2" />
+          <ellipse cx="25.3" cy="38.4" rx="10.1" ry="7.4" transform="rotate(-11 25.3 38.4)" />
+          <circle cx="27.2" cy="28.9" r="5.4" />
+          <circle cx="35" cy="29.8" r="5.6" />
+          <ellipse cx="29.9" cy="51.6" rx="7.2" ry="2.4" transform="rotate(-8 29.9 51.6)" />
+          <ellipse cx="43.5" cy="52.1" rx="9.1" ry="2.5" transform="rotate(-6 43.5 52.1)" />
+        </g>
+      </svg>
+      <span className="rodent-station-marker__number">{stationId}</span>
+    </span>
   );
 }
 
@@ -1631,17 +1705,26 @@ function CompostCard({ cajon, totalRegistros }: { cajon: CompostajeCajon; totalR
   );
 }
 
-function DogRecordForm({ user, onSaved }: { user: Usuario; onSaved: (message: string) => void }) {
+function DogRecordForm({ user, context, onSaved }: { user: Usuario; context?: AgendaRecordContext; onSaved: (message: string) => void }) {
+  const perros = useLiveQuery(() => db.perros.toArray().then((items) => items.filter((perro) => perro.Activo)), []);
   const [fechaRegistro] = useState(() => todayISO());
+  const [perroId, setPerroId] = useState('');
   const [nombre, setNombre] = useState('');
   const [tipo, setTipo] = useState<DogRecordType | ''>('');
   const [foto, setFoto] = useState('');
   const [error, setError] = useState('');
+  const selectedPerro = (perros ?? []).find((perro) => perro.PerroID === perroId);
+  const resolvedNombre = selectedPerro?.NombrePerro ?? nombre.trim();
+
+  useEffect(() => {
+    if (context?.perroId) setPerroId(context.perroId);
+    if (context?.dogType) setTipo(context.dogType);
+  }, [context?.dogType, context?.perroId]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
 
-    if (!nombre.trim()) {
+    if (!resolvedNombre) {
       setError('Ingresa el nombre del perro.');
       return;
     }
@@ -1656,8 +1739,9 @@ function DogRecordForm({ user, onSaved }: { user: Usuario; onSaved: (message: st
 
     await registrarPerro(
       {
+        PerroID: selectedPerro?.PerroID,
         Fecha: fechaRegistro,
-        NombrePerro: nombre.trim(),
+        NombrePerro: resolvedNombre,
         TipoRegistro: tipo,
         Producto: '',
         Laboratorio: '',
@@ -1670,7 +1754,9 @@ function DogRecordForm({ user, onSaved }: { user: Usuario; onSaved: (message: st
       },
       user,
     );
+    await completeLinkedActivities(context, user);
     setNombre('');
+    if (!context?.perroId) setPerroId('');
     setTipo('');
     setFoto('');
     setError('');
@@ -1701,18 +1787,42 @@ function DogRecordForm({ user, onSaved }: { user: Usuario; onSaved: (message: st
           <strong>PERROS</strong>
         </header>
 
-        <label className="dog-field dog-field--full">
-          <span>Nombre Perro</span>
-          <input
-            value={nombre}
-            placeholder="Ingrese el nombre del perro"
-            required
-            onChange={(event) => {
-              setNombre(event.target.value);
-              setError('');
-            }}
-          />
-        </label>
+        {(perros ?? []).length > 0 && (
+          <label className="dog-field dog-field--full">
+            <span>Perro</span>
+            <select
+              value={perroId}
+              disabled={Boolean(context?.perroId)}
+              onChange={(event) => {
+                setPerroId(event.target.value);
+                setNombre('');
+                setError('');
+              }}
+            >
+              <option value="">Nuevo perro</option>
+              {(perros ?? []).map((perro) => (
+                <option key={perro.PerroID} value={perro.PerroID}>
+                  {perro.NombrePerro}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {!selectedPerro && (
+          <label className="dog-field dog-field--full">
+            <span>Nombre Perro</span>
+            <input
+              value={nombre}
+              placeholder="Ingrese el nombre del perro"
+              required
+              onChange={(event) => {
+                setNombre(event.target.value);
+                setError('');
+              }}
+            />
+          </label>
+        )}
 
         <div className="dog-type-section">
           <span>Tipo</span>

@@ -48,6 +48,7 @@ const BOOTSTRAP_TABLES: Array<{ localName: string } & RemoteTable> = [
   { localName: 'CompostajeCajones', schema: 'pollos', table: 'compostaje_cajones', idField: 'CajonID', optional: true },
   { localName: 'CompostajeRegistros', schema: 'pollos', table: 'compostaje_registros', idField: 'RegistroCompostajeID', optional: true },
   { localName: 'Medicamentos', schema: 'pollos', table: 'medicamentos', idField: 'MedicamentoID', optional: true },
+  { localName: 'Perros', schema: 'pollos', table: 'perros', idField: 'PerroID', optional: true },
   { localName: 'PerrosRegistros', schema: 'pollos', table: 'perros_registros', idField: 'PerroRegistroID', optional: true },
   { localName: 'Capacitaciones', schema: 'pollos', table: 'capacitaciones', idField: 'CapacitacionID', optional: true },
   { localName: 'CapacitacionAsistentes', schema: 'pollos', table: 'capacitacion_asistentes', idField: 'AsistenteID', optional: true },
@@ -74,6 +75,8 @@ const NULLABLE_DATE_FIELDS = new Set([
   'FechaHoraUltimaEdicion',
   'FechaVencimientoProducto',
   'FechaVencimiento',
+  'FechaUltimaRabia',
+  'FechaUltimaDesparasitacion',
 ]);
 
 export function isSupabaseConfigured(): boolean {

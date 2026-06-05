@@ -8,18 +8,28 @@ import {
   CheckCircle2,
   Circle,
   CircleDot,
-  ClipboardCheck,
   Map as MapIcon,
   Truck,
 } from 'lucide-react';
 import { buildGalponDashboardModel, GalponMap, GalponPremiumDashboardCard, getMaxGalponCapacity } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
+import { buildAgenda } from '../../services/agendaService';
+import type { AgendaModel, AgendaRecordContext, AgendaTask } from '../../services/agendaService';
 import { buildLoteResumen } from '../../services/calculationsService';
-import { actualizarEstadoGalpon } from '../../services/domainService';
+import { actualizarActividad, actualizarEstadoGalpon } from '../../services/domainService';
 import { db } from '../../services/localDbService';
+import {
+  getCompletedPrepTaskIds,
+  getGalponStateForPrepProgress,
+  getNextPrepTask,
+  normalizePrepTaskIds,
+  preparationCategories,
+  preparationTasks,
+  writePrepProgress,
+} from '../../services/preparationService';
 import { todayISO } from '../../lib/date';
 import { fmtNumber, fmtPercent } from '../../lib/format';
-import type { ActividadLote, Galpon, Lote, LoteResumen, Usuario, VacunaLote } from '../../types/entities';
+import type { Galpon, Lote, LoteResumen, Usuario } from '../../types/entities';
 import type { MainView } from '../../types/navigation';
 import { RegistrarDiaForm } from './RegistrarDiaForm';
 import { GalponeroActivityRecords, GalponeroEntradaView, type ActivityRecordKind, type EntryKind } from './GalponeroRecords';
@@ -31,74 +41,7 @@ interface GalponeroHomeProps {
   onToast: (message: string) => void;
 }
 
-type PrepCategoryKey = 'RETIRO' | 'DESINFECCION' | 'INSTALACION' | 'RECIBIMIENTO';
-
-interface PrepTask {
-  id: string;
-  title: string;
-  category: PrepCategoryKey;
-}
-
-const PREP_PROGRESS_MARKER = '[[POLLOS_PREP_PROGRESS:';
-const PREP_PROGRESS_END = ']]';
 const galponeroViews: MainView[] = ['actividades', 'galpones', 'entrada'];
-
-const preparationCategories: Array<{ key: PrepCategoryKey; label: string; state: Galpon['EstadoActual']; tasks: PrepTask[] }> = [
-  {
-    key: 'RETIRO',
-    label: 'Retiro',
-    state: 'LIMPIEZA',
-    tasks: [
-      { id: 'recoger_equipo', title: 'Recoger Equipo', category: 'RETIRO' },
-      { id: 'barrer_pluma', title: 'Barrer Pluma', category: 'RETIRO' },
-      { id: 'sacar_caracha', title: 'Sacar Caracha', category: 'RETIRO' },
-      { id: 'amontonar_pollinaza', title: 'Amontonar pollinaza 8 dias y registrar temperatura interna', category: 'RETIRO' },
-      { id: 'retiro_pollinaza', title: 'Retiro de Pollinaza Reusada en Exceso', category: 'RETIRO' },
-    ],
-  },
-  {
-    key: 'DESINFECCION',
-    label: 'Desinfeccion',
-    state: 'DESCANSO_SANITARIO',
-    tasks: [
-      { id: 'fumiga_coquito_1', title: 'Fumiga Coquito 1', category: 'DESINFECCION' },
-      { id: 'fumiga_coquito_2', title: 'Fumiga Coquito 2', category: 'DESINFECCION' },
-      { id: 'lavar_equipo', title: 'Lavar Equipo (Bebederos / Comederos)', category: 'DESINFECCION' },
-      { id: 'barrer_lavado_galpon', title: 'Barrer / Lavado Galpon', category: 'DESINFECCION' },
-      { id: 'barrer_malla_techo', title: 'Barrer malla y limpiar techo', category: 'DESINFECCION' },
-      { id: 'reparaciones_locativas', title: 'Reparaciones locativas', category: 'DESINFECCION' },
-      { id: 'lavar_tanques_purgar', title: 'Lavar tanques de agua y purgar lineas', category: 'DESINFECCION' },
-      { id: 'calear', title: 'Calear', category: 'DESINFECCION' },
-      { id: 'fumiga_desinfectante', title: 'Fumiga Desinfectante', category: 'DESINFECCION' },
-    ],
-  },
-  {
-    key: 'INSTALACION',
-    label: 'Instalacion',
-    state: 'PREPARACION',
-    tasks: [
-      { id: 'cisco_nuevo', title: 'Cisco Nuevo (en la mitad sin cama usada)', category: 'INSTALACION' },
-      { id: 'divisiones', title: 'Divisiones', category: 'INSTALACION' },
-      { id: 'encortinar', title: 'Encortinar', category: 'INSTALACION' },
-      { id: 'instalar_calentadoras', title: 'Instalar Calentadoras', category: 'INSTALACION' },
-      { id: 'bebederos_comederos_babies', title: 'Meter Bebederos de Volteo y Comederos Babies', category: 'INSTALACION' },
-    ],
-  },
-  {
-    key: 'RECIBIMIENTO',
-    label: 'Recibimiento',
-    state: 'RECIBIMIENTO',
-    tasks: [
-      { id: 'precalentar', title: 'Precalentar 8h antes de la llegada', category: 'RECIBIMIENTO' },
-      { id: 'purgar_lineas', title: 'Purgar Lineas', category: 'RECIBIMIENTO' },
-      { id: 'neutrar_agua', title: 'Neutrar el Agua de Bebida', category: 'RECIBIMIENTO' },
-      { id: 'verificar_temperatura', title: 'Verificar Temperatura', category: 'RECIBIMIENTO' },
-      { id: 'llegada_pollito', title: 'Llegada del Pollito', category: 'RECIBIMIENTO' },
-    ],
-  },
-];
-
-const preparationTasks = preparationCategories.flatMap((category) => category.tasks);
 
 export function GalponeroHome({ user, activeView, onViewChange, onToast }: GalponeroHomeProps) {
   const today = todayISO();
@@ -110,9 +53,12 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   const galpones = useLiveQuery(() => db.galpones.toArray(), []);
   const actividades = useLiveQuery(() => db.actividadesLote.toArray(), []);
   const vacunas = useLiveQuery(() => db.vacunasLote.toArray(), []);
+  const perros = useLiveQuery(() => db.perros.toArray(), []);
   const syncQueue = useLiveQuery(() => db.syncQueue.toArray(), []);
   const [selectedGalponId, setSelectedGalponId] = useState('');
+  const [activeDailyLoteId, setActiveDailyLoteId] = useState('');
   const [activeActivityRecord, setActiveActivityRecord] = useState<ActivityRecordKind | ''>('');
+  const [activeRecordContext, setActiveRecordContext] = useState<AgendaRecordContext | undefined>();
   const [activeEntryRecord, setActiveEntryRecord] = useState<EntryKind | ''>('');
 
   useEffect(() => {
@@ -151,6 +97,20 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   }, [galpones, loteGalpones, lotes, selectedGalpon, summaries]);
   const selectedLote = selectedDashboard?.lote;
   const selectedSummary = selectedDashboard?.summary;
+  const activeDailyLote = useMemo(() => (lotes ?? []).find((lote) => lote.LoteID === activeDailyLoteId), [activeDailyLoteId, lotes]);
+  const agenda = useMemo<AgendaModel>(() => {
+    if (!lotes || !registros || !loteGalpones || !galpones || !actividades || !vacunas || !perros) return { hoy: [], proximas: [], pendientes: [] };
+    return buildAgenda({
+      today,
+      lotes,
+      registros,
+      loteGalpones,
+      galpones,
+      actividades,
+      vacunas,
+      perros,
+    });
+  }, [actividades, galpones, loteGalpones, lotes, perros, registros, today, vacunas]);
 
   useEffect(() => {
     if (activeView !== 'galpones' && selectedGalponId) setSelectedGalponId('');
@@ -158,13 +118,74 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
 
   useEffect(() => {
     if (activeView !== 'actividades' && activeActivityRecord) setActiveActivityRecord('');
+    if (activeView !== 'actividades' && activeRecordContext) setActiveRecordContext(undefined);
+    if (activeView !== 'actividades' && activeDailyLoteId) setActiveDailyLoteId('');
     if (activeView !== 'entrada' && activeEntryRecord) setActiveEntryRecord('');
-  }, [activeActivityRecord, activeEntryRecord, activeView]);
+  }, [activeActivityRecord, activeDailyLoteId, activeEntryRecord, activeRecordContext, activeView]);
 
   function handleSelectGalpon(galponId: string) {
     setSelectedGalponId(galponId);
     onViewChange('galpones');
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }
+
+  function handleActivityRecordChange(kind: ActivityRecordKind | '') {
+    setActiveActivityRecord(kind);
+    if (!kind) setActiveRecordContext(undefined);
+  }
+
+  function handleAgendaRecordSaved(message: string) {
+    onToast(message);
+    if (activeRecordContext) {
+      setActiveActivityRecord('');
+      setActiveRecordContext(undefined);
+    }
+  }
+
+  function handleDailySaved(message: string) {
+    onToast(message);
+    setActiveDailyLoteId('');
+  }
+
+  async function handleAgendaTask(task: AgendaTask) {
+    if (task.action.type === 'daily') {
+      setActiveDailyLoteId(task.action.loteId);
+      return;
+    }
+    if (task.action.type === 'record') {
+      setActiveRecordContext(task.action.context);
+      setActiveActivityRecord(task.action.kind);
+      return;
+    }
+    if (task.action.type === 'completeActivities') {
+      await markActivitiesDone(task.action.activityIds);
+      onToast('Actividades marcadas como realizadas.');
+      return;
+    }
+    await advancePrepFromAgenda(task.action.galponId);
+  }
+
+  async function markActivitiesDone(activityIds: string[]) {
+    const selectedActivities = (actividades ?? []).filter((actividad) => activityIds.includes(actividad.ActividadLoteID));
+    for (const actividad of selectedActivities) {
+      const needsGas = actividad.NombreActividad.toLowerCase().includes('retirada calentadoras');
+      const gas = needsGas ? Number(window.prompt('Cilindros de gas consumidos') ?? 0) : undefined;
+      await actualizarActividad(actividad.ActividadLoteID, 'REALIZADA', user, '', gas);
+    }
+  }
+
+  async function advancePrepFromAgenda(galponId: string) {
+    const galpon = (galpones ?? []).find((item) => item.GalponID === galponId);
+    if (!galpon) return;
+    const currentTask = getNextPrepTask(galpon);
+    if (!currentTask) return;
+    const nextCompleted = normalizePrepTaskIds([...getCompletedPrepTaskIds(galpon), currentTask.id]);
+    await actualizarEstadoGalpon(
+      galpon.GalponID,
+      getGalponStateForPrepProgress(nextCompleted),
+      writePrepProgress(galpon.Observaciones, nextCompleted),
+    );
+    onToast('Avance de alistamiento guardado offline.');
   }
 
   if (activeView === 'galpones' && selectedGalpon) {
@@ -200,16 +221,45 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
     );
   }
 
+  if (activeView === 'actividades' && activeDailyLote) {
+    return (
+      <main className="page-shell page-shell--mobile page-shell--detail page-shell--record-view">
+        <header className="native-detail-header">
+          <button className="native-back-button" type="button" aria-label="Volver a hoy" onClick={() => setActiveDailyLoteId('')}>
+            <ArrowLeft size={22} />
+          </button>
+          <div>
+            <span>HOY</span>
+            <h1>Registro diario</h1>
+            <small>{activeDailyLote.CodigoLote}</small>
+          </div>
+        </header>
+        <MobileCard className="native-view-card" title="Registro diario" subtitle="Alimento, mortalidad y sacrificio">
+          <RegistrarDiaForm lote={activeDailyLote} user={user} onSaved={handleDailySaved} />
+        </MobileCard>
+      </main>
+    );
+  }
+
   return (
     <main className={`page-shell page-shell--mobile ${activeView === 'galpones' ? 'page-shell--galpones' : ''} ${activeActivityRecord || activeEntryRecord ? 'page-shell--record-view' : ''}`}>
       {activeView === 'actividades' && (
         activeActivityRecord ? (
-          <GalponeroActivityRecords user={user} activeKind={activeActivityRecord} onActiveKindChange={setActiveActivityRecord} onSaved={onToast} />
+          <GalponeroActivityRecords
+            user={user}
+            activeKind={activeActivityRecord}
+            recordContext={activeRecordContext}
+            onActiveKindChange={handleActivityRecordChange}
+            onSaved={handleAgendaRecordSaved}
+          />
         ) : (
           <>
-            <GalponeroTitle eyebrow="OPERACION" title="Actividades" icon={<Activity size={34} />} />
-            <ActivityBuckets actividades={actividades ?? []} vacunas={vacunas ?? []} today={today} />
-            <GalponeroActivityRecords user={user} activeKind={activeActivityRecord} onActiveKindChange={setActiveActivityRecord} onSaved={onToast} />
+            <GalponeroTitle eyebrow="OPERACION" title="Hoy" icon={<Activity size={34} />} />
+            <NaturalAgenda agenda={agenda} onTask={handleAgendaTask} />
+            <details className="manual-record-panel">
+              <summary>Registrar no programado</summary>
+              <GalponeroActivityRecords user={user} activeKind={activeActivityRecord} onActiveKindChange={handleActivityRecordChange} onSaved={onToast} />
+            </details>
           </>
         )
       )}
@@ -254,54 +304,37 @@ function GalponeroTitle({ eyebrow, title, icon }: { eyebrow: string; title: stri
   );
 }
 
-function ActivityBuckets({ actividades, vacunas, today }: { actividades: ActividadLote[]; vacunas: VacunaLote[]; today: string }) {
-  const actionable = actividades.filter((actividad) => ['PENDIENTE', 'VENCIDA', 'NO_REALIZADA'].includes(actividad.Estado));
-  const vencidas = actionable.filter((actividad) => actividad.FechaProgramada < today || actividad.Estado === 'VENCIDA');
-  const hoy = actionable.filter((actividad) => actividad.FechaProgramada === today && actividad.Estado !== 'VENCIDA');
-  const proximas = actionable.filter((actividad) => actividad.FechaProgramada > today).slice(0, 6);
-  const vacunasPendientes = vacunas.filter((vacuna) => vacuna.Estado !== 'APLICADA');
-
+function NaturalAgenda({ agenda, onTask }: { agenda: AgendaModel; onTask: (task: AgendaTask) => void | Promise<void> }) {
   return (
-    <section className="activity-bucket-grid">
-      <ActivityBucket title="Vencidas" count={vencidas.length} tone="warn" items={vencidas.slice(0, 4)} />
-      <ActivityBucket title="Hoy" count={hoy.length} tone="today" items={hoy.slice(0, 4)} />
-      <ActivityBucket title="Proximas" count={proximas.length + vacunasPendientes.length} tone="next" items={proximas.slice(0, 3)} vacunas={vacunasPendientes.slice(0, 3)} />
+    <section className="natural-agenda" aria-label="Agenda natural de registros">
+      <AgendaSection title="HOY" tasks={agenda.hoy} empty="No hay registros programados para hoy." onTask={onTask} />
+      <AgendaSection title="PROXIMAS" tasks={agenda.proximas} empty="Sin vacunas ni perros en los proximos 5 dias." onTask={onTask} />
+      <AgendaSection title="PENDIENTES" tasks={agenda.pendientes} empty="Sin vacunas ni perros vencidos." onTask={onTask} />
     </section>
   );
 }
 
-function ActivityBucket({
-  title,
-  count,
-  tone,
-  items,
-  vacunas = [],
-}: {
-  title: string;
-  count: number;
-  tone: 'warn' | 'today' | 'next';
-  items: ActividadLote[];
-  vacunas?: VacunaLote[];
-}) {
+function AgendaSection({ title, tasks, empty, onTask }: { title: string; tasks: AgendaTask[]; empty: string; onTask: (task: AgendaTask) => void | Promise<void> }) {
   return (
-    <MobileCard className={`activity-bucket activity-bucket--${tone}`}>
-      <header>
-        <span>{title}</span>
-        <strong>{fmtNumber(count)}</strong>
+    <MobileCard className={`agenda-section agenda-section--${title.toLowerCase()}`}>
+      <header className="agenda-section__header">
+        <strong>{title}</strong>
+        <span>{fmtNumber(tasks.length)}</span>
       </header>
-      <div className="activity-item-list">
-        {[...items.map((item) => ({ key: item.ActividadLoteID, title: item.NombreActividad, detail: item.FechaProgramada })),
-          ...vacunas.map((vacuna) => ({ key: vacuna.VacunaLoteID, title: `Vacuna ${vacuna.NombreVacuna}`, detail: vacuna.FechaProgramada })),
-        ].map((item) => (
-          <article key={item.key}>
-            <ClipboardCheck size={18} />
-            <span>
-              <strong>{item.title}</strong>
-              <small>{item.detail}</small>
-            </span>
+      <div className="agenda-task-list">
+        {tasks.map((task) => (
+          <article className={`agenda-task agenda-task--${task.tone}`} key={task.id}>
+            <div>
+              <span>{task.meta}</span>
+              <strong>{task.title}</strong>
+              <small>{task.detail}</small>
+            </div>
+            <button type="button" onClick={() => void onTask(task)}>
+              {task.action.type === 'completeActivities' || task.action.type === 'prep' ? 'Marcar' : 'Abrir'}
+            </button>
           </article>
         ))}
-        {count === 0 && <p className="empty-state">Sin pendientes.</p>}
+        {tasks.length === 0 && <p className="empty-state">{empty}</p>}
       </div>
     </MobileCard>
   );
@@ -469,55 +502,4 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
       </div>
     </div>
   );
-}
-
-function getCompletedPrepTaskIds(galpon: Galpon): string[] {
-  const markerIndex = galpon.Observaciones.indexOf(PREP_PROGRESS_MARKER);
-  if (markerIndex >= 0) {
-    const start = markerIndex + PREP_PROGRESS_MARKER.length;
-    const end = galpon.Observaciones.indexOf(PREP_PROGRESS_END, start);
-    if (end > start) {
-      try {
-        const parsed = JSON.parse(galpon.Observaciones.slice(start, end)) as { completedTaskIds?: string[] };
-        return normalizePrepTaskIds(parsed.completedTaskIds ?? []);
-      } catch {
-        return [];
-      }
-    }
-  }
-
-  return normalizePrepTaskIds(getCompletedPrepTaskIdsFromState(galpon.EstadoActual));
-}
-
-function getCompletedPrepTaskIdsFromState(state: Galpon['EstadoActual']): string[] {
-  if (state === 'DESCANSO_SANITARIO') return preparationCategories[0].tasks.map((task) => task.id);
-  if (state === 'PREPARACION') return preparationCategories.slice(0, 2).flatMap((category) => category.tasks.map((task) => task.id));
-  if (state === 'RECIBIMIENTO') return preparationCategories.slice(0, 3).flatMap((category) => category.tasks.map((task) => task.id));
-  return [];
-}
-
-function normalizePrepTaskIds(ids: string[]): string[] {
-  const unique = new Set(ids);
-  return preparationTasks.filter((task) => unique.has(task.id)).map((task) => task.id);
-}
-
-function stripPrepProgress(observaciones: string): string {
-  const markerIndex = observaciones.indexOf(PREP_PROGRESS_MARKER);
-  if (markerIndex < 0) return observaciones;
-  const end = observaciones.indexOf(PREP_PROGRESS_END, markerIndex + PREP_PROGRESS_MARKER.length);
-  if (end < 0) return observaciones.slice(0, markerIndex).trim();
-  return `${observaciones.slice(0, markerIndex)}${observaciones.slice(end + PREP_PROGRESS_END.length)}`.trim();
-}
-
-function writePrepProgress(observaciones: string, completedTaskIds: string[]): string {
-  const visibleObservaciones = stripPrepProgress(observaciones);
-  const marker = `${PREP_PROGRESS_MARKER}${JSON.stringify({ completedTaskIds })}${PREP_PROGRESS_END}`;
-  return visibleObservaciones ? `${visibleObservaciones}\n${marker}` : marker;
-}
-
-function getGalponStateForPrepProgress(completedTaskIds: string[]): Galpon['EstadoActual'] {
-  if (completedTaskIds.length === 0) return 'VACIO';
-  const completedSet = new Set(completedTaskIds);
-  const activeCategory = preparationCategories.find((category) => category.tasks.some((task) => !completedSet.has(task.id)));
-  return activeCategory?.state ?? 'RECIBIMIENTO';
 }
