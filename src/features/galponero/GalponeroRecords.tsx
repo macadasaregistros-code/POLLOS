@@ -1,30 +1,37 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { FormEvent, ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   ArrowLeft,
   Bug,
+  Camera,
   CalendarDays,
   Check,
   CheckCircle2,
   Crosshair,
   Dog,
   Droplets,
+  Eraser,
   Flame,
   FlaskConical,
+  GraduationCap,
   Info,
   MapPin,
   NotebookPen,
   PackagePlus,
+  PawPrint,
+  PenLine,
   Pill,
   Save,
+  ShieldCheck,
   Sprout,
+  SquarePlus,
   Syringe,
+  Trash2,
   Truck,
   Users,
   Warehouse,
 } from 'lucide-react';
-import { FormOptionalPanel } from '../../components/FormOptionalPanel';
 import {
   aplicarVacuna,
   registrarCapacitacion,
@@ -143,6 +150,9 @@ const entryOptions: Array<RecordOption<EntryKind>> = [
 const foodOrder = ['preiniciador', 'iniciador', 'engorde'] as const;
 const waterRecordStatus = 'EN PROCESO';
 const vaccinationRecordStatus = 'EN PROCESO';
+const medicationRecordStatus = 'EN PROCESO';
+const dogRecordStatus = 'EN PROCESO';
+const trainingRecordStatus = 'EN PROCESO';
 const vaccinationViaAplicacion = 'Agua de bebida';
 const vaccinationProductCatalog = [
   { nombreProducto: 'Newcastle', enfermedad: 'Newcastle', cepa: 'Según producto' },
@@ -167,6 +177,11 @@ const chlorineOptions = [
   { value: '1.5', tone: 'cl-15' },
   { value: '3.0', tone: 'cl-30' },
 ] as const;
+const dogTypeOptions = [
+  { value: 'RABIA', label: 'Rabia', icon: <PawPrint size={30} /> },
+  { value: 'DESPARASITACION', label: 'Desparasitacion', icon: <ShieldCheck size={30} /> },
+] as const;
+type DogRecordType = (typeof dogTypeOptions)[number]['value'];
 const flyDosageOptions = ['0 cc/bomba', '30 cc/bomba', '80 cc/bomba'] as const;
 type FlyDosageOption = (typeof flyDosageOptions)[number];
 const shortMonths = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] as const;
@@ -555,6 +570,7 @@ function VaccinationRecordForm({ user, onSaved }: { user: Usuario; onSaved: (mes
   const [loteProducto, setLoteProducto] = useState('');
   const [vencimiento, setVencimiento] = useState('');
   const [medicoVeterinario, setMedicoVeterinario] = useState<VeterinaryDoctor | ''>('');
+  const [foto, setFoto] = useState('');
   const [error, setError] = useState('');
   const sortedVacunas = useMemo(
     () => (vacunas ?? []).slice().sort((left, right) => left.FechaProgramada.localeCompare(right.FechaProgramada)),
@@ -644,12 +660,13 @@ function VaccinationRecordForm({ user, onSaved }: { user: Usuario; onSaved: (mes
       EdadDias: edadAvesDias,
       Responsable: medicoVeterinario,
       FirmaResponsable: '',
-      Foto: '',
+      Foto: foto,
       Observacion: '',
     });
     setLoteProducto('');
     setVencimiento('');
     setMedicoVeterinario('');
+    setFoto('');
     setError('');
     onSaved('Vacunación registrada offline.');
   }
@@ -788,6 +805,11 @@ function VaccinationRecordForm({ user, onSaved }: { user: Usuario; onSaved: (mes
             />
           ))}
         </div>
+
+        <div className="water-form-divider" />
+
+        <VaccinationStepTitle number={6} title="FOTO" />
+        <VaccinationPhotoField value={foto} onChange={setFoto} />
       </section>
 
       {error && <p className="water-form-error vaccination-form-error" role="alert">{error}</p>}
@@ -797,6 +819,20 @@ function VaccinationRecordForm({ user, onSaved }: { user: Usuario; onSaved: (mes
         <span>Guardar Registro</span>
       </button>
     </form>
+  );
+}
+
+function VaccinationPhotoField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  async function handleFile(file?: File | null) {
+    onChange(await fileToDataUrl(file));
+  }
+
+  return (
+    <label className="vaccination-photo-field">
+      <span>FOTO</span>
+      <strong>{value ? 'Foto lista' : 'Tomar foto del producto'}</strong>
+      <input type="file" accept="image/*" capture="environment" onChange={(event) => void handleFile(event.target.files?.[0])} />
+    </label>
   );
 }
 
@@ -1267,63 +1303,267 @@ function FlyDosageSelector({
 
 function MedicationForm({ user, onSaved }: { user: Usuario; onSaved: (message: string) => void }) {
   const selection = useLoteGalponSelection();
-  const [producto, setProducto] = useState('');
-  const [dosis, setDosis] = useState('');
-  const [via, setVia] = useState('Agua de bebida');
-  const [motivo, setMotivo] = useState('');
-  const [responsable, setResponsable] = useState(user.Nombre);
-  const [retiro, setRetiro] = useState('0');
+  const registrosDiarios = useLiveQuery(() => db.registroDiarioLote.toArray(), []);
+  const [fechaRegistro] = useState(() => todayISO());
+  const [nombreProducto, setNombreProducto] = useState('');
+  const [numeroLoteProducto, setNumeroLoteProducto] = useState('');
+  const [fechaVencimiento, setFechaVencimiento] = useState('');
+  const [viaAplicacion, setViaAplicacion] = useState('');
+  const [medicoVeterinario, setMedicoVeterinario] = useState<VeterinaryDoctor | ''>('');
   const [foto, setFoto] = useState('');
-  const [observaciones, setObservaciones] = useState('');
+  const [error, setError] = useState('');
+  const registrosLote = useMemo(
+    () => (registrosDiarios ?? []).filter((registro) => registro.LoteID === selection.selectedLote?.LoteID),
+    [selection.selectedLote?.LoteID, registrosDiarios],
+  );
+  const loteTotals = useMemo(() => sumLoteTotals(registrosLote), [registrosLote]);
+  const edadAvesDias = selection.selectedLote ? getDiaLote(selection.selectedLote.FechaLlegada, fechaRegistro) : 0;
+  const numeroAnimalesTratados = selection.selectedLote ? avesVivasTotal(selection.selectedLote, loteTotals) : 0;
+  const shouldShowLoteSelector = selection.lotes.length > 1 || selection.assignmentsForLote.length > 1;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!selection.loteId || !selection.galponId) return;
+    if (!fechaRegistro) {
+      setError('La fecha de registro es obligatoria.');
+      return;
+    }
+    if (!selection.loteId || !selection.galponId || !selection.selectedLote) {
+      setError('Selecciona un lote y galpón activo antes de guardar.');
+      return;
+    }
+    if (!nombreProducto.trim()) {
+      setError('Ingresa el nombre del producto.');
+      return;
+    }
+    if (!numeroLoteProducto.trim()) {
+      setError('Ingresa el número de lote del producto.');
+      return;
+    }
+    if (!fechaVencimiento) {
+      setError('Selecciona la fecha de vencimiento.');
+      return;
+    }
+    if (!viaAplicacion.trim()) {
+      setError('Ingresa la vía de aplicación.');
+      return;
+    }
+    if (!medicoVeterinario) {
+      setError('Selecciona el médico veterinario.');
+      return;
+    }
+
     await registrarMedicamento(
       {
-        Fecha: todayISO(),
+        Fecha: fechaRegistro,
+        Estado: medicationRecordStatus,
         LoteID: selection.loteId,
         GalponID: selection.galponId,
-        Producto: producto,
-        Dosis: dosis,
-        ViaAdministracion: via,
-        Motivo: motivo,
-        Responsable: responsable,
-        PeriodoRetiroDias: Number(retiro || 0),
+        Producto: nombreProducto.trim(),
+        LoteProducto: numeroLoteProducto.trim(),
+        FechaVencimiento: fechaVencimiento,
+        ViaAdministracion: viaAplicacion.trim(),
+        EdadDias: edadAvesDias,
+        NumeroAnimalesTratados: numeroAnimalesTratados,
+        Dosis: '',
+        Motivo: '',
+        Responsable: medicoVeterinario,
+        PeriodoRetiroDias: 0,
         Foto: foto,
-        Observaciones: observaciones,
+        Observaciones: '',
       },
       user,
     );
-    setProducto('');
-    setDosis('');
-    setMotivo('');
-    setRetiro('0');
+    setNombreProducto('');
+    setNumeroLoteProducto('');
+    setFechaVencimiento('');
+    setViaAplicacion('');
+    setMedicoVeterinario('');
     setFoto('');
-    setObservaciones('');
+    setError('');
     onSaved('Medicamento guardado offline.');
   }
 
   return (
-    <form className="form-grid flow-form" onSubmit={handleSubmit}>
-      <LoteGalponFields selection={selection} />
-      <TextField label="Producto" value={producto} onChange={setProducto} required />
-      <TextField label="Dosis" value={dosis} onChange={setDosis} />
-      <TextField className="field--full" label="Motivo" value={motivo} onChange={setMotivo} />
-      <FormOptionalPanel label="Aplicacion y retiro" value={via !== 'Agua de bebida' || responsable !== user.Nombre || retiro !== '0' ? '1' : ''}>
-        <div className="form-grid form-grid--nested">
-          <TextField label="Via" value={via} onChange={setVia} />
-          <TextField label="Responsable" value={responsable} onChange={setResponsable} />
-          <NumberField label="Retiro si aplica (dias)" value={retiro} onChange={setRetiro} step="1" />
+    <form className="form-grid flow-form vaccination-record-form medication-record-form" noValidate onSubmit={handleSubmit}>
+      <section className="water-date-card vaccination-date-card medication-date-card" aria-label="Fecha y estado del registro">
+        <span className="water-date-card__icon">
+          <CalendarDays size={30} />
+        </span>
+        <div className="water-date-card__date">
+          <span>Fecha de Registro</span>
+          <strong>{formatWaterDate(fechaRegistro)}</strong>
         </div>
-      </FormOptionalPanel>
-      <PhotoField onChange={setFoto} />
-      <ObservationField value={observaciones} onChange={setObservaciones} />
-      <button className="primary-action">
-        <Save size={21} />
-        <span>Guardar medicamento</span>
+        <div className="water-date-card__status">
+          <span>Estado</span>
+          <strong>{medicationRecordStatus}</strong>
+        </div>
+      </section>
+
+      <section className="water-form-card vaccination-main-card medication-main-card">
+        <header className="vaccination-main-card__header medication-main-card__header">
+          <span className="vaccination-main-card__icon medication-main-card__icon" aria-hidden="true">
+            <Pill size={42} />
+          </span>
+          <strong>MEDICAMENTOS</strong>
+        </header>
+
+        <label className="vaccination-field medication-field medication-field--full">
+          <span>Nombre del Producto</span>
+          <input
+            value={nombreProducto}
+            placeholder="Ingrese el nombre del producto"
+            required
+            onChange={(event) => {
+              setNombreProducto(event.target.value);
+              setError('');
+            }}
+          />
+        </label>
+
+        <div className="vaccination-field-grid medication-field-grid">
+          <label className="vaccination-field medication-field">
+            <span>Número de lote producto</span>
+            <input
+              value={numeroLoteProducto}
+              placeholder="Ingrese el lote"
+              required
+              onChange={(event) => {
+                setNumeroLoteProducto(event.target.value);
+                setError('');
+              }}
+            />
+          </label>
+          <label className="vaccination-field medication-field">
+            <span>Fecha de vencimiento</span>
+            <input
+              type="date"
+              value={fechaVencimiento}
+              required
+              aria-label="Seleccionar fecha"
+              onChange={(event) => {
+                setFechaVencimiento(event.target.value);
+                setError('');
+              }}
+            />
+          </label>
+        </div>
+
+        <label className="vaccination-field medication-field medication-field--full">
+          <span>Vía de Aplicación</span>
+          <input
+            value={viaAplicacion}
+            placeholder="Ingrese la vía de aplicación"
+            required
+            onChange={(event) => {
+              setViaAplicacion(event.target.value);
+              setError('');
+            }}
+          />
+        </label>
+
+        {shouldShowLoteSelector && <MedicationLoteFields selection={selection} onChange={() => setError('')} />}
+
+        {!selection.selectedLote && (
+          <p className="vaccination-helper-text vaccination-helper-text--warning">
+            No hay lote y galpón activos para calcular este registro.
+          </p>
+        )}
+
+        <div className="water-form-divider" />
+
+        <header className="medication-section-title">
+          <Info size={20} />
+          <strong>Información calculada</strong>
+        </header>
+        <div className="vaccination-field-grid medication-field-grid">
+          <VaccinationReadOnlyField label="Edad de las aves" value={selection.selectedLote ? `${edadAvesDias} días` : 'Sin lote'} helper="Calculada por la app" />
+          <VaccinationReadOnlyField
+            label="Número de animales tratados"
+            value={selection.selectedLote ? fmtNumber(numeroAnimalesTratados) : 'Sin lote'}
+            helper="Calculado según el lote"
+          />
+        </div>
+
+        <header className="medication-section-title medication-section-title--plain">
+          <strong>Médico Veterinario</strong>
+        </header>
+        <div className="vaccination-option-grid medication-option-grid" role="radiogroup" aria-label="Médico Veterinario">
+          {veterinaryDoctors.map((doctor) => (
+            <VaccinationOptionTile
+              key={doctor}
+              label={doctor}
+              selected={medicoVeterinario === doctor}
+              onSelect={() => {
+                setMedicoVeterinario(doctor);
+                setError('');
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="water-form-divider" />
+
+        <VaccinationPhotoField value={foto} onChange={setFoto} />
+      </section>
+
+      {error && <p className="water-form-error vaccination-form-error medication-form-error" role="alert">{error}</p>}
+
+      <button className="primary-action vaccination-save-button medication-save-button">
+        <Save size={24} />
+        <span>Guardar Registro</span>
       </button>
     </form>
+  );
+}
+
+function MedicationLoteFields({ selection, onChange }: { selection: ReturnType<typeof useLoteGalponSelection>; onChange: () => void }) {
+  const hasMultipleLotes = selection.lotes.length > 1;
+  const hasMultipleGalpones = selection.assignmentsForLote.length > 1;
+
+  return (
+    <div className="vaccination-field-grid medication-field-grid medication-lote-grid">
+      {hasMultipleLotes && (
+        <label className="vaccination-lote-selector">
+          <span>Lote de aves</span>
+          <select
+            value={selection.loteId}
+            required
+            onChange={(event) => {
+              selection.setLoteId(event.target.value);
+              onChange();
+            }}
+          >
+            {selection.lotes.map((lote) => (
+              <option key={lote.LoteID} value={lote.LoteID}>
+                {lote.CodigoLote}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {hasMultipleGalpones && (
+        <label className="vaccination-lote-selector">
+          <span>Galpón</span>
+          <select
+            value={selection.galponId}
+            required
+            onChange={(event) => {
+              selection.setGalponId(event.target.value);
+              onChange();
+            }}
+          >
+            {selection.assignmentsForLote.map((assignment) => {
+              const galpon = selection.galpones.find((item) => item.GalponID === assignment.GalponID);
+              return (
+                <option key={assignment.LoteGalponID} value={assignment.GalponID}>
+                  {galpon?.NombreGalpon ?? assignment.GalponID}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+      )}
+    </div>
   );
 }
 
@@ -1392,133 +1632,632 @@ function CompostCard({ cajon, totalRegistros }: { cajon: CompostajeCajon; totalR
 }
 
 function DogRecordForm({ user, onSaved }: { user: Usuario; onSaved: (message: string) => void }) {
+  const [fechaRegistro] = useState(() => todayISO());
   const [nombre, setNombre] = useState('');
-  const [tipo, setTipo] = useState<'RABIA' | 'DESPARASITACION'>('RABIA');
-  const [producto, setProducto] = useState('');
-  const [laboratorio, setLaboratorio] = useState('');
-  const [loteProducto, setLoteProducto] = useState('');
-  const [vencimiento, setVencimiento] = useState('');
-  const [responsable, setResponsable] = useState(user.Nombre);
-  const [firma, setFirma] = useState('');
+  const [tipo, setTipo] = useState<DogRecordType | ''>('');
   const [foto, setFoto] = useState('');
-  const [observaciones, setObservaciones] = useState('');
+  const [error, setError] = useState('');
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+
+    if (!nombre.trim()) {
+      setError('Ingresa el nombre del perro.');
+      return;
+    }
+    if (!tipo) {
+      setError('Selecciona Rabia o Desparasitacion.');
+      return;
+    }
+    if (!foto) {
+      setError('Toma o selecciona una foto antes de guardar.');
+      return;
+    }
+
     await registrarPerro(
       {
-        Fecha: todayISO(),
-        NombrePerro: nombre,
+        Fecha: fechaRegistro,
+        NombrePerro: nombre.trim(),
         TipoRegistro: tipo,
-        Producto: producto,
-        Laboratorio: laboratorio,
-        LoteProducto: loteProducto,
-        FechaVencimiento: vencimiento,
-        Responsable: responsable,
-        FirmaResponsable: firma,
+        Producto: '',
+        Laboratorio: '',
+        LoteProducto: '',
+        FechaVencimiento: '',
+        Responsable: user.Nombre,
+        FirmaResponsable: '',
         Foto: foto,
-        Observaciones: observaciones,
+        Observaciones: '',
       },
       user,
     );
     setNombre('');
-    setProducto('');
-    setLaboratorio('');
-    setLoteProducto('');
-    setVencimiento('');
-    setFirma('');
+    setTipo('');
     setFoto('');
-    setObservaciones('');
+    setError('');
     onSaved('Registro de perros guardado offline.');
   }
 
   return (
-    <form className="form-grid flow-form" onSubmit={handleSubmit}>
-      <TextField label="Nombre" value={nombre} onChange={setNombre} required />
-      <label className="field">
-        <span>Tipo</span>
-        <select value={tipo} onChange={(event) => setTipo(event.target.value as 'RABIA' | 'DESPARASITACION')}>
-          <option value="RABIA">Rabia</option>
-          <option value="DESPARASITACION">Desparasitacion</option>
-        </select>
-      </label>
-      <TextField label="Producto" value={producto} onChange={setProducto} />
-      <TextField label="Laboratorio" value={laboratorio} onChange={setLaboratorio} />
-      <TextField label="Lote producto" value={loteProducto} onChange={setLoteProducto} />
-      <label className="field">
-        <span>Fecha vencimiento</span>
-        <input type="date" value={vencimiento} onChange={(event) => setVencimiento(event.target.value)} />
-      </label>
-      <TextField label="Responsable" value={responsable} onChange={setResponsable} />
-      <TextField label="Firma" value={firma} onChange={setFirma} />
-      <PhotoField onChange={setFoto} />
-      <ObservationField value={observaciones} onChange={setObservaciones} />
-      <button className="primary-action">
-        <Save size={21} />
-        <span>Guardar registro</span>
+    <form className="form-grid flow-form dog-record-form" noValidate onSubmit={handleSubmit}>
+      <section className="water-date-card dog-date-card" aria-label="Fecha y estado del registro">
+        <span className="water-date-card__icon">
+          <CalendarDays size={30} />
+        </span>
+        <div className="water-date-card__date">
+          <span>Fecha de Registro</span>
+          <strong>{formatWaterDate(fechaRegistro)}</strong>
+        </div>
+        <div className="water-date-card__status">
+          <span>Estado</span>
+          <strong>{dogRecordStatus}</strong>
+        </div>
+      </section>
+
+      <section className="water-form-card dog-main-card">
+        <header className="dog-main-card__header">
+          <span className="dog-main-card__icon" aria-hidden="true">
+            <Dog size={46} />
+          </span>
+          <strong>PERROS</strong>
+        </header>
+
+        <label className="dog-field dog-field--full">
+          <span>Nombre Perro</span>
+          <input
+            value={nombre}
+            placeholder="Ingrese el nombre del perro"
+            required
+            onChange={(event) => {
+              setNombre(event.target.value);
+              setError('');
+            }}
+          />
+        </label>
+
+        <div className="dog-type-section">
+          <span>Tipo</span>
+          <div className="dog-type-grid" role="radiogroup" aria-label="Tipo">
+            {dogTypeOptions.map((option) => (
+              <DogTypeOption
+                key={option.value}
+                icon={option.icon}
+                label={option.label}
+                selected={tipo === option.value}
+                onSelect={() => {
+                  setTipo(option.value);
+                  setError('');
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <DogPhotoField
+          value={foto}
+          onChange={(value) => {
+            setFoto(value);
+            setError('');
+          }}
+        />
+      </section>
+
+      {error && <p className="water-form-error dog-form-error" role="alert">{error}</p>}
+
+      <button className="primary-action dog-save-button">
+        <Save size={24} />
+        <span>Guardar Registro</span>
       </button>
     </form>
   );
 }
 
+function DogTypeOption({
+  icon,
+  label,
+  selected,
+  onSelect,
+}: {
+  icon: ReactNode;
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      className={`dog-type-option ${selected ? 'is-selected' : ''}`}
+      onClick={onSelect}
+    >
+      <span className="dog-type-option__radio" aria-hidden="true">
+        {selected && <Check size={18} />}
+      </span>
+      <span className="dog-type-option__icon" aria-hidden="true">
+        {icon}
+      </span>
+      <strong>{label}</strong>
+    </button>
+  );
+}
+
+function DogPhotoField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  async function handleFile(file?: File | null) {
+    onChange(await fileToDataUrl(file));
+  }
+
+  return (
+    <label className={`dog-photo-field ${value ? 'has-photo' : ''}`}>
+      <span>Foto</span>
+      <input type="file" accept="image/*" capture="environment" aria-label="Tomar foto o seleccionar" onChange={(event) => void handleFile(event.target.files?.[0])} />
+      <div className="dog-photo-field__surface">
+        {value ? (
+          <img src={value} alt="Foto seleccionada del perro" />
+        ) : (
+          <>
+            <span className="dog-photo-field__icon" aria-hidden="true">
+              <Camera size={38} />
+            </span>
+            <strong>Tomar foto o seleccionar</strong>
+            <small>La foto sera guardada con el registro</small>
+          </>
+        )}
+      </div>
+    </label>
+  );
+}
+
+interface TrainingAssistantDraft {
+  id: string;
+  Nombre: string;
+  Firma: string;
+}
+
+type TrainingSignatureTarget = { type: 'trainer' } | { type: 'assistant'; assistantId: string };
+
+function createTrainingAssistantDraft(): TrainingAssistantDraft {
+  return {
+    id: `training-assistant-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    Nombre: '',
+    Firma: '',
+  };
+}
+
 function TrainingForm({ user, onSaved }: { user: Usuario; onSaved: (message: string) => void }) {
+  const [fechaRegistro] = useState(() => todayISO());
   const [tema, setTema] = useState('');
   const [capacitador, setCapacitador] = useState('');
   const [firmaCapacitador, setFirmaCapacitador] = useState('');
-  const [observaciones, setObservaciones] = useState('');
-  const [asistentes, setAsistentes] = useState([{ Nombre: '', Firma: '' }]);
+  const [asistentes, setAsistentes] = useState<TrainingAssistantDraft[]>(() => [createTrainingAssistantDraft()]);
+  const [signatureTarget, setSignatureTarget] = useState<TrainingSignatureTarget | null>(null);
+  const [error, setError] = useState('');
+  const activeSignature = signatureTarget
+    ? signatureTarget.type === 'trainer'
+      ? { title: 'Firma del Capacitador', value: firmaCapacitador }
+      : {
+          title: 'Firma del asistente',
+          value: asistentes.find((assistant) => assistant.id === signatureTarget.assistantId)?.Firma ?? '',
+        }
+    : null;
 
-  function updateAssistant(index: number, key: 'Nombre' | 'Firma', value: string) {
-    setAsistentes((current) => current.map((assistant, assistantIndex) => (assistantIndex === index ? { ...assistant, [key]: value } : assistant)));
+  function updateAssistant(id: string, key: 'Nombre' | 'Firma', value: string) {
+    setAsistentes((current) => current.map((assistant) => (assistant.id === id ? { ...assistant, [key]: value } : assistant)));
+  }
+
+  function removeAssistant(id: string) {
+    setAsistentes((current) => {
+      if (current.length <= 1) return [createTrainingAssistantDraft()];
+      return current.filter((assistant) => assistant.id !== id);
+    });
+    setError('');
+  }
+
+  function addAssistant() {
+    setAsistentes((current) => [...current, createTrainingAssistantDraft()]);
+    setError('');
+  }
+
+  function saveSignature(value: string) {
+    if (!signatureTarget) return;
+    if (signatureTarget.type === 'trainer') {
+      setFirmaCapacitador(value);
+    } else {
+      updateAssistant(signatureTarget.assistantId, 'Firma', value);
+    }
+    setSignatureTarget(null);
+    setError('');
   }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+
+    const normalizedAssistants = asistentes.map((assistant) => ({
+      Nombre: assistant.Nombre.trim(),
+      Firma: assistant.Firma,
+    }));
+
+    if (!fechaRegistro) {
+      setError('La fecha de registro es obligatoria.');
+      return;
+    }
+    if (!tema.trim()) {
+      setError('Ingresa el tema de la capacitación.');
+      return;
+    }
+    if (!capacitador.trim()) {
+      setError('Ingresa el nombre del capacitador.');
+      return;
+    }
+    if (!firmaCapacitador) {
+      setError('La firma del capacitador es obligatoria.');
+      return;
+    }
+    if (!normalizedAssistants.some((assistant) => assistant.Nombre || assistant.Firma)) {
+      setError('Registra al menos un asistente con nombre y firma.');
+      return;
+    }
+    if (normalizedAssistants.some((assistant) => !assistant.Nombre || !assistant.Firma)) {
+      setError('Cada asistente debe tener nombre y firma. Completa o elimina las filas vacías.');
+      return;
+    }
+
     await registrarCapacitacion(
       {
-        Fecha: todayISO(),
-        Tema: tema,
-        Capacitador: capacitador,
+        Fecha: fechaRegistro,
+        Tema: tema.trim(),
+        Capacitador: capacitador.trim(),
         FirmaCapacitador: firmaCapacitador,
-        Observaciones: observaciones,
-        Asistentes: asistentes,
+        Observaciones: '',
+        Asistentes: normalizedAssistants,
       },
       user,
     );
     setTema('');
     setCapacitador('');
     setFirmaCapacitador('');
-    setObservaciones('');
-    setAsistentes([{ Nombre: '', Firma: '' }]);
-    onSaved('Capacitacion guardada offline.');
+    setAsistentes([createTrainingAssistantDraft()]);
+    setError('');
+    onSaved('Capacitación guardada offline.');
   }
 
   return (
-    <form className="form-grid flow-form" onSubmit={handleSubmit}>
-      <TextField className="field--full" label="Tema" value={tema} onChange={setTema} required />
-      <TextField label="Capacitador" value={capacitador} onChange={setCapacitador} />
-      <TextField label="Firma capacitador" value={firmaCapacitador} onChange={setFirmaCapacitador} />
-      <div className="field field--full">
-        <span>Asistentes</span>
-        <div className="assistant-list">
-          {asistentes.map((asistente, index) => (
-            <div key={index} className="assistant-row">
-              <input placeholder="Nombre" value={asistente.Nombre} onChange={(event) => updateAssistant(index, 'Nombre', event.target.value)} />
-              <input placeholder="Firma" value={asistente.Firma} onChange={(event) => updateAssistant(index, 'Firma', event.target.value)} />
-            </div>
-          ))}
+    <form className="form-grid flow-form training-record-form" noValidate onSubmit={handleSubmit}>
+      <section className="water-date-card training-date-card" aria-label="Fecha y estado del registro">
+        <span className="water-date-card__icon">
+          <CalendarDays size={30} />
+        </span>
+        <div className="water-date-card__date">
+          <span>Fecha de Registro</span>
+          <strong>{formatWaterDate(fechaRegistro)}</strong>
         </div>
-        <button className="small-button" type="button" onClick={() => setAsistentes((current) => [...current, { Nombre: '', Firma: '' }])}>
-          Agregar asistente
-        </button>
-      </div>
-      <ObservationField value={observaciones} onChange={setObservaciones} />
-      <button className="primary-action">
-        <Save size={21} />
-        <span>Guardar capacitacion</span>
+        <div className="water-date-card__status">
+          <span>Estado</span>
+          <strong>{trainingRecordStatus}</strong>
+        </div>
+      </section>
+
+      <section className="water-form-card training-main-card">
+        <header className="training-main-card__header">
+          <span className="training-main-card__icon" aria-hidden="true">
+            <GraduationCap size={46} />
+          </span>
+          <strong>CAPACITACIONES</strong>
+        </header>
+
+        <label className="training-field training-field--full">
+          <span>Tema</span>
+          <input
+            value={tema}
+            placeholder="Ingrese el tema de la capacitación"
+            required
+            onChange={(event) => {
+              setTema(event.target.value);
+              setError('');
+            }}
+          />
+        </label>
+
+        <label className="training-field training-field--full">
+          <span>Capacitador</span>
+          <input
+            value={capacitador}
+            placeholder="Ingrese el nombre del capacitador"
+            required
+            onChange={(event) => {
+              setCapacitador(event.target.value);
+              setError('');
+            }}
+          />
+        </label>
+
+        <TrainingSignatureField
+          label="Firma del Capacitador"
+          value={firmaCapacitador}
+          title="Firmar aquí"
+          helper="El capacitador debe firmar en el área inferior"
+          onOpen={() => setSignatureTarget({ type: 'trainer' })}
+        />
+
+        <section className="training-assistants-section">
+          <header className="training-assistants-section__header">
+            <span className="training-assistants-section__icon" aria-hidden="true">
+              <Users size={34} />
+            </span>
+            <strong>ASISTENTES</strong>
+          </header>
+
+          <div className="training-assistants-headings" aria-hidden="true">
+            <span>Nombre</span>
+            <span>Firma</span>
+          </div>
+
+          <div className="training-assistant-list">
+            {asistentes.map((assistant) => (
+              <div key={assistant.id} className="training-assistant-row">
+                <label className="training-assistant-name">
+                  <span>Nombre</span>
+                  <input
+                    value={assistant.Nombre}
+                    placeholder="Nombre del asistente"
+                    required
+                    onChange={(event) => {
+                      updateAssistant(assistant.id, 'Nombre', event.target.value);
+                      setError('');
+                    }}
+                  />
+                </label>
+                <TrainingSignatureField
+                  compact
+                  label="Firma"
+                  value={assistant.Firma}
+                  title="Firmar aquí"
+                  helper="Firma del asistente"
+                  onOpen={() => setSignatureTarget({ type: 'assistant', assistantId: assistant.id })}
+                />
+                <button className="training-remove-assistant" type="button" aria-label="Eliminar asistente" onClick={() => removeAssistant(assistant.id)}>
+                  <Trash2 size={24} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <button className="training-add-assistant" type="button" onClick={addAssistant}>
+            <SquarePlus size={24} />
+            <span>Agregar asistente</span>
+          </button>
+        </section>
+      </section>
+
+      {error && <p className="water-form-error training-form-error" role="alert">{error}</p>}
+
+      <button className="primary-action training-save-button">
+        <Save size={25} />
+        <span>Guardar Registro</span>
       </button>
+
+      {activeSignature && (
+        <TrainingSignatureModal
+          title={activeSignature.title}
+          value={activeSignature.value}
+          onCancel={() => setSignatureTarget(null)}
+          onSave={saveSignature}
+        />
+      )}
     </form>
   );
+}
+
+function TrainingSignatureField({
+  label,
+  value,
+  title,
+  helper,
+  compact = false,
+  onOpen,
+}: {
+  label: string;
+  value: string;
+  title: string;
+  helper: string;
+  compact?: boolean;
+  onOpen: () => void;
+}) {
+  return (
+    <div className={`training-signature-field ${compact ? 'training-signature-field--compact' : ''}`}>
+      <span className="training-signature-field__label">{label}</span>
+      <button className={`training-signature-field__surface ${value ? 'has-signature' : ''}`} type="button" onClick={onOpen}>
+        {value ? (
+          <>
+            <img src={value} alt={label} />
+            <span className="training-signature-field__status" aria-hidden="true">
+              <CheckCircle2 size={20} />
+            </span>
+            <strong>Firma registrada</strong>
+            <small>Tocar para volver a firmar</small>
+          </>
+        ) : (
+          <>
+            <span className="training-signature-field__icon" aria-hidden="true">
+              <PenLine size={compact ? 30 : 42} />
+            </span>
+            <strong>{title}</strong>
+            <small>{helper}</small>
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
+
+function TrainingSignatureModal({
+  title,
+  value,
+  onCancel,
+  onSave,
+}: {
+  title: string;
+  value: string;
+  onCancel: () => void;
+  onSave: (value: string) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isDrawingRef = useRef(false);
+  const hasInkRef = useRef(false);
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const [modalError, setModalError] = useState('');
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(1, rect.width);
+    const height = Math.max(1, rect.height);
+    const ratio = window.devicePixelRatio || 1;
+    const context = canvas.getContext('2d');
+    let cancelled = false;
+
+    canvas.width = Math.floor(width * ratio);
+    canvas.height = Math.floor(height * ratio);
+    if (!context) return;
+
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    clearSignatureCanvas(context, width, height);
+    hasInkRef.current = false;
+
+    if (value) {
+      const image = new Image();
+      image.onload = () => {
+        if (cancelled) return;
+        context.drawImage(image, 0, 0, width, height);
+        configureSignatureContext(context);
+        hasInkRef.current = true;
+      };
+      image.src = value;
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [value]);
+
+  function getCanvasPoint(event: ReactPointerEvent<HTMLCanvasElement>) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+  }
+
+  function handlePointerDown(event: ReactPointerEvent<HTMLCanvasElement>) {
+    const context = event.currentTarget.getContext('2d');
+    if (!context) return;
+
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const point = getCanvasPoint(event);
+    configureSignatureContext(context);
+    context.beginPath();
+    context.moveTo(point.x, point.y);
+    context.lineTo(point.x + 0.01, point.y + 0.01);
+    context.stroke();
+    isDrawingRef.current = true;
+    hasInkRef.current = true;
+    lastPointRef.current = point;
+    setModalError('');
+  }
+
+  function handlePointerMove(event: ReactPointerEvent<HTMLCanvasElement>) {
+    if (!isDrawingRef.current) return;
+
+    const context = event.currentTarget.getContext('2d');
+    if (!context) return;
+
+    event.preventDefault();
+    const point = getCanvasPoint(event);
+    const lastPoint = lastPointRef.current ?? point;
+    configureSignatureContext(context);
+    context.beginPath();
+    context.moveTo(lastPoint.x, lastPoint.y);
+    context.lineTo(point.x, point.y);
+    context.stroke();
+    lastPointRef.current = point;
+  }
+
+  function handlePointerEnd(event: ReactPointerEvent<HTMLCanvasElement>) {
+    isDrawingRef.current = false;
+    lastPointRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  function handleClear() {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context) return;
+
+    const rect = canvas.getBoundingClientRect();
+    clearSignatureCanvas(context, rect.width, rect.height);
+    hasInkRef.current = false;
+    setModalError('');
+  }
+
+  function handleSave() {
+    const canvas = canvasRef.current;
+    if (!canvas || !hasInkRef.current) {
+      setModalError('Dibuja la firma antes de guardar.');
+      return;
+    }
+    onSave(canvas.toDataURL('image/png'));
+  }
+
+  return (
+    <div className="training-signature-modal" role="dialog" aria-modal="true" aria-label={title}>
+      <div className="training-signature-modal__panel">
+        <header className="training-signature-modal__header">
+          <strong>{title}</strong>
+          <button type="button" onClick={onCancel}>
+            Cancelar
+          </button>
+        </header>
+        <canvas
+          ref={canvasRef}
+          className="training-signature-canvas"
+          aria-label="Área para dibujar la firma"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
+          onPointerLeave={handlePointerEnd}
+        />
+        {modalError && <p className="training-signature-modal__error">{modalError}</p>}
+        <div className="training-signature-modal__actions">
+          <button type="button" className="training-signature-modal__clear" onClick={handleClear}>
+            <Eraser size={20} />
+            <span>Limpiar</span>
+          </button>
+          <button type="button" className="training-signature-modal__save" onClick={handleSave}>
+            <Check size={20} />
+            <span>Guardar firma</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function configureSignatureContext(context: CanvasRenderingContext2D) {
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+  context.lineWidth = 3.4;
+  context.strokeStyle = '#1f2925';
+}
+
+function clearSignatureCanvas(context: CanvasRenderingContext2D, width: number, height: number) {
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, width, height);
+  configureSignatureContext(context);
 }
 
 function ReadOnlyContext({ lote, label }: { lote?: Lote; label: string }) {

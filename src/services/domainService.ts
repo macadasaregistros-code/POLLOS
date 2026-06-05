@@ -144,9 +144,14 @@ export interface RegistroPlagaInput {
 
 export interface MedicamentoInput {
   Fecha: string;
+  Estado: string;
   LoteID: string;
   GalponID: string;
   Producto: string;
+  LoteProducto: string;
+  FechaVencimiento: string;
+  EdadDias: number;
+  NumeroAnimalesTratados: number;
   Dosis: string;
   ViaAdministracion: string;
   Motivo: string;
@@ -891,9 +896,14 @@ export async function registrarMedicamento(input: MedicamentoInput, user: Usuari
     MedicamentoID: createId('med'),
     Fecha: input.Fecha,
     FechaHoraRegistro: nowISO(),
+    Estado: input.Estado || 'EN PROCESO',
     LoteID: input.LoteID,
     GalponID: input.GalponID,
     Producto: input.Producto,
+    LoteProducto: input.LoteProducto,
+    FechaVencimiento: input.FechaVencimiento,
+    EdadDias: input.EdadDias,
+    NumeroAnimalesTratados: input.NumeroAnimalesTratados,
     Dosis: input.Dosis,
     ViaAdministracion: input.ViaAdministracion,
     Motivo: input.Motivo,

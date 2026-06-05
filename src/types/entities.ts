@@ -512,9 +512,14 @@ export interface MedicamentoRegistro extends SyncFields {
   MedicamentoID: string;
   Fecha: FechaISO;
   FechaHoraRegistro: FechaHoraISO;
+  Estado: string;
   LoteID: string;
   GalponID: string;
   Producto: string;
+  LoteProducto: string;
+  FechaVencimiento: FechaISO;
+  EdadDias: number;
+  NumeroAnimalesTratados: number;
   Dosis: string;
   ViaAdministracion: string;
   Motivo: string;

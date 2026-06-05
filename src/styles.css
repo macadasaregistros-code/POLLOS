@@ -276,9 +276,9 @@
 }
 
 .native-record-screen--medicine {
-  --record-a: #be185d;
-  --record-b: #9f1239;
-  --record-soft: #fce7f3;
+  --record-a: #267b1b;
+  --record-b: #17670f;
+  --record-soft: #e7f5e2;
 }
 
 .native-record-screen--compost,
@@ -289,9 +289,9 @@
 }
 
 .native-record-screen--dogs {
-  --record-a: #7c3aed;
-  --record-b: #6d28d9;
-  --record-soft: #ede9fe;
+  --record-a: #267b1b;
+  --record-b: #17670f;
+  --record-soft: #e7f5e2;
 }
 
 .native-record-screen--training {
@@ -7467,7 +7467,8 @@ body {
   }
 }
 
-.native-record-screen--vaccine {
+.native-record-screen--vaccine,
+.native-record-screen--medicine {
   background: #f3f4f1;
 }
 
@@ -7482,7 +7483,11 @@ body {
 .native-record-screen--vaccine .vaccination-date-card,
 .native-record-screen--vaccine .vaccination-main-card,
 .native-record-screen--vaccine .vaccination-form-error,
-.native-record-screen--vaccine .vaccination-save-button {
+.native-record-screen--vaccine .vaccination-save-button,
+.native-record-screen--medicine .medication-date-card,
+.native-record-screen--medicine .medication-main-card,
+.native-record-screen--medicine .medication-form-error,
+.native-record-screen--medicine .medication-save-button {
   grid-column: 1 / -1;
 }
 
@@ -7585,6 +7590,11 @@ body {
 
 .vaccination-option-tile:active {
   transform: scale(0.98);
+}
+
+.vaccination-option-tile:focus-visible {
+  outline: 3px solid rgb(38 123 27 / 18%);
+  outline-offset: 2px;
 }
 
 .vaccination-option-tile strong {
@@ -7709,7 +7719,101 @@ body {
   margin-top: -2px;
 }
 
-.native-record-screen--vaccine .vaccination-save-button {
+.vaccination-photo-field {
+  display: grid;
+  gap: 8px;
+  border: 1.5px solid #d8ded7;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+  color: #11181d;
+  box-shadow: 0 7px 16px rgb(22 34 29 / 5%);
+}
+
+.vaccination-photo-field span {
+  color: #2f3a34;
+  font-size: 0.86rem;
+  font-weight: 850;
+  line-height: 1.15;
+}
+
+.vaccination-photo-field strong {
+  color: #11181d;
+  font-size: 1.02rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.vaccination-photo-field input {
+  width: 100%;
+  min-height: 42px;
+  border: 1.5px dashed #9ac38e;
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: #f7fcf5;
+  color: #17670f;
+  font-weight: 800;
+}
+
+.vaccination-photo-field:focus-within {
+  border-color: #267b1b;
+  box-shadow: 0 0 0 3px rgb(38 123 27 / 14%);
+}
+
+.medication-main-card {
+  gap: 18px;
+}
+
+.medication-main-card__icon {
+  width: 58px;
+  height: 58px;
+  border: 0;
+  border-radius: 10px;
+  background: #e8f8e3;
+  color: #267b1b;
+}
+
+.medication-main-card__icon svg {
+  stroke-width: 2.5;
+}
+
+.medication-field--full,
+.medication-lote-grid > *:only-child {
+  grid-column: 1 / -1;
+}
+
+.medication-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: #11181d;
+}
+
+.medication-section-title svg {
+  flex: 0 0 auto;
+  color: #267b1b;
+  stroke-width: 2.5;
+}
+
+.medication-section-title strong {
+  min-width: 0;
+  color: #11181d;
+  font-size: 1.08rem;
+  font-weight: 900;
+  line-height: 1.12;
+}
+
+.medication-section-title--plain {
+  margin-top: 2px;
+}
+
+.native-record-screen--medicine .record-form-surface {
+  padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 22px);
+}
+
+.native-record-screen--vaccine .vaccination-save-button,
+.native-record-screen--medicine .medication-save-button {
   position: static;
   left: auto;
   right: auto;
@@ -7767,6 +7871,959 @@ body {
 
   .vaccination-step-title {
     align-items: flex-start;
+  }
+}
+
+.native-record-screen--dogs {
+  background: #f3f4f1;
+}
+
+.native-record-screen--dogs .record-form-surface {
+  padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 22px);
+}
+
+.native-record-screen .dog-record-form,
+.native-record-screen--dogs .dog-record-form {
+  grid-template-columns: 1fr !important;
+  gap: 14px;
+  align-items: stretch;
+  padding-bottom: 0;
+}
+
+.native-record-screen--dogs .dog-date-card,
+.native-record-screen--dogs .dog-main-card,
+.native-record-screen--dogs .dog-form-error,
+.native-record-screen--dogs .dog-save-button {
+  grid-column: 1 / -1;
+}
+
+.dog-date-card {
+  min-height: 96px;
+}
+
+.dog-date-card .water-date-card__icon {
+  width: 62px;
+  height: 62px;
+  background: linear-gradient(135deg, #d7f6c9 0%, #c4efb2 100%);
+}
+
+.dog-main-card {
+  gap: 18px;
+  padding: 18px;
+}
+
+.dog-main-card__header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  padding: 4px 0 2px;
+}
+
+.dog-main-card__icon {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: #267b1b;
+}
+
+.dog-main-card__icon svg {
+  width: 54px;
+  height: 54px;
+  stroke-width: 2.2;
+}
+
+.dog-main-card__header > strong {
+  min-width: 0;
+  color: #11181d;
+  font-size: clamp(1.8rem, 6vw, 2.45rem);
+  font-weight: 950;
+  line-height: 1.02;
+}
+
+.dog-field,
+.dog-type-section,
+.dog-photo-field {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dog-field > span,
+.dog-type-section > span,
+.dog-photo-field > span {
+  color: #11181d;
+  font-size: 1.08rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.dog-field input {
+  width: 100%;
+  min-height: 58px;
+  border: 1.5px solid #d0d5d2;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: #ffffff;
+  color: #11181d;
+  box-shadow: 0 1px 0 rgb(17 24 29 / 4%);
+  font-size: 1rem;
+  font-weight: 750;
+  outline: none;
+}
+
+.dog-field input::placeholder {
+  color: #838a90;
+  font-weight: 650;
+}
+
+.dog-field input:focus {
+  border-color: #267b1b;
+  box-shadow: 0 0 0 3px rgb(38 123 27 / 14%);
+}
+
+.dog-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.dog-type-option {
+  position: relative;
+  min-height: 96px;
+  display: grid;
+  grid-template-columns: 30px 70px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  border: 1.5px solid #d7ddd6;
+  border-radius: 8px;
+  padding: 14px;
+  background: #ffffff;
+  color: #11181d;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 58%),
+    0 8px 18px rgb(22 34 29 / 6%);
+  text-align: left;
+  touch-action: manipulation;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease,
+    background 0.15s ease;
+}
+
+.dog-type-option:active {
+  transform: scale(0.98);
+}
+
+.dog-type-option:focus-visible {
+  outline: 3px solid rgb(38 123 27 / 18%);
+  outline-offset: 2px;
+}
+
+.dog-type-option__radio {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #858b90;
+  border-radius: 999px;
+  color: #ffffff;
+}
+
+.dog-type-option__icon {
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #e6f7dc;
+  color: #267b1b;
+}
+
+.dog-type-option strong {
+  min-width: 0;
+  color: #11181d;
+  font-size: 1.03rem;
+  font-weight: 900;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.dog-type-option.is-selected {
+  border-color: #267b1b;
+  border-width: 2px;
+  background: linear-gradient(135deg, #fbfff9 0%, #eef9ea 100%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 64%),
+    0 0 0 2px rgb(38 123 27 / 10%);
+}
+
+.dog-type-option.is-selected .dog-type-option__radio {
+  border-color: #267b1b;
+  background: #267b1b;
+}
+
+.dog-photo-field {
+  position: relative;
+}
+
+.dog-photo-field input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  max-width: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dog-photo-field__surface {
+  min-height: 252px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  overflow: hidden;
+  border: 1.5px dashed #a8d39b;
+  border-radius: 8px;
+  padding: 24px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fcf5 100%);
+  color: #11181d;
+  text-align: center;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.dog-photo-field:focus-within .dog-photo-field__surface {
+  border-color: #267b1b;
+  box-shadow: 0 0 0 3px rgb(38 123 27 / 14%);
+}
+
+.dog-photo-field__icon {
+  width: 74px;
+  height: 74px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #e1f7d7;
+  color: #267b1b;
+}
+
+.dog-photo-field__surface strong {
+  color: #11181d;
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.dog-photo-field__surface small {
+  color: #66706a;
+  font-size: 0.95rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.dog-photo-field.has-photo .dog-photo-field__surface {
+  min-height: 280px;
+  padding: 0;
+  border-style: solid;
+  background: #ffffff;
+}
+
+.dog-photo-field__surface img {
+  display: block;
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+}
+
+.native-record-screen--dogs .dog-save-button {
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+  width: 100%;
+  min-height: 64px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2b7d1f 0%, #17670f 100%);
+  box-shadow: 0 14px 28px rgb(38 123 27 / 26%);
+  font-size: 1.12rem;
+  font-weight: 950;
+}
+
+@media (max-width: 560px) {
+  .dog-main-card {
+    padding: 14px;
+  }
+
+  .dog-date-card {
+    grid-template-columns: 50px minmax(0, 1fr) auto;
+    gap: 10px;
+    min-height: 80px;
+    padding: 12px;
+  }
+
+  .dog-date-card .water-date-card__icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .dog-date-card .water-date-card__date span,
+  .dog-date-card .water-date-card__status span {
+    font-size: 0.78rem;
+  }
+
+  .dog-date-card .water-date-card__date strong {
+    font-size: 1.12rem;
+  }
+
+  .dog-date-card .water-date-card__status strong {
+    padding: 6px 9px;
+    font-size: 0.7rem;
+  }
+
+  .dog-main-card__header {
+    gap: 12px;
+  }
+
+  .dog-main-card__icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .dog-main-card__icon svg {
+    width: 46px;
+    height: 46px;
+  }
+
+  .dog-main-card__header > strong {
+    font-size: 1.75rem;
+  }
+
+  .dog-type-grid {
+    gap: 10px;
+  }
+
+  .dog-type-option {
+    grid-template-columns: 26px 54px minmax(0, 1fr);
+    gap: 9px;
+    min-height: 84px;
+    padding: 10px;
+  }
+
+  .dog-type-option__icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .dog-type-option strong {
+    font-size: 0.94rem;
+  }
+
+  .dog-photo-field__surface {
+    min-height: 220px;
+    padding: 20px;
+  }
+
+  .dog-photo-field.has-photo .dog-photo-field__surface,
+  .dog-photo-field__surface img {
+    height: 230px;
+    min-height: 230px;
+  }
+}
+
+@media (max-width: 430px) {
+  .dog-type-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dog-type-option {
+    grid-template-columns: 26px 54px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 380px) {
+  .dog-date-card {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .dog-date-card .water-date-card__status {
+    grid-column: 2;
+    justify-items: start;
+  }
+}
+
+.native-record-screen--training {
+  background: #f3f4f1;
+}
+
+.native-record-screen--training .record-form-surface {
+  padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 22px);
+}
+
+.native-record-screen .training-record-form,
+.native-record-screen--training .training-record-form {
+  grid-template-columns: 1fr !important;
+  gap: 14px;
+  align-items: stretch;
+  padding-bottom: 0;
+}
+
+.native-record-screen--training .training-date-card,
+.native-record-screen--training .training-main-card,
+.native-record-screen--training .training-form-error,
+.native-record-screen--training .training-save-button {
+  grid-column: 1 / -1;
+}
+
+.training-date-card {
+  min-height: 96px;
+}
+
+.training-date-card .water-date-card__icon {
+  width: 62px;
+  height: 62px;
+  background: linear-gradient(135deg, #d7f6c9 0%, #c4efb2 100%);
+}
+
+.training-main-card {
+  gap: 18px;
+  padding: 18px;
+}
+
+.training-main-card__header,
+.training-assistants-section__header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  padding: 4px 0 2px;
+}
+
+.training-main-card__icon,
+.training-assistants-section__icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: #267b1b;
+}
+
+.training-main-card__icon {
+  width: 58px;
+  height: 58px;
+}
+
+.training-main-card__icon svg {
+  width: 54px;
+  height: 54px;
+  stroke-width: 2.2;
+}
+
+.training-main-card__header > strong,
+.training-assistants-section__header > strong {
+  min-width: 0;
+  color: #11181d;
+  font-weight: 950;
+  line-height: 1.02;
+}
+
+.training-main-card__header > strong {
+  font-size: clamp(1.8rem, 6vw, 2.45rem);
+}
+
+.training-assistants-section__header > strong {
+  font-size: clamp(1.35rem, 4.7vw, 1.95rem);
+}
+
+.training-field,
+.training-signature-field,
+.training-assistants-section,
+.training-assistant-name {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.training-field > span,
+.training-signature-field__label {
+  color: #11181d;
+  font-size: 1.08rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.training-field input,
+.training-assistant-name input {
+  width: 100%;
+  min-height: 58px;
+  border: 1.5px solid #d0d5d2;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: #ffffff;
+  color: #11181d;
+  box-shadow: 0 1px 0 rgb(17 24 29 / 4%);
+  font-size: 1rem;
+  font-weight: 750;
+  outline: none;
+}
+
+.training-field input::placeholder,
+.training-assistant-name input::placeholder {
+  color: #838a90;
+  font-weight: 650;
+}
+
+.training-field input:focus,
+.training-assistant-name input:focus {
+  border-color: #267b1b;
+  box-shadow: 0 0 0 3px rgb(38 123 27 / 14%);
+}
+
+.training-signature-field__surface {
+  position: relative;
+  width: 100%;
+  min-height: 168px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  overflow: hidden;
+  border: 1.5px dashed #a8d39b;
+  border-radius: 8px;
+  padding: 22px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fcf5 100%);
+  color: #11181d;
+  text-align: center;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease,
+    transform 0.12s ease;
+}
+
+.training-signature-field__surface:active {
+  transform: scale(0.99);
+}
+
+.training-signature-field__surface:focus-visible {
+  border-color: #267b1b;
+  box-shadow: 0 0 0 3px rgb(38 123 27 / 14%);
+  outline: none;
+}
+
+.training-signature-field__icon {
+  width: 66px;
+  height: 66px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #e1f7d7;
+  color: #267b1b;
+}
+
+.training-signature-field__surface strong {
+  min-width: 0;
+  color: #11181d;
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.training-signature-field__surface small {
+  min-width: 0;
+  color: #66706a;
+  font-size: 0.95rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.training-signature-field__surface.has-signature {
+  border-style: solid;
+  background: #ffffff;
+}
+
+.training-signature-field__surface img {
+  display: block;
+  width: 100%;
+  max-height: 82px;
+  object-fit: contain;
+}
+
+.training-signature-field__status {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #267b1b;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgb(38 123 27 / 28%);
+}
+
+.training-assistants-section {
+  margin-top: 6px;
+}
+
+.training-assistants-section__icon {
+  width: 48px;
+  height: 48px;
+}
+
+.training-assistants-section__icon svg {
+  width: 44px;
+  height: 44px;
+  stroke-width: 2.25;
+}
+
+.training-assistants-headings {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(250px, 0.9fr) 44px;
+  gap: 14px;
+  color: #11181d;
+  font-size: 0.96rem;
+  font-weight: 850;
+}
+
+.training-assistants-headings span:nth-child(2) {
+  grid-column: 2;
+}
+
+.training-assistant-list {
+  display: grid;
+  gap: 0;
+}
+
+.training-assistant-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(250px, 0.9fr) 44px;
+  gap: 14px;
+  align-items: end;
+  padding: 0 0 14px;
+  border-bottom: 1px solid #e3e6e3;
+}
+
+.training-assistant-row + .training-assistant-row {
+  padding-top: 14px;
+}
+
+.training-assistant-row:last-child {
+  border-bottom: 0;
+}
+
+.training-assistant-name > span,
+.training-signature-field--compact .training-signature-field__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.training-signature-field--compact .training-signature-field__surface {
+  min-height: 78px;
+  grid-template-columns: 52px minmax(0, 1fr);
+  justify-items: start;
+  align-content: center;
+  gap: 4px 12px;
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.training-signature-field--compact .training-signature-field__icon,
+.training-signature-field--compact .training-signature-field__surface img {
+  grid-row: 1 / span 2;
+}
+
+.training-signature-field--compact .training-signature-field__icon {
+  width: 52px;
+  height: 52px;
+}
+
+.training-signature-field--compact .training-signature-field__surface img {
+  width: 52px;
+  height: 48px;
+}
+
+.training-signature-field--compact .training-signature-field__surface strong {
+  font-size: 0.96rem;
+}
+
+.training-signature-field--compact .training-signature-field__surface small {
+  font-size: 0.82rem;
+}
+
+.training-remove-assistant {
+  width: 44px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #60666b;
+}
+
+.training-remove-assistant:focus-visible {
+  outline: 3px solid rgb(38 123 27 / 16%);
+  outline-offset: 2px;
+}
+
+.training-add-assistant {
+  min-height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 2px solid #267b1b;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #267b1b;
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.training-add-assistant:active,
+.training-remove-assistant:active {
+  transform: scale(0.98);
+}
+
+.native-record-screen--training .training-save-button {
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+  width: 100%;
+  min-height: 64px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2b7d1f 0%, #17670f 100%);
+  box-shadow: 0 14px 28px rgb(38 123 27 / 26%);
+  font-size: 1.12rem;
+  font-weight: 950;
+}
+
+.training-signature-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: calc(18px + var(--safe-top)) calc(14px + var(--safe-right)) calc(18px + var(--safe-bottom)) calc(14px + var(--safe-left));
+  background: rgb(8 16 13 / 46%);
+  backdrop-filter: blur(8px);
+}
+
+.training-signature-modal__panel {
+  width: min(620px, 100%);
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgb(22 34 29 / 10%);
+  border-radius: 12px;
+  padding: 14px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgb(8 16 13 / 28%);
+}
+
+.training-signature-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.training-signature-modal__header strong {
+  color: #11181d;
+  font-size: 1.05rem;
+  font-weight: 950;
+}
+
+.training-signature-modal__header button {
+  min-height: 38px;
+  border: 1px solid #d8ded7;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #47524d;
+  font-weight: 850;
+}
+
+.training-signature-canvas {
+  width: 100%;
+  height: min(42vh, 260px);
+  min-height: 190px;
+  display: block;
+  border: 1.5px dashed #a8d39b;
+  border-radius: 8px;
+  background: #ffffff;
+  touch-action: none;
+}
+
+.training-signature-modal__error {
+  margin: 0;
+  color: #8c1d18;
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.training-signature-modal__actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 10px;
+}
+
+.training-signature-modal__actions button {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  font-size: 0.96rem;
+  font-weight: 900;
+}
+
+.training-signature-modal__clear {
+  border: 1px solid #d8ded7;
+  background: #ffffff;
+  color: #47524d;
+}
+
+.training-signature-modal__save {
+  border: 1px solid #267b1b;
+  background: #267b1b;
+  color: #ffffff;
+}
+
+@media (max-width: 680px) {
+  .training-main-card {
+    padding: 14px;
+  }
+
+  .training-date-card {
+    grid-template-columns: 50px minmax(0, 1fr) auto;
+    gap: 10px;
+    min-height: 80px;
+    padding: 12px;
+  }
+
+  .training-date-card .water-date-card__icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .training-date-card .water-date-card__date span,
+  .training-date-card .water-date-card__status span {
+    font-size: 0.78rem;
+  }
+
+  .training-date-card .water-date-card__date strong {
+    font-size: 1.12rem;
+  }
+
+  .training-date-card .water-date-card__status strong {
+    padding: 6px 9px;
+    font-size: 0.7rem;
+  }
+
+  .training-main-card__header,
+  .training-assistants-section__header {
+    gap: 12px;
+  }
+
+  .training-main-card__icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .training-main-card__icon svg {
+    width: 46px;
+    height: 46px;
+  }
+
+  .training-main-card__header > strong {
+    font-size: 1.75rem;
+  }
+
+  .training-field input,
+  .training-assistant-name input {
+    min-height: 54px;
+  }
+
+  .training-signature-field__surface {
+    min-height: 148px;
+    padding: 18px;
+  }
+
+  .training-assistants-headings {
+    display: none;
+  }
+
+  .training-assistant-row {
+    grid-template-columns: minmax(0, 1fr) 48px;
+    gap: 10px;
+    align-items: end;
+    padding-bottom: 14px;
+  }
+
+  .training-assistant-name {
+    grid-column: 1 / -1;
+  }
+
+  .training-signature-field--compact {
+    grid-column: 1;
+  }
+
+  .training-assistant-name > span,
+  .training-signature-field--compact .training-signature-field__label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    color: #11181d;
+    font-size: 0.94rem;
+    font-weight: 850;
+  }
+
+  .training-remove-assistant {
+    width: 48px;
+    height: 78px;
+  }
+}
+
+@media (max-width: 380px) {
+  .training-date-card {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .training-date-card .water-date-card__status {
+    grid-column: 2;
+    justify-items: start;
+  }
+
+  .training-signature-modal__actions {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -7893,6 +8950,32 @@ body {
   gap: 10px;
   background: linear-gradient(135deg, #2b7d1f 0%, #18670f 100%);
   box-shadow: 0 8px 20px rgb(20 33 29 / 14%);
+}
+
+.native-record-screen--vaccine .flow-form.vaccination-record-form,
+.native-record-screen--medicine .flow-form.medication-record-form,
+.native-record-screen--dogs .flow-form.dog-record-form,
+.native-record-screen--training .flow-form.training-record-form {
+  padding-bottom: 0;
+}
+
+.native-record-screen--vaccine .vaccination-record-form > .primary-action.vaccination-save-button,
+.native-record-screen--medicine .medication-record-form > .primary-action.medication-save-button,
+.native-record-screen--dogs .dog-record-form > .primary-action.dog-save-button,
+.native-record-screen--training .training-record-form > .primary-action.training-save-button {
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+  width: 100%;
+  min-height: 64px;
+  gap: 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2b7d1f 0%, #17670f 100%);
+  box-shadow: 0 14px 28px rgb(38 123 27 / 26%);
+  font-size: 1.12rem;
+  font-weight: 950;
 }
 
 .assistant-list,
