@@ -207,6 +207,8 @@ async function buildActivitiesForLote(lote: Lote, galponId: string): Promise<Act
       for (let day = Math.max(1, template.AplicaDesdeDia); day <= template.AplicaHastaDia; day += 3) days.push(day);
     } else if (template.TipoFrecuencia === 'SEMANAL') {
       for (let day = Math.max(1, template.AplicaDesdeDia); day <= template.AplicaHastaDia; day += 7) days.push(day);
+    } else if (template.TipoFrecuencia === 'MENSUAL') {
+      for (let day = Math.max(1, template.AplicaDesdeDia); day <= template.AplicaHastaDia; day += 30) days.push(day);
     } else {
       days.push(Math.max(1, template.DiaLote));
     }

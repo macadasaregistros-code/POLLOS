@@ -82,17 +82,17 @@ const baseActivityRows: Array<[string, string, ActividadProgramada['TipoFrecuenc
   ['Alimentación mañana 70%.', 'Alimentación', 'DIARIA', 1, '07:00', 1, 42],
   ['Alimentación tarde 30%.', 'Alimentación', 'DIARIA', 1, '16:00', 1, 42],
   ['Acuades diario 9am.', 'Agua', 'DIARIA', 1, '09:00', 1, 42],
-  ['Fumigación diaria 4pm.', 'Sanidad', 'DIARIA', 1, '16:00', 1, 42],
+  ['Fumigación diaria 4pm.', 'Rutina', 'DIARIA', 1, '16:00', 1, 42],
   ['Medir cloro.', 'Agua', 'DIARIA', 1, '08:00', 1, 42],
   ['Medir pH.', 'Agua', 'DIARIA', 1, '08:00', 1, 42],
-  ['Cambio diario de pediluvios con creolina.', 'Bioseguridad', 'DIARIA', 1, '08:30', 1, 42],
-  ['Purgar línea diario.', 'Agua', 'DIARIA', 1, '08:00', 1, 42],
+  ['Cambio diario de pediluvios con creolina.', 'Rutina', 'DIARIA', 1, '08:30', 1, 42],
+  ['Purgar línea diario.', 'Rutina', 'DIARIA', 1, '08:00', 1, 42],
   ['Control de roedores.', 'Bioseguridad', 'SEMANAL', 7, '', 1, 42],
   ['Control de mosca con cipermetrina.', 'Bioseguridad', 'SEMANAL', 7, '16:00', 1, 42],
-  ['Limpiar malla y telarañas.', 'Manejo', 'SEMANAL', 7, '', 1, 42],
-  ['Barrer bodegas.', 'Manejo', 'SEMANAL', 7, '', 1, 42],
-  ['Revolcar cama.', 'Manejo', 'DIARIA', 1, '10:00', 3, 42],
-  ['Lavar filtros.', 'Agua', 'SEMANAL', 7, '', 1, 42],
+  ['Limpiar malla y telarañas.', 'Rutina', 'SEMANAL', 7, '', 1, 42],
+  ['Barrer bodegas.', 'Rutina', 'SEMANAL', 7, '', 1, 42],
+  ['Revolcar cama.', 'Rutina', 'DIARIA', 1, '10:00', 3, 42],
+  ['Lavar filtros.', 'Rutina', 'SEMANAL', 7, '', 1, 42],
   ['Clorar tanque principal cada 3 días.', 'Agua', 'CADA_3_DIAS', 3, '', 1, 42],
   ['Sulfatar tanque 24 horas antes de clorar.', 'Agua', 'CADA_3_DIAS', 2, '', 1, 42],
 ];
@@ -359,6 +359,8 @@ export function createDemoData(): DemoData {
           ? diaLote
           : activity.TipoFrecuencia === 'CADA_3_DIAS'
             ? Math.max(1, diaLote - (diaLote % 3))
+            : activity.TipoFrecuencia === 'MENSUAL'
+              ? Math.max(1, diaLote - ((diaLote - Math.max(1, activity.AplicaDesdeDia)) % 30))
             : activity.DiaLote;
       const fechaProgramada = addDays(fechaLlegada, scheduledDay - 1);
       return [

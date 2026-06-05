@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Plus, RefreshCcw, Save } from 'lucide-react';
 import { MobileCard } from '../../components/MobileCard';
+import { RoutineMatrix } from '../../components/RoutineMatrix';
 import {
   guardarActividadProgramada,
   guardarPerroProgramacion,
@@ -11,20 +12,32 @@ import {
 } from '../../services/adminService';
 import { getDogNextDate } from '../../services/agendaService';
 import { db } from '../../services/localDbService';
-import type { ActividadProgramada, Perro, PlanVacunalBase, Usuario } from '../../types/entities';
+import { getCompletedPrepTaskIds, getNextPrepTask, preparationCategories, preparationTasks } from '../../services/preparationService';
+import { getRoutineFrequency, isRoutineTemplate, normalizeText, routineFrequencyLabels, type RoutineFrequency } from '../../services/routineService';
+import { todayISO } from '../../lib/date';
+import type { ActividadProgramada, Galpon, Perro, PlanVacunalBase, Usuario } from '../../types/entities';
 
 interface ProgramacionViewProps {
   user: Usuario;
   onToast: (message: string) => void;
 }
 
-const frequencyOptions: ActividadProgramada['TipoFrecuencia'][] = ['UNICA', 'DIARIA', 'CADA_3_DIAS', 'SEMANAL', 'SEGUN_DIA_LOTE'];
+const frequencyOptions: ActividadProgramada['TipoFrecuencia'][] = ['UNICA', 'DIARIA', 'CADA_3_DIAS', 'SEMANAL', 'MENSUAL', 'SEGUN_DIA_LOTE'];
+const routineFrequencies: RoutineFrequency[] = ['DIARIA', 'SEMANAL', 'MENSUAL'];
 
 export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
+  const today = todayISO();
   const actividades = useLiveQuery(() => db.actividadesProgramadas.toArray(), []) ?? [];
+  const actividadesLote = useLiveQuery(() => db.actividadesLote.toArray(), []) ?? [];
   const vacunas = useLiveQuery(() => db.planVacunalBase.toArray(), []) ?? [];
   const perros = useLiveQuery(() => db.perros.toArray(), []) ?? [];
+  const galpones = useLiveQuery(() => db.galpones.toArray(), []) ?? [];
   const [regenerating, setRegenerating] = useState(false);
+  const loteActivities = useMemo(
+    () => actividades.filter((actividad) => !isRoutineTemplate(actividad) && !isPreparationTemplate(actividad) && !isVaccineTemplate(actividad)),
+    [actividades],
+  );
+  const routineActivities = useMemo(() => actividades.filter(isRoutineTemplate), [actividades]);
 
   async function handleRegenerate() {
     setRegenerating(true);
@@ -40,7 +53,9 @@ export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
     <section className="programming-view">
       <MobileCard title="Programacion activa" subtitle="Reglas que la app usa para armar HOY">
         <div className="programming-summary">
-          <span><strong>{actividades.filter((item) => item.Activa).length}</strong> actividades activas</span>
+          <span><strong>{loteActivities.filter((item) => item.Activa).length}</strong> act. lote</span>
+          <span><strong>{routineActivities.filter((item) => item.Activa).length}</strong> rutinas</span>
+          <span><strong>{preparationTasks.length}</strong> alistamiento</span>
           <span><strong>{vacunas.filter((item) => item.Activa).length}</strong> vacunas base</span>
           <span><strong>{perros.filter((item) => item.Activo).length}</strong> perros activos</span>
         </div>
@@ -50,16 +65,27 @@ export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
         </button>
       </MobileCard>
 
-      <MobileCard title="Actividades por dia de lote">
+      <MobileCard title="2. Actividades del lote" subtitle="Tareas propias del lote; no incluye rutinas ni alistamiento">
         <NewActivityForm onToast={onToast} />
         <div className="programming-list">
-          {actividades
+          {loteActivities
             .slice()
             .sort((left, right) => left.Categoria.localeCompare(right.Categoria) || left.DiaLote - right.DiaLote)
             .map((actividad) => (
               <ActivityProgramRow key={actividad.ActividadProgramadaID} actividad={actividad} onToast={onToast} />
             ))}
+          {loteActivities.length === 0 && <p className="empty-state">No hay actividades de lote configuradas.</p>}
         </div>
+      </MobileCard>
+
+      <MobileCard title="3. Rutinas" subtitle="Checks diarios, semanales y mensuales">
+        <NewRoutineForm onToast={onToast} />
+        <RoutineProgramBuckets actividades={routineActivities} onToast={onToast} />
+        <RoutineMatrix actividades={actividadesLote} today={today} user={user} editable onSaved={onToast} />
+      </MobileCard>
+
+      <MobileCard title="4. Alistamiento" subtitle="Se registra con fecha desde el galpon en alistamiento">
+        <PreparationReview galpones={galpones} />
       </MobileCard>
 
       <MobileCard title="Plan vacunal base">
@@ -87,6 +113,85 @@ export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
       </MobileCard>
     </section>
   );
+}
+
+function RoutineProgramBuckets({ actividades, onToast }: { actividades: ActividadProgramada[]; onToast: (message: string) => void }) {
+  return (
+    <div className="routine-program-buckets">
+      {routineFrequencies.map((frequency) => {
+        const items = actividades.filter((actividad) => getRoutineFrequency(actividad) === frequency);
+        return (
+          <section className="routine-program-bucket" key={frequency}>
+            <header>
+              <strong>{routineFrequencyLabels[frequency]}</strong>
+              <span>{items.length}</span>
+            </header>
+            <div className="programming-list">
+              {items
+                .slice()
+                .sort((left, right) => left.NombreActividad.localeCompare(right.NombreActividad))
+                .map((actividad) => (
+                  <ActivityProgramRow key={actividad.ActividadProgramadaID} actividad={actividad} onToast={onToast} />
+                ))}
+              {items.length === 0 && <p className="empty-state">Sin rutinas {routineFrequencyLabels[frequency].toLowerCase()}s.</p>}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function PreparationReview({ galpones }: { galpones: Galpon[] }) {
+  const galponesEnAlistamiento = galpones.filter((galpon) => galpon.Activo && galpon.EstadoActual !== 'ENGORDE');
+  return (
+    <div className="prep-admin-review">
+      <div className="prep-admin-catalog">
+        {preparationCategories.map((category) => (
+          <section key={category.key}>
+            <header>
+              <strong>{category.label}</strong>
+              <span>{category.tasks.length}</span>
+            </header>
+            <ol>
+              {category.tasks.map((task) => (
+                <li key={task.id}>{task.title}</li>
+              ))}
+            </ol>
+          </section>
+        ))}
+      </div>
+      <div className="prep-admin-galpones">
+        {galponesEnAlistamiento
+          .slice()
+          .sort((left, right) => left.NombreGalpon.localeCompare(right.NombreGalpon))
+          .map((galpon) => {
+            const completed = getCompletedPrepTaskIds(galpon).length;
+            const nextTask = getNextPrepTask(galpon);
+            return (
+              <article key={galpon.GalponID}>
+                <div>
+                  <strong>Galpon {galpon.NombreGalpon}</strong>
+                  <span>{nextTask ? `Sigue: ${nextTask.title}` : 'Listo para recibir pollito'}</span>
+                </div>
+                <small>{completed}/{preparationTasks.length}</small>
+              </article>
+            );
+          })}
+        {galponesEnAlistamiento.length === 0 && <p className="empty-state">No hay galpones en alistamiento.</p>}
+      </div>
+    </div>
+  );
+}
+
+function isPreparationTemplate(actividad: Pick<ActividadProgramada, 'Categoria' | 'NombreActividad' | 'DiaLote'>): boolean {
+  const text = normalizeText(`${actividad.Categoria} ${actividad.NombreActividad}`);
+  return ['retiro', 'desinfeccion', 'instalacion', 'recibimiento'].some((word) => text.includes(word)) || actividad.DiaLote <= 0;
+}
+
+function isVaccineTemplate(actividad: Pick<ActividadProgramada, 'Categoria' | 'NombreActividad'>): boolean {
+  const text = normalizeText(`${actividad.Categoria} ${actividad.NombreActividad}`);
+  return text.includes('vacuna') || text.includes('vacunacion');
 }
 
 function NewActivityForm({ onToast }: { onToast: (message: string) => void }) {
@@ -117,6 +222,39 @@ function NewActivityForm({ onToast }: { onToast: (message: string) => void }) {
       onSaved={() => {
         setOpen(false);
         onToast('Actividad programada guardada.');
+      }}
+    />
+  );
+}
+
+function NewRoutineForm({ onToast }: { onToast: (message: string) => void }) {
+  const [open, setOpen] = useState(false);
+  if (!open) {
+    return (
+      <button className="small-button programming-add-button" type="button" onClick={() => setOpen(true)}>
+        <Plus size={16} />
+        Nueva rutina
+      </button>
+    );
+  }
+  return (
+    <ActivityProgramForm
+      actividad={{
+        ActividadProgramadaID: '',
+        NombreActividad: '',
+        Categoria: 'Rutina',
+        TipoFrecuencia: 'DIARIA',
+        DiaLote: 1,
+        HoraSugerida: '',
+        AplicaDesdeDia: 1,
+        AplicaHastaDia: 42,
+        RequiereDato: false,
+        RequiereFoto: false,
+        Activa: true,
+      }}
+      onSaved={() => {
+        setOpen(false);
+        onToast('Rutina guardada.');
       }}
     />
   );

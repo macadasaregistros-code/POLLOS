@@ -13,19 +13,19 @@ import {
 } from 'lucide-react';
 import { buildGalponDashboardModel, GalponMap, GalponPremiumDashboardCard, getMaxGalponCapacity } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
+import { RoutineMatrix } from '../../components/RoutineMatrix';
 import { buildAgenda } from '../../services/agendaService';
 import type { AgendaModel, AgendaRecordContext, AgendaTask } from '../../services/agendaService';
 import { buildLoteResumen } from '../../services/calculationsService';
 import { actualizarActividad, actualizarEstadoGalpon } from '../../services/domainService';
 import { db } from '../../services/localDbService';
 import {
-  getCompletedPrepTaskIds,
+  getCompletedPrepTaskRecords,
   getGalponStateForPrepProgress,
-  getNextPrepTask,
-  normalizePrepTaskIds,
+  normalizePrepTaskRecords,
   preparationCategories,
   preparationTasks,
-  writePrepProgress,
+  writePrepProgressRecords,
 } from '../../services/preparationService';
 import { todayISO } from '../../lib/date';
 import { fmtNumber, fmtPercent } from '../../lib/format';
@@ -60,6 +60,7 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   const [activeActivityRecord, setActiveActivityRecord] = useState<ActivityRecordKind | ''>('');
   const [activeRecordContext, setActiveRecordContext] = useState<AgendaRecordContext | undefined>();
   const [activeEntryRecord, setActiveEntryRecord] = useState<EntryKind | ''>('');
+  const [activeRoutineMatrix, setActiveRoutineMatrix] = useState(false);
 
   useEffect(() => {
     if (!galponeroViews.includes(activeView)) onViewChange('actividades');
@@ -120,8 +121,9 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
     if (activeView !== 'actividades' && activeActivityRecord) setActiveActivityRecord('');
     if (activeView !== 'actividades' && activeRecordContext) setActiveRecordContext(undefined);
     if (activeView !== 'actividades' && activeDailyLoteId) setActiveDailyLoteId('');
+    if (activeView !== 'actividades' && activeRoutineMatrix) setActiveRoutineMatrix(false);
     if (activeView !== 'entrada' && activeEntryRecord) setActiveEntryRecord('');
-  }, [activeActivityRecord, activeDailyLoteId, activeEntryRecord, activeRecordContext, activeView]);
+  }, [activeActivityRecord, activeDailyLoteId, activeEntryRecord, activeRecordContext, activeRoutineMatrix, activeView]);
 
   function handleSelectGalpon(galponId: string) {
     setSelectedGalponId(galponId);
@@ -162,7 +164,11 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
       onToast('Actividades marcadas como realizadas.');
       return;
     }
-    await advancePrepFromAgenda(task.action.galponId);
+    if (task.action.type === 'routines') {
+      setActiveRoutineMatrix(true);
+      return;
+    }
+    handleSelectGalpon(task.action.galponId);
   }
 
   async function markActivitiesDone(activityIds: string[]) {
@@ -172,20 +178,6 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
       const gas = needsGas ? Number(window.prompt('Cilindros de gas consumidos') ?? 0) : undefined;
       await actualizarActividad(actividad.ActividadLoteID, 'REALIZADA', user, '', gas);
     }
-  }
-
-  async function advancePrepFromAgenda(galponId: string) {
-    const galpon = (galpones ?? []).find((item) => item.GalponID === galponId);
-    if (!galpon) return;
-    const currentTask = getNextPrepTask(galpon);
-    if (!currentTask) return;
-    const nextCompleted = normalizePrepTaskIds([...getCompletedPrepTaskIds(galpon), currentTask.id]);
-    await actualizarEstadoGalpon(
-      galpon.GalponID,
-      getGalponStateForPrepProgress(nextCompleted),
-      writePrepProgress(galpon.Observaciones, nextCompleted),
-    );
-    onToast('Avance de alistamiento guardado offline.');
   }
 
   if (activeView === 'galpones' && selectedGalpon) {
@@ -236,6 +228,26 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
         </header>
         <MobileCard className="native-view-card" title="Registro diario" subtitle="Alimento, mortalidad y sacrificio">
           <RegistrarDiaForm lote={activeDailyLote} user={user} onSaved={handleDailySaved} />
+        </MobileCard>
+      </main>
+    );
+  }
+
+  if (activeView === 'actividades' && activeRoutineMatrix) {
+    return (
+      <main className="page-shell page-shell--mobile page-shell--detail page-shell--record-view">
+        <header className="native-detail-header">
+          <button className="native-back-button" type="button" aria-label="Volver a hoy" onClick={() => setActiveRoutineMatrix(false)}>
+            <ArrowLeft size={22} />
+          </button>
+          <div>
+            <span>HOY</span>
+            <h1>Rutinas</h1>
+            <small>Checks del mes</small>
+          </div>
+        </header>
+        <MobileCard className="native-view-card">
+          <RoutineMatrix actividades={actividades ?? []} today={today} user={user} editable onSaved={onToast} />
         </MobileCard>
       </main>
     );
@@ -330,7 +342,7 @@ function AgendaSection({ title, tasks, empty, onTask }: { title: string; tasks: 
               <small>{task.detail}</small>
             </div>
             <button type="button" onClick={() => void onTask(task)}>
-              {task.action.type === 'completeActivities' || task.action.type === 'prep' ? 'Marcar' : 'Abrir'}
+              {getAgendaActionLabel(task)}
             </button>
           </article>
         ))}
@@ -338,6 +350,12 @@ function AgendaSection({ title, tasks, empty, onTask }: { title: string; tasks: 
       </div>
     </MobileCard>
   );
+}
+
+function getAgendaActionLabel(task: AgendaTask): string {
+  if (task.action.type === 'completeActivities') return 'Marcar';
+  if (task.action.type === 'prep') return 'Ir';
+  return 'Abrir';
 }
 
 function GalponDetailHeader({ galpon, lote, mode, onBack }: { galpon: Galpon; lote?: Lote; mode: string; onBack: () => void }) {
@@ -392,8 +410,10 @@ function OccupiedGalponPanel({
 
 function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: (message: string) => void }) {
   const [saving, setSaving] = useState(false);
-  const completedTaskIds = getCompletedPrepTaskIds(galpon);
+  const completedTaskRecords = getCompletedPrepTaskRecords(galpon);
+  const completedTaskIds = completedTaskRecords.map((record) => record.id);
   const completedSet = new Set(completedTaskIds);
+  const completedDates = new Map(completedTaskRecords.map((record) => [record.id, record.fecha]));
   const completedCount = completedTaskIds.length;
   const progress = Math.round((completedCount / preparationTasks.length) * 100);
   const currentTask = preparationTasks.find((task) => !completedSet.has(task.id));
@@ -403,11 +423,11 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
     if (!currentTask) return;
     setSaving(true);
     try {
-      const nextCompleted = normalizePrepTaskIds([...completedTaskIds, currentTask.id]);
+      const nextCompleted = normalizePrepTaskRecords([...completedTaskRecords, { id: currentTask.id, fecha: todayISO() }]);
       await actualizarEstadoGalpon(
         galpon.GalponID,
-        getGalponStateForPrepProgress(nextCompleted),
-        writePrepProgress(galpon.Observaciones, nextCompleted),
+        getGalponStateForPrepProgress(nextCompleted.map((record) => record.id)),
+        writePrepProgressRecords(galpon.Observaciones, nextCompleted),
       );
       onSaved('Avance de alistamiento guardado offline.');
     } finally {
@@ -419,11 +439,11 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
     if (completedTaskIds.length === 0) return;
     setSaving(true);
     try {
-      const nextCompleted = completedTaskIds.slice(0, -1);
+      const nextCompleted = completedTaskRecords.slice(0, -1);
       await actualizarEstadoGalpon(
         galpon.GalponID,
-        getGalponStateForPrepProgress(nextCompleted),
-        writePrepProgress(galpon.Observaciones, nextCompleted),
+        getGalponStateForPrepProgress(nextCompleted.map((record) => record.id)),
+        writePrepProgressRecords(galpon.Observaciones, nextCompleted),
       );
       onSaved('Ultima actividad de alistamiento revertida.');
     } finally {
@@ -474,6 +494,7 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
             <div className="prep-task-list">
               {category.tasks.map((task) => {
                 const state = completedSet.has(task.id) ? 'complete' : currentTask?.id === task.id ? 'current' : 'pending';
+                const completedDate = completedDates.get(task.id);
                 return (
                   <article className={`prep-task prep-task--${state}`} key={task.id}>
                     {state === 'complete' && <CheckCircle2 size={23} />}
@@ -481,7 +502,7 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
                     {state === 'pending' && <Circle size={23} />}
                     <div>
                       <strong>{task.title}</strong>
-                      <span>{state === 'complete' ? 'Completado' : state === 'current' ? 'En proceso' : 'Pendiente'}</span>
+                      <span>{state === 'complete' ? (completedDate ? `Completado ${completedDate}` : 'Completado') : state === 'current' ? 'En proceso' : 'Pendiente'}</span>
                     </div>
                   </article>
                 );

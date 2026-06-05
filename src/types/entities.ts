@@ -150,7 +150,7 @@ export interface ActividadProgramada {
   ActividadProgramadaID: string;
   NombreActividad: string;
   Categoria: string;
-  TipoFrecuencia: 'UNICA' | 'DIARIA' | 'CADA_3_DIAS' | 'SEMANAL' | 'SEGUN_DIA_LOTE';
+  TipoFrecuencia: 'UNICA' | 'DIARIA' | 'CADA_3_DIAS' | 'SEMANAL' | 'MENSUAL' | 'SEGUN_DIA_LOTE';
   DiaLote: number;
   HoraSugerida: string;
   AplicaDesdeDia: number;

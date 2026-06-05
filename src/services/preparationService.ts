@@ -8,6 +8,11 @@ export interface PrepTask {
   category: PrepCategoryKey;
 }
 
+export interface PrepTaskCompletion {
+  id: string;
+  fecha: string;
+}
+
 const PREP_PROGRESS_MARKER = '[[POLLOS_PREP_PROGRESS:';
 const PREP_PROGRESS_END = ']]';
 
@@ -68,22 +73,27 @@ export const preparationCategories: Array<{ key: PrepCategoryKey; label: string;
 
 export const preparationTasks = preparationCategories.flatMap((category) => category.tasks);
 
-export function getCompletedPrepTaskIds(galpon: Galpon): string[] {
+export function getCompletedPrepTaskRecords(galpon: Galpon): PrepTaskCompletion[] {
   const markerIndex = galpon.Observaciones.indexOf(PREP_PROGRESS_MARKER);
   if (markerIndex >= 0) {
     const start = markerIndex + PREP_PROGRESS_MARKER.length;
     const end = galpon.Observaciones.indexOf(PREP_PROGRESS_END, start);
     if (end > start) {
       try {
-        const parsed = JSON.parse(galpon.Observaciones.slice(start, end)) as { completedTaskIds?: string[] };
-        return normalizePrepTaskIds(parsed.completedTaskIds ?? []);
+        const parsed = JSON.parse(galpon.Observaciones.slice(start, end)) as { completedTasks?: PrepTaskCompletion[]; completedTaskIds?: string[] };
+        if (parsed.completedTasks) return normalizePrepTaskRecords(parsed.completedTasks);
+        return normalizePrepTaskRecords((parsed.completedTaskIds ?? []).map((id) => ({ id, fecha: '' })));
       } catch {
         return [];
       }
     }
   }
 
-  return normalizePrepTaskIds(getCompletedPrepTaskIdsFromState(galpon.EstadoActual));
+  return normalizePrepTaskRecords(getCompletedPrepTaskIdsFromState(galpon.EstadoActual).map((id) => ({ id, fecha: '' })));
+}
+
+export function getCompletedPrepTaskIds(galpon: Galpon): string[] {
+  return getCompletedPrepTaskRecords(galpon).map((record) => record.id);
 }
 
 export function getNextPrepTask(galpon: Galpon): PrepTask | undefined {
@@ -96,9 +106,24 @@ export function normalizePrepTaskIds(ids: string[]): string[] {
   return preparationTasks.filter((task) => unique.has(task.id)).map((task) => task.id);
 }
 
+export function normalizePrepTaskRecords(records: PrepTaskCompletion[]): PrepTaskCompletion[] {
+  const byId = new Map(records.map((record) => [record.id, record.fecha]));
+  return preparationTasks
+    .filter((task) => byId.has(task.id))
+    .map((task) => ({ id: task.id, fecha: byId.get(task.id) ?? '' }));
+}
+
 export function writePrepProgress(observaciones: string, completedTaskIds: string[]): string {
+  return writePrepProgressRecords(
+    observaciones,
+    completedTaskIds.map((id) => ({ id, fecha: '' })),
+  );
+}
+
+export function writePrepProgressRecords(observaciones: string, completedTasks: PrepTaskCompletion[]): string {
+  const normalized = normalizePrepTaskRecords(completedTasks);
   const visibleObservaciones = stripPrepProgress(observaciones);
-  const marker = `${PREP_PROGRESS_MARKER}${JSON.stringify({ completedTaskIds })}${PREP_PROGRESS_END}`;
+  const marker = `${PREP_PROGRESS_MARKER}${JSON.stringify({ completedTasks: normalized, completedTaskIds: normalized.map((task) => task.id) })}${PREP_PROGRESS_END}`;
   return visibleObservaciones ? `${visibleObservaciones}\n${marker}` : marker;
 }
 

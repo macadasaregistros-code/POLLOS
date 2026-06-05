@@ -1,5 +1,6 @@
 import { addDays, getDiaLote } from '../lib/date';
 import { getNextPrepTask } from './preparationService';
+import { isRoutineActivity } from './routineService';
 import type { ActividadLote, Galpon, Lote, LoteGalpon, Perro, RegistroDiarioLote, VacunaLote } from '../types/entities';
 
 export type AgendaRecordKind = 'vacunacion' | 'agua' | 'plagas' | 'medicamento' | 'compostaje' | 'perros' | 'capacitacion';
@@ -18,6 +19,7 @@ export type AgendaAction =
   | { type: 'daily'; loteId: string }
   | { type: 'record'; kind: AgendaRecordKind; context: AgendaRecordContext }
   | { type: 'completeActivities'; activityIds: string[] }
+  | { type: 'routines' }
   | { type: 'prep'; galponId: string };
 
 export interface AgendaTask {
@@ -25,7 +27,7 @@ export interface AgendaTask {
   title: string;
   detail: string;
   meta: string;
-  tone: 'daily' | 'activity' | 'vaccine' | 'dog' | 'prep';
+  tone: 'daily' | 'routine' | 'activity' | 'vaccine' | 'dog' | 'prep';
   date: string;
   action: AgendaAction;
 }
@@ -80,10 +82,23 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
       (actividad.Estado === 'PENDIENTE' || actividad.Estado === 'VENCIDA') &&
       !isVaccineActivity(actividad),
   );
-  const pestActivities = todayActivities.filter(isPestActivity);
-  const waterActivities = todayActivities.filter(isWaterActivity);
-  const regularActivities = todayActivities.filter((actividad) => !isPestActivity(actividad) && !isWaterActivity(actividad));
+  const routineActivities = todayActivities.filter(isRoutineActivity);
+  const nonRoutineActivities = todayActivities.filter((actividad) => !isRoutineActivity(actividad));
+  const pestActivities = nonRoutineActivities.filter(isPestActivity);
+  const waterActivities = nonRoutineActivities.filter(isWaterActivity);
+  const regularActivities = nonRoutineActivities.filter((actividad) => !isPestActivity(actividad) && !isWaterActivity(actividad));
 
+  if (routineActivities.length) {
+    hoy.push({
+      id: `routines:${routineActivities.map((actividad) => actividad.ActividadLoteID).join('|')}`,
+      title: 'Rutinas',
+      detail: `${routineActivities.length} checks programados para hoy`,
+      meta: 'Matriz del mes',
+      tone: 'routine',
+      date: input.today,
+      action: { type: 'routines' },
+    });
+  }
   if (pestActivities.length) {
     hoy.push(buildRecordTask('plagas', 'Control de plagas', pestActivities, 'activity'));
   }
@@ -223,6 +238,6 @@ function groupBy<T>(items: T[], getKey: (item: T) => string): Map<string, T[]> {
 }
 
 function sortTasks(tasks: AgendaTask[]): AgendaTask[] {
-  const toneOrder: Record<AgendaTask['tone'], number> = { daily: 0, vaccine: 1, dog: 2, prep: 3, activity: 4 };
+  const toneOrder: Record<AgendaTask['tone'], number> = { daily: 0, routine: 1, vaccine: 2, dog: 3, prep: 4, activity: 5 };
   return tasks.slice().sort((left, right) => left.date.localeCompare(right.date) || toneOrder[left.tone] - toneOrder[right.tone] || left.title.localeCompare(right.title));
 }
