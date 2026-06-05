@@ -133,7 +133,7 @@ function RoutineProgramBuckets({ actividades, onToast }: { actividades: Activida
                 .map((actividad) => (
                   <ActivityProgramRow key={actividad.ActividadProgramadaID} actividad={actividad} onToast={onToast} />
                 ))}
-              {items.length === 0 && <p className="empty-state">Sin rutinas {routineFrequencyLabels[frequency].toLowerCase()}s.</p>}
+              {items.length === 0 && <p className="empty-state">Sin rutinas de frecuencia {routineFrequencyLabels[frequency].toLowerCase()}.</p>}
             </div>
           </section>
         );
