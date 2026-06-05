@@ -45,7 +45,7 @@ export function RoutineMatrix({ actividades, today, user, editable = false, onSa
       </header>
 
       <div className="routine-matrix__scroll">
-        <table>
+        <table style={{ minWidth: `${190 + matrix.days.length * 34}px` }}>
           <thead>
             <tr>
               <th scope="col">Actividad</th>

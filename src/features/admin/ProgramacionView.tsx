@@ -67,20 +67,16 @@ export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
 
       <MobileCard title="2. Actividades del lote" subtitle="Tareas propias del lote; no incluye rutinas ni alistamiento">
         <NewActivityForm onToast={onToast} />
-        <div className="programming-list">
-          {loteActivities
-            .slice()
-            .sort((left, right) => left.Categoria.localeCompare(right.Categoria) || left.DiaLote - right.DiaLote)
-            .map((actividad) => (
-              <ActivityProgramRow key={actividad.ActividadProgramadaID} actividad={actividad} onToast={onToast} />
-            ))}
-          {loteActivities.length === 0 && <p className="empty-state">No hay actividades de lote configuradas.</p>}
-        </div>
+        <ActivityProgramGroups actividades={loteActivities} onToast={onToast} />
       </MobileCard>
 
       <MobileCard title="3. Rutinas" subtitle="Checks diarios, semanales y mensuales">
         <NewRoutineForm onToast={onToast} />
         <RoutineProgramBuckets actividades={routineActivities} onToast={onToast} />
+        <div className="routine-matrix-title">
+          <strong>Cumplimiento del mes</strong>
+          <span>Checks registrados por dia</span>
+        </div>
         <RoutineMatrix actividades={actividadesLote} today={today} user={user} editable onSaved={onToast} />
       </MobileCard>
 
@@ -115,6 +111,32 @@ export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
   );
 }
 
+function ActivityProgramGroups({ actividades, onToast }: { actividades: ActividadProgramada[]; onToast: (message: string) => void }) {
+  const groups = [...groupActivitiesByCategory(actividades).entries()].sort(([left], [right]) => left.localeCompare(right));
+  if (!groups.length) return <p className="empty-state">No hay actividades de lote configuradas.</p>;
+
+  return (
+    <div className="activity-program-groups">
+      {groups.map(([category, items]) => (
+        <section className="activity-program-group" key={category}>
+          <header>
+            <strong>{category}</strong>
+            <span>{items.length}</span>
+          </header>
+          <div className="programming-list">
+            {items
+              .slice()
+              .sort((left, right) => left.DiaLote - right.DiaLote || left.NombreActividad.localeCompare(right.NombreActividad))
+              .map((actividad) => (
+                <ActivityProgramRow key={actividad.ActividadProgramadaID} actividad={actividad} onToast={onToast} />
+              ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 function RoutineProgramBuckets({ actividades, onToast }: { actividades: ActividadProgramada[]; onToast: (message: string) => void }) {
   return (
     <div className="routine-program-buckets">
@@ -131,7 +153,7 @@ function RoutineProgramBuckets({ actividades, onToast }: { actividades: Activida
                 .slice()
                 .sort((left, right) => left.NombreActividad.localeCompare(right.NombreActividad))
                 .map((actividad) => (
-                  <ActivityProgramRow key={actividad.ActividadProgramadaID} actividad={actividad} onToast={onToast} />
+                  <RoutineProgramRow key={actividad.ActividadProgramadaID} actividad={actividad} onToast={onToast} />
                 ))}
               {items.length === 0 && <p className="empty-state">Sin rutinas de frecuencia {routineFrequencyLabels[frequency].toLowerCase()}.</p>}
             </div>
@@ -139,6 +161,24 @@ function RoutineProgramBuckets({ actividades, onToast }: { actividades: Activida
         );
       })}
     </div>
+  );
+}
+
+function RoutineProgramRow({ actividad, onToast }: { actividad: ActividadProgramada; onToast: (message: string) => void }) {
+  return (
+    <article className={`routine-schedule-row ${actividad.Activa ? '' : 'routine-schedule-row--inactive'}`}>
+      <div>
+        <strong>{actividad.NombreActividad}</strong>
+        <span>{getActivityScheduleLabel(actividad)} · {actividad.HoraSugerida ? actividad.HoraSugerida : 'sin hora'}</span>
+      </div>
+      <span className={`programming-status ${actividad.Activa ? 'programming-status--active' : 'programming-status--inactive'}`}>
+        {actividad.Activa ? 'Activa' : 'Inactiva'}
+      </span>
+      <details className="programming-card-edit routine-schedule-row__edit">
+        <summary>Editar</summary>
+        <ActivityProgramForm actividad={actividad} onSaved={() => onToast('Rutina guardada.')} />
+      </details>
+    </article>
   );
 }
 
@@ -182,6 +222,14 @@ function PreparationReview({ galpones }: { galpones: Galpon[] }) {
       </div>
     </div>
   );
+}
+
+function groupActivitiesByCategory(actividades: ActividadProgramada[]): Map<string, ActividadProgramada[]> {
+  return actividades.reduce((groups, actividad) => {
+    const category = actividad.Categoria || 'Sin categoria';
+    groups.set(category, [...(groups.get(category) ?? []), actividad]);
+    return groups;
+  }, new Map<string, ActividadProgramada[]>());
 }
 
 function isPreparationTemplate(actividad: Pick<ActividadProgramada, 'Categoria' | 'NombreActividad' | 'DiaLote'>): boolean {
@@ -261,7 +309,49 @@ function NewRoutineForm({ onToast }: { onToast: (message: string) => void }) {
 }
 
 function ActivityProgramRow({ actividad, onToast }: { actividad: ActividadProgramada; onToast: (message: string) => void }) {
-  return <ActivityProgramForm actividad={actividad} onSaved={() => onToast('Actividad programada guardada.')} />;
+  const activeLabel = actividad.Activa ? 'Activa' : 'Inactiva';
+  return (
+    <article className={`programming-activity-card ${actividad.Activa ? '' : 'programming-activity-card--inactive'}`}>
+      <div className="programming-activity-card__main">
+        <div>
+          <span className="programming-chip">{actividad.Categoria}</span>
+          <strong>{actividad.NombreActividad}</strong>
+        </div>
+        <span className={`programming-status ${actividad.Activa ? 'programming-status--active' : 'programming-status--inactive'}`}>{activeLabel}</span>
+      </div>
+      <div className="programming-activity-card__meta">
+        <span>{getFrequencyLabel(actividad.TipoFrecuencia)}</span>
+        <span>{getActivityScheduleLabel(actividad)}</span>
+        <span>{actividad.HoraSugerida ? `Hora ${actividad.HoraSugerida}` : 'Sin hora fija'}</span>
+      </div>
+      <details className="programming-card-edit">
+        <summary>Editar</summary>
+        <ActivityProgramForm actividad={actividad} onSaved={() => onToast('Actividad programada guardada.')} />
+      </details>
+    </article>
+  );
+}
+
+function getFrequencyLabel(frequency: ActividadProgramada['TipoFrecuencia']): string {
+  const labels: Record<ActividadProgramada['TipoFrecuencia'], string> = {
+    UNICA: 'Una vez',
+    DIARIA: 'Diaria',
+    CADA_3_DIAS: 'Cada 3 dias',
+    SEMANAL: 'Semanal',
+    MENSUAL: 'Mensual',
+    SEGUN_DIA_LOTE: 'Dia de lote',
+  };
+  return labels[frequency];
+}
+
+function getActivityScheduleLabel(actividad: ActividadProgramada): string {
+  if (actividad.TipoFrecuencia === 'SEGUN_DIA_LOTE') return `Dia ${actividad.DiaLote}`;
+  if (actividad.TipoFrecuencia === 'UNICA') {
+    if (actividad.DiaLote < 0) return `${Math.abs(actividad.DiaLote)} dias antes`;
+    if (actividad.DiaLote === 0) return 'Dia llegada';
+    return `Dia ${actividad.DiaLote}`;
+  }
+  return `Dias ${actividad.AplicaDesdeDia} a ${actividad.AplicaHastaDia}`;
 }
 
 function ActivityProgramForm({ actividad, onSaved }: { actividad: ActividadProgramada; onSaved: () => void }) {
@@ -275,21 +365,43 @@ function ActivityProgramForm({ actividad, onSaved }: { actividad: ActividadProgr
 
   return (
     <form className="programming-row programming-row--activity" onSubmit={handleSubmit}>
-      <input aria-label="Nombre actividad" value={draft.NombreActividad} placeholder="Actividad" onChange={(event) => setDraft({ ...draft, NombreActividad: event.target.value })} required />
-      <input aria-label="Categoria" value={draft.Categoria} placeholder="Categoria" onChange={(event) => setDraft({ ...draft, Categoria: event.target.value })} required />
-      <select value={draft.TipoFrecuencia} onChange={(event) => setDraft({ ...draft, TipoFrecuencia: event.target.value as ActividadProgramada['TipoFrecuencia'] })}>
-        {frequencyOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-      </select>
-      <input aria-label="Dia lote" type="number" value={draft.DiaLote} onChange={(event) => setDraft({ ...draft, DiaLote: Number(event.target.value || 0) })} />
-      <input aria-label="Desde dia" type="number" value={draft.AplicaDesdeDia} onChange={(event) => setDraft({ ...draft, AplicaDesdeDia: Number(event.target.value || 0) })} />
-      <input aria-label="Hasta dia" type="number" value={draft.AplicaHastaDia} onChange={(event) => setDraft({ ...draft, AplicaHastaDia: Number(event.target.value || 0) })} />
-      <input aria-label="Hora sugerida" value={draft.HoraSugerida} placeholder="Hora" onChange={(event) => setDraft({ ...draft, HoraSugerida: event.target.value })} />
-      <label>
+      <label className="programming-field programming-field--wide">
+        <span>Actividad</span>
+        <input aria-label="Nombre actividad" value={draft.NombreActividad} placeholder="Actividad" onChange={(event) => setDraft({ ...draft, NombreActividad: event.target.value })} required />
+      </label>
+      <label className="programming-field">
+        <span>Categoria</span>
+        <input aria-label="Categoria" value={draft.Categoria} placeholder="Categoria" onChange={(event) => setDraft({ ...draft, Categoria: event.target.value })} required />
+      </label>
+      <label className="programming-field">
+        <span>Frecuencia</span>
+        <select value={draft.TipoFrecuencia} onChange={(event) => setDraft({ ...draft, TipoFrecuencia: event.target.value as ActividadProgramada['TipoFrecuencia'] })}>
+          {frequencyOptions.map((option) => <option key={option} value={option}>{getFrequencyLabel(option)}</option>)}
+        </select>
+      </label>
+      <label className="programming-field programming-field--small">
+        <span>Dia</span>
+        <input aria-label="Dia lote" type="number" value={draft.DiaLote} onChange={(event) => setDraft({ ...draft, DiaLote: Number(event.target.value || 0) })} />
+      </label>
+      <label className="programming-field programming-field--small">
+        <span>Desde</span>
+        <input aria-label="Desde dia" type="number" value={draft.AplicaDesdeDia} onChange={(event) => setDraft({ ...draft, AplicaDesdeDia: Number(event.target.value || 0) })} />
+      </label>
+      <label className="programming-field programming-field--small">
+        <span>Hasta</span>
+        <input aria-label="Hasta dia" type="number" value={draft.AplicaHastaDia} onChange={(event) => setDraft({ ...draft, AplicaHastaDia: Number(event.target.value || 0) })} />
+      </label>
+      <label className="programming-field programming-field--small">
+        <span>Hora</span>
+        <input aria-label="Hora sugerida" value={draft.HoraSugerida} placeholder="Hora" onChange={(event) => setDraft({ ...draft, HoraSugerida: event.target.value })} />
+      </label>
+      <label className="programming-toggle">
         <input type="checkbox" checked={draft.Activa} onChange={(event) => setDraft({ ...draft, Activa: event.target.checked })} />
         Activa
       </label>
       <button type="submit" aria-label="Guardar actividad">
         <Save size={17} />
+        <span>Guardar</span>
       </button>
     </form>
   );

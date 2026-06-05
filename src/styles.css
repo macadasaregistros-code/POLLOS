@@ -234,11 +234,116 @@
   gap: 8px;
 }
 
+.programming-activity-card {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid rgb(20 33 29 / 10%);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 5px 14px rgb(20 33 29 / 5%);
+}
+
+.programming-activity-card--inactive {
+  background: #f7f8f6;
+  opacity: 0.72;
+}
+
+.programming-activity-card__main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.programming-activity-card__main > div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.programming-activity-card__main strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: 0.98rem;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.programming-chip,
+.programming-status,
+.programming-activity-card__meta span {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.programming-chip {
+  min-height: 24px;
+  padding: 5px 8px;
+  background: #edf4ef;
+  color: var(--brand-strong);
+  text-transform: uppercase;
+}
+
+.programming-status {
+  min-height: 26px;
+  padding: 6px 9px;
+  white-space: nowrap;
+}
+
+.programming-status--active {
+  background: #e7f5ec;
+  color: #17613d;
+}
+
+.programming-status--inactive {
+  background: #edecea;
+  color: var(--muted);
+}
+
+.programming-activity-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.programming-activity-card__meta span {
+  min-height: 26px;
+  padding: 6px 9px;
+  background: #f5f7f5;
+  color: var(--muted);
+}
+
+.programming-card-edit {
+  border-top: 1px solid rgb(20 33 29 / 8%);
+  padding-top: 8px;
+}
+
+.programming-card-edit summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--brand-strong);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.programming-card-edit .programming-row {
+  margin-top: 9px;
+  border-color: rgb(18 102 94 / 14%);
+  background: #f8fbf9;
+}
+
 .programming-row {
   display: grid;
-  grid-template-columns: minmax(150px, 1.3fr) minmax(110px, 0.8fr) minmax(120px, 0.8fr) 70px 70px 70px 72px minmax(70px, auto) 42px;
+  grid-template-columns: minmax(180px, 1.4fr) minmax(120px, 0.8fr) minmax(130px, 0.8fr) 74px 74px 74px 82px minmax(70px, auto) auto;
   gap: 6px;
-  align-items: center;
+  align-items: end;
   padding: 8px;
   border: 1px solid rgb(20 33 29 / 10%);
   border-radius: 8px;
@@ -266,7 +371,21 @@
   font: inherit;
 }
 
-.programming-row label {
+.programming-field {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.programming-field span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.programming-row > label:not(.programming-field),
+.programming-toggle {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -275,14 +394,18 @@
   font-weight: 850;
 }
 
-.programming-row label input {
+.programming-row > label:not(.programming-field) input,
+.programming-toggle input {
   width: 16px;
   min-height: 16px;
 }
 
 .programming-row button {
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
 }
 
 .programming-row__next {
@@ -293,12 +416,19 @@
   overflow-wrap: anywhere;
 }
 
+.activity-program-groups,
 .routine-program-buckets {
   display: grid;
   gap: 10px;
   margin-bottom: 14px;
 }
 
+.routine-program-buckets {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+}
+
+.activity-program-group,
 .routine-program-bucket {
   display: grid;
   gap: 8px;
@@ -308,6 +438,11 @@
   background: #f8fbf9;
 }
 
+.routine-program-bucket {
+  min-height: 100%;
+}
+
+.activity-program-group > header,
 .routine-program-bucket > header,
 .prep-admin-catalog section > header {
   display: flex;
@@ -316,6 +451,7 @@
   gap: 10px;
 }
 
+.activity-program-group > header strong,
 .routine-program-bucket > header strong,
 .prep-admin-catalog section > header strong {
   color: var(--brand-strong);
@@ -323,6 +459,7 @@
   text-transform: uppercase;
 }
 
+.activity-program-group > header span,
 .routine-program-bucket > header span,
 .prep-admin-catalog section > header span {
   min-width: 26px;
@@ -512,6 +649,68 @@
   opacity: 0.5;
 }
 
+.routine-schedule-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid rgb(20 33 29 / 10%);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.routine-schedule-row--inactive {
+  opacity: 0.68;
+}
+
+.routine-schedule-row > div {
+  min-width: 0;
+}
+
+.routine-schedule-row strong,
+.routine-schedule-row span {
+  display: block;
+}
+
+.routine-schedule-row strong {
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.16;
+  overflow-wrap: anywhere;
+}
+
+.routine-schedule-row > div > span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.routine-schedule-row__edit {
+  grid-column: 1 / -1;
+}
+
+.routine-matrix-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 4px 0 2px;
+  padding-top: 4px;
+}
+
+.routine-matrix-title strong {
+  color: var(--brand-strong);
+  font-size: 0.95rem;
+}
+
+.routine-matrix-title span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
 .prep-admin-review {
   display: grid;
   gap: 12px;
@@ -602,6 +801,16 @@
 
   .routine-matrix__legend {
     justify-content: flex-start;
+  }
+
+  .routine-program-buckets {
+    grid-template-columns: 1fr;
+  }
+
+  .routine-matrix-title {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
   }
 
   .routine-matrix th:first-child {
@@ -7944,7 +8153,7 @@ body {
 .rodent-station-pin__ring {
   fill: none;
   stroke: #ffffff;
-  stroke-width: 4.2;
+  stroke-width: 2.8;
 }
 
 .rodent-station-pin__mouse-fill {
@@ -7957,6 +8166,10 @@ body {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 4.6;
+}
+
+.rodent-station-pin__mouse-detail {
+  fill: currentColor;
 }
 
 .rodent-station-marker__number {

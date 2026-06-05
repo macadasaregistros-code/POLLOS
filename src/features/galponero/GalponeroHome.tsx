@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { buildGalponDashboardModel, GalponMap, GalponPremiumDashboardCard, getMaxGalponCapacity } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
-import { RoutineMatrix } from '../../components/RoutineMatrix';
 import { buildAgenda } from '../../services/agendaService';
 import type { AgendaModel, AgendaRecordContext, AgendaTask } from '../../services/agendaService';
 import { buildLoteResumen } from '../../services/calculationsService';
@@ -60,7 +59,6 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   const [activeActivityRecord, setActiveActivityRecord] = useState<ActivityRecordKind | ''>('');
   const [activeRecordContext, setActiveRecordContext] = useState<AgendaRecordContext | undefined>();
   const [activeEntryRecord, setActiveEntryRecord] = useState<EntryKind | ''>('');
-  const [activeRoutineMatrix, setActiveRoutineMatrix] = useState(false);
 
   useEffect(() => {
     if (!galponeroViews.includes(activeView)) onViewChange('actividades');
@@ -121,9 +119,8 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
     if (activeView !== 'actividades' && activeActivityRecord) setActiveActivityRecord('');
     if (activeView !== 'actividades' && activeRecordContext) setActiveRecordContext(undefined);
     if (activeView !== 'actividades' && activeDailyLoteId) setActiveDailyLoteId('');
-    if (activeView !== 'actividades' && activeRoutineMatrix) setActiveRoutineMatrix(false);
     if (activeView !== 'entrada' && activeEntryRecord) setActiveEntryRecord('');
-  }, [activeActivityRecord, activeDailyLoteId, activeEntryRecord, activeRecordContext, activeRoutineMatrix, activeView]);
+  }, [activeActivityRecord, activeDailyLoteId, activeEntryRecord, activeRecordContext, activeView]);
 
   function handleSelectGalpon(galponId: string) {
     setSelectedGalponId(galponId);
@@ -161,11 +158,7 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
     }
     if (task.action.type === 'completeActivities') {
       await markActivitiesDone(task.action.activityIds);
-      onToast('Actividades marcadas como realizadas.');
-      return;
-    }
-    if (task.action.type === 'routines') {
-      setActiveRoutineMatrix(true);
+      onToast(task.tone === 'routine' ? 'Rutina marcada como realizada.' : 'Actividades marcadas como realizadas.');
       return;
     }
     handleSelectGalpon(task.action.galponId);
@@ -228,26 +221,6 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
         </header>
         <MobileCard className="native-view-card" title="Registro diario" subtitle="Alimento, mortalidad y sacrificio">
           <RegistrarDiaForm lote={activeDailyLote} user={user} onSaved={handleDailySaved} />
-        </MobileCard>
-      </main>
-    );
-  }
-
-  if (activeView === 'actividades' && activeRoutineMatrix) {
-    return (
-      <main className="page-shell page-shell--mobile page-shell--detail page-shell--record-view">
-        <header className="native-detail-header">
-          <button className="native-back-button" type="button" aria-label="Volver a hoy" onClick={() => setActiveRoutineMatrix(false)}>
-            <ArrowLeft size={22} />
-          </button>
-          <div>
-            <span>HOY</span>
-            <h1>Rutinas</h1>
-            <small>Checks del mes</small>
-          </div>
-        </header>
-        <MobileCard className="native-view-card">
-          <RoutineMatrix actividades={actividades ?? []} today={today} user={user} editable onSaved={onToast} />
         </MobileCard>
       </main>
     );
@@ -353,6 +326,7 @@ function AgendaSection({ title, tasks, empty, onTask }: { title: string; tasks: 
 }
 
 function getAgendaActionLabel(task: AgendaTask): string {
+  if (task.tone === 'routine') return 'Check';
   if (task.action.type === 'completeActivities') return 'Marcar';
   if (task.action.type === 'prep') return 'Ir';
   return 'Abrir';

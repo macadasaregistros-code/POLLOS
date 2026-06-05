@@ -1,6 +1,6 @@
 import { addDays, getDiaLote } from '../lib/date';
 import { getNextPrepTask } from './preparationService';
-import { isRoutineActivity } from './routineService';
+import { cleanActivityName, getRoutineDefinition, isRoutineActivity } from './routineService';
 import type { ActividadLote, Galpon, Lote, LoteGalpon, Perro, RegistroDiarioLote, VacunaLote } from '../types/entities';
 
 export type AgendaRecordKind = 'vacunacion' | 'agua' | 'plagas' | 'medicamento' | 'compostaje' | 'perros' | 'capacitacion';
@@ -19,7 +19,6 @@ export type AgendaAction =
   | { type: 'daily'; loteId: string }
   | { type: 'record'; kind: AgendaRecordKind; context: AgendaRecordContext }
   | { type: 'completeActivities'; activityIds: string[] }
-  | { type: 'routines' }
   | { type: 'prep'; galponId: string };
 
 export interface AgendaTask {
@@ -88,15 +87,15 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
   const waterActivities = nonRoutineActivities.filter(isWaterActivity);
   const regularActivities = nonRoutineActivities.filter((actividad) => !isPestActivity(actividad) && !isWaterActivity(actividad));
 
-  if (routineActivities.length) {
+  for (const [routineName, activities] of groupBy(routineActivities, getRoutineAgendaName)) {
     hoy.push({
-      id: `routines:${routineActivities.map((actividad) => actividad.ActividadLoteID).join('|')}`,
-      title: 'Rutinas',
-      detail: `${routineActivities.length} checks programados para hoy`,
-      meta: 'Matriz del mes',
+      id: `routine:${routineName}:${activities.map((actividad) => actividad.ActividadLoteID).join('|')}`,
+      title: routineName,
+      detail: activities.length === 1 ? 'Check de rutina' : `${activities.length} checks de rutina`,
+      meta: 'Toca hoy',
       tone: 'routine',
       date: input.today,
-      action: { type: 'routines' },
+      action: { type: 'completeActivities', activityIds: activities.map((actividad) => actividad.ActividadLoteID) },
     });
   }
   if (pestActivities.length) {
@@ -223,6 +222,10 @@ function isPestActivity(actividad: ActividadLote): boolean {
 function isWaterActivity(actividad: ActividadLote): boolean {
   const text = normalize(`${actividad.Categoria} ${actividad.NombreActividad}`);
   return ['agua', 'cloro', 'ph', 'acuades', 'purgar linea', 'tanque'].some((word) => text.includes(word));
+}
+
+function getRoutineAgendaName(actividad: ActividadLote): string {
+  return getRoutineDefinition(actividad)?.label ?? cleanActivityName(actividad.NombreActividad);
 }
 
 function normalize(value: string): string {
