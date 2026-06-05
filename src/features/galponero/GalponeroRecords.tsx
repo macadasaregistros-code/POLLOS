@@ -1328,13 +1328,16 @@ function RodentStationPin({ stationId }: { stationId: number }) {
         />
         <circle className="rodent-station-pin__ring" cx="36" cy="34.8" r="22.4" />
         <g className="rodent-station-pin__mouse">
-          <path d="M52.3 43.4c7.9-.4 13 2.5 13 7.3 0 5.9-7.5 8.7-19.2 7.6" />
-          <ellipse cx="40.6" cy="41.2" rx="16.4" ry="11.2" />
-          <ellipse cx="25.3" cy="38.4" rx="10.1" ry="7.4" transform="rotate(-11 25.3 38.4)" />
-          <circle cx="27.2" cy="28.9" r="5.4" />
-          <circle cx="35" cy="29.8" r="5.6" />
-          <ellipse cx="29.9" cy="51.6" rx="7.2" ry="2.4" transform="rotate(-8 29.9 51.6)" />
-          <ellipse cx="43.5" cy="52.1" rx="9.1" ry="2.5" transform="rotate(-6 43.5 52.1)" />
+          <path className="rodent-station-pin__tail" d="M52.2 45.1c8.2-.8 13.7 2 13.5 6.8-.3 5.8-8.8 8.2-20.4 5" />
+          <ellipse className="rodent-station-pin__mouse-fill" cx="42.5" cy="43.5" rx="16.8" ry="11.6" transform="rotate(3 42.5 43.5)" />
+          <path
+            className="rodent-station-pin__mouse-fill"
+            d="M31.2 35.4c-8.8-.3-16.2 4.1-20.2 10.7-.8 1.2-.2 2.9 1.2 3.5l15.4 6.4c6 2.4 12.7-1.8 13.1-8.2.5-6.6-3.7-12.2-9.5-12.4Z"
+          />
+          <circle className="rodent-station-pin__mouse-fill" cx="29.9" cy="29.5" r="6.5" />
+          <circle className="rodent-station-pin__mouse-fill" cx="38.5" cy="30.4" r="5.5" />
+          <ellipse className="rodent-station-pin__mouse-fill" cx="30.8" cy="54.2" rx="7.8" ry="2.3" transform="rotate(-7 30.8 54.2)" />
+          <ellipse className="rodent-station-pin__mouse-fill" cx="44.9" cy="54.7" rx="9.2" ry="2.4" transform="rotate(-5 44.9 54.7)" />
         </g>
       </svg>
       <span className="rodent-station-marker__number">{stationId}</span>

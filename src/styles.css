@@ -7637,17 +7637,16 @@ body {
   stroke-width: 4.2;
 }
 
-.rodent-station-pin__mouse path {
+.rodent-station-pin__mouse-fill {
+  fill: #ffffff;
+}
+
+.rodent-station-pin__tail {
   fill: none;
   stroke: #ffffff;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 4.7;
-}
-
-.rodent-station-pin__mouse ellipse,
-.rodent-station-pin__mouse circle {
-  fill: #ffffff;
+  stroke-width: 4.6;
 }
 
 .rodent-station-marker__number {
