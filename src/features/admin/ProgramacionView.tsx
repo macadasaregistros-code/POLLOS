@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Plus, RefreshCcw, Save } from 'lucide-react';
+import { ChevronDown, Plus, RefreshCcw, Save } from 'lucide-react';
 import { MobileCard } from '../../components/MobileCard';
 import { RoutineMatrix } from '../../components/RoutineMatrix';
 import {
@@ -112,26 +112,22 @@ export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
 }
 
 function ActivityProgramGroups({ actividades, onToast }: { actividades: ActividadProgramada[]; onToast: (message: string) => void }) {
-  const groups = [...groupActivitiesByCategory(actividades).entries()].sort(([left], [right]) => left.localeCompare(right));
-  if (!groups.length) return <p className="empty-state">No hay actividades de lote configuradas.</p>;
+  const sorted = actividades
+    .slice()
+    .sort((left, right) => left.Categoria.localeCompare(right.Categoria) || left.DiaLote - right.DiaLote || left.NombreActividad.localeCompare(right.NombreActividad));
+  if (!sorted.length) return <p className="empty-state">No hay actividades de lote configuradas.</p>;
 
   return (
-    <div className="activity-program-groups">
-      {groups.map(([category, items]) => (
-        <section className="activity-program-group" key={category}>
-          <header>
-            <strong>{category}</strong>
-            <span>{items.length}</span>
-          </header>
-          <div className="programming-list">
-            {items
-              .slice()
-              .sort((left, right) => left.DiaLote - right.DiaLote || left.NombreActividad.localeCompare(right.NombreActividad))
-              .map((actividad) => (
-                <ActivityProgramRow key={actividad.ActividadProgramadaID} actividad={actividad} onToast={onToast} />
-              ))}
-          </div>
-        </section>
+    <div className="activity-program-table">
+      <div className="activity-program-table__header" aria-hidden="true">
+        <span>Categoria</span>
+        <span>Actividad</span>
+        <span>Programacion</span>
+        <span>Estado</span>
+        <span />
+      </div>
+      {sorted.map((actividad) => (
+        <ActivityProgramRow key={actividad.ActividadProgramadaID} actividad={actividad} onToast={onToast} />
       ))}
     </div>
   );
@@ -224,14 +220,6 @@ function PreparationReview({ galpones }: { galpones: Galpon[] }) {
   );
 }
 
-function groupActivitiesByCategory(actividades: ActividadProgramada[]): Map<string, ActividadProgramada[]> {
-  return actividades.reduce((groups, actividad) => {
-    const category = actividad.Categoria || 'Sin categoria';
-    groups.set(category, [...(groups.get(category) ?? []), actividad]);
-    return groups;
-  }, new Map<string, ActividadProgramada[]>());
-}
-
 function isPreparationTemplate(actividad: Pick<ActividadProgramada, 'Categoria' | 'NombreActividad' | 'DiaLote'>): boolean {
   const text = normalizeText(`${actividad.Categoria} ${actividad.NombreActividad}`);
   return ['retiro', 'desinfeccion', 'instalacion', 'recibimiento'].some((word) => text.includes(word)) || actividad.DiaLote <= 0;
@@ -309,26 +297,26 @@ function NewRoutineForm({ onToast }: { onToast: (message: string) => void }) {
 }
 
 function ActivityProgramRow({ actividad, onToast }: { actividad: ActividadProgramada; onToast: (message: string) => void }) {
-  const activeLabel = actividad.Activa ? 'Activa' : 'Inactiva';
+  const [open, setOpen] = useState(false);
   return (
-    <article className={`programming-activity-card ${actividad.Activa ? '' : 'programming-activity-card--inactive'}`}>
-      <div className="programming-activity-card__main">
-        <div>
-          <span className="programming-chip">{actividad.Categoria}</span>
-          <strong>{actividad.NombreActividad}</strong>
-        </div>
-        <span className={`programming-status ${actividad.Activa ? 'programming-status--active' : 'programming-status--inactive'}`}>{activeLabel}</span>
-      </div>
-      <div className="programming-activity-card__meta">
-        <span>{getFrequencyLabel(actividad.TipoFrecuencia)}</span>
-        <span>{getActivityScheduleLabel(actividad)}</span>
-        <span>{actividad.HoraSugerida ? `Hora ${actividad.HoraSugerida}` : 'Sin hora fija'}</span>
-      </div>
-      <details className="programming-card-edit">
-        <summary>Editar</summary>
-        <ActivityProgramForm actividad={actividad} onSaved={() => onToast('Actividad programada guardada.')} />
-      </details>
-    </article>
+    <details className={`activity-program-row ${actividad.Activa ? '' : 'activity-program-row--inactive'}`} open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary>
+        <span className="programming-chip">{actividad.Categoria}</span>
+        <strong>{actividad.NombreActividad}</strong>
+        <span className="activity-program-row__schedule">{getCompactScheduleLabel(actividad)}</span>
+        <span className={`programming-status ${actividad.Activa ? 'programming-status--active' : 'programming-status--inactive'}`}>
+          {actividad.Activa ? 'Activa' : 'Inactiva'}
+        </span>
+        <ChevronDown size={17} aria-hidden="true" />
+      </summary>
+      <ActivityProgramForm
+        actividad={actividad}
+        onSaved={() => {
+          setOpen(false);
+          onToast('Actividad programada guardada.');
+        }}
+      />
+    </details>
   );
 }
 
@@ -354,8 +342,15 @@ function getActivityScheduleLabel(actividad: ActividadProgramada): string {
   return `Dias ${actividad.AplicaDesdeDia} a ${actividad.AplicaHastaDia}`;
 }
 
+function getCompactScheduleLabel(actividad: ActividadProgramada): string {
+  const parts = [getFrequencyLabel(actividad.TipoFrecuencia), getActivityScheduleLabel(actividad)];
+  if (actividad.HoraSugerida) parts.push(actividad.HoraSugerida);
+  return parts.join(' · ');
+}
+
 function ActivityProgramForm({ actividad, onSaved }: { actividad: ActividadProgramada; onSaved: () => void }) {
   const [draft, setDraft] = useState(actividad);
+  const usesSingleDay = draft.TipoFrecuencia === 'UNICA' || draft.TipoFrecuencia === 'SEGUN_DIA_LOTE';
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -364,7 +359,7 @@ function ActivityProgramForm({ actividad, onSaved }: { actividad: ActividadProgr
   }
 
   return (
-    <form className="programming-row programming-row--activity" onSubmit={handleSubmit}>
+    <form className={`programming-row programming-row--activity ${usesSingleDay ? 'programming-row--single-day' : 'programming-row--range'}`} onSubmit={handleSubmit}>
       <label className="programming-field programming-field--wide">
         <span>Actividad</span>
         <input aria-label="Nombre actividad" value={draft.NombreActividad} placeholder="Actividad" onChange={(event) => setDraft({ ...draft, NombreActividad: event.target.value })} required />
@@ -379,18 +374,23 @@ function ActivityProgramForm({ actividad, onSaved }: { actividad: ActividadProgr
           {frequencyOptions.map((option) => <option key={option} value={option}>{getFrequencyLabel(option)}</option>)}
         </select>
       </label>
-      <label className="programming-field programming-field--small">
-        <span>Dia</span>
-        <input aria-label="Dia lote" type="number" value={draft.DiaLote} onChange={(event) => setDraft({ ...draft, DiaLote: Number(event.target.value || 0) })} />
-      </label>
-      <label className="programming-field programming-field--small">
-        <span>Desde</span>
-        <input aria-label="Desde dia" type="number" value={draft.AplicaDesdeDia} onChange={(event) => setDraft({ ...draft, AplicaDesdeDia: Number(event.target.value || 0) })} />
-      </label>
-      <label className="programming-field programming-field--small">
-        <span>Hasta</span>
-        <input aria-label="Hasta dia" type="number" value={draft.AplicaHastaDia} onChange={(event) => setDraft({ ...draft, AplicaHastaDia: Number(event.target.value || 0) })} />
-      </label>
+      {usesSingleDay ? (
+        <label className="programming-field programming-field--small">
+          <span>Dia</span>
+          <input aria-label="Dia lote" type="number" value={draft.DiaLote} onChange={(event) => setDraft({ ...draft, DiaLote: Number(event.target.value || 0) })} />
+        </label>
+      ) : (
+        <>
+          <label className="programming-field programming-field--small">
+            <span>Desde</span>
+            <input aria-label="Desde dia" type="number" value={draft.AplicaDesdeDia} onChange={(event) => setDraft({ ...draft, AplicaDesdeDia: Number(event.target.value || 0) })} />
+          </label>
+          <label className="programming-field programming-field--small">
+            <span>Hasta</span>
+            <input aria-label="Hasta dia" type="number" value={draft.AplicaHastaDia} onChange={(event) => setDraft({ ...draft, AplicaHastaDia: Number(event.target.value || 0) })} />
+          </label>
+        </>
+      )}
       <label className="programming-field programming-field--small">
         <span>Hora</span>
         <input aria-label="Hora sugerida" value={draft.HoraSugerida} placeholder="Hora" onChange={(event) => setDraft({ ...draft, HoraSugerida: event.target.value })} />
