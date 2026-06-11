@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { FormOptionalPanel } from '../../components/FormOptionalPanel';
 import { crearLote } from '../../services/domainService';
 import { db } from '../../services/localDbService';
 import { todayISO } from '../../lib/date';
@@ -95,14 +96,18 @@ export function CrearLoteForm({ user, onSaved }: CrearLoteFormProps) {
           ))}
         </select>
       </label>
-      <label className="field">
-        <span>Línea genética</span>
-        <input value={linea} onChange={(event) => setLinea(event.target.value)} />
-      </label>
-      <label className="field field--full">
-        <span>Observaciones</span>
-        <textarea rows={3} value={observaciones} onChange={(event) => setObservaciones(event.target.value)} />
-      </label>
+      <FormOptionalPanel label="Detalles del lote" value={observaciones}>
+        <div className="form-grid form-grid--nested">
+          <label className="field">
+            <span>Línea genética</span>
+            <input value={linea} onChange={(event) => setLinea(event.target.value)} />
+          </label>
+          <label className="field field--full">
+            <span>Observaciones</span>
+            <textarea rows={3} value={observaciones} onChange={(event) => setObservaciones(event.target.value)} />
+          </label>
+        </div>
+      </FormOptionalPanel>
       <button className="primary-action">Crear lote</button>
     </form>
   );

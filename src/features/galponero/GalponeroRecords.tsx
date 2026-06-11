@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { FormOptionalPanel } from '../../components/FormOptionalPanel';
 import {
   ArrowLeft,
   Bug,
@@ -2438,10 +2439,12 @@ function PhotoField({ onChange }: { onChange: (value: string) => void }) {
 
 function ObservationField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   return (
-    <label className="field field--full">
-      <span>Observaciones</span>
-      <textarea rows={3} value={value} onChange={(event) => onChange(event.target.value)} />
-    </label>
+    <FormOptionalPanel label="Observaciones" value={value}>
+      <label className="field field--full field--nested">
+        <span>Observaciones</span>
+        <textarea rows={3} value={value} onChange={(event) => onChange(event.target.value)} />
+      </label>
+    </FormOptionalPanel>
   );
 }
 

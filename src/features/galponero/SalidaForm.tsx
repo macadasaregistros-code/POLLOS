@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { FormOptionalPanel } from '../../components/FormOptionalPanel';
 import { registrarSalida } from '../../services/domainService';
 import { db } from '../../services/localDbService';
 import { todayISO } from '../../lib/date';
@@ -84,10 +85,12 @@ export function SalidaForm({ lote, user, onSaved, initialTipoSalida = 'VENTA' }:
           </select>
         </label>
       )}
-      <label className="field field--full">
-        <span>Observación</span>
-        <textarea rows={3} value={observaciones} onChange={(event) => setObservaciones(event.target.value)} />
-      </label>
+      <FormOptionalPanel label="Observacion" value={observaciones}>
+        <label className="field field--full field--nested">
+          <span>Observación</span>
+          <textarea rows={3} value={observaciones} onChange={(event) => setObservaciones(event.target.value)} />
+        </label>
+      </FormOptionalPanel>
       <button className="primary-action">Guardar salida</button>
     </form>
   );

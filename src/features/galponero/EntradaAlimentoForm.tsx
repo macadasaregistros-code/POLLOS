@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { FormOptionalPanel } from '../../components/FormOptionalPanel';
 import { registrarEntradaAlimento } from '../../services/domainService';
 import { db } from '../../services/localDbService';
 import { todayISO } from '../../lib/date';
@@ -81,10 +82,12 @@ export function EntradaAlimentoForm({ user, onSaved }: EntradaAlimentoFormProps)
         <span>Kg total</span>
         <input readOnly value={(Number(bultos || 0) * (selected?.KgPorBulto ?? 0)).toFixed(1)} />
       </label>
-      <label className="field field--full">
-        <span>Observaciones</span>
-        <textarea rows={3} value={observaciones} onChange={(event) => setObservaciones(event.target.value)} />
-      </label>
+      <FormOptionalPanel label="Observaciones" value={observaciones}>
+        <label className="field field--full field--nested">
+          <span>Observaciones</span>
+          <textarea rows={3} value={observaciones} onChange={(event) => setObservaciones(event.target.value)} />
+        </label>
+      </FormOptionalPanel>
       <button className="primary-action">Guardar entrada</button>
     </form>
   );

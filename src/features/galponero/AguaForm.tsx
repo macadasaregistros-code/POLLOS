@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { FormOptionalPanel } from '../../components/FormOptionalPanel';
 import { registrarControlAgua } from '../../services/domainService';
 import { db } from '../../services/localDbService';
 import { todayISO } from '../../lib/date';
@@ -84,18 +85,22 @@ export function AguaForm({ lote, user, onSaved }: AguaFormProps) {
         <span>Verificacion cloro</span>
         <input type="number" step="0.1" inputMode="decimal" value={cloro} onChange={(event) => setCloro(event.target.value)} />
       </label>
-      <label className="field field--full">
-        <span>Accion tomada</span>
-        <input value={accion} onChange={(event) => setAccion(event.target.value)} />
-      </label>
-      <label className="field field--full">
-        <span>Foto opcional</span>
-        <input type="file" accept="image/*" capture="environment" onChange={(event) => void fileToDataUrl(event.target.files?.[0]).then(setFoto)} />
-      </label>
-      <label className="field field--full">
-        <span>Observacion</span>
-        <textarea rows={3} value={observacion} onChange={(event) => setObservacion(event.target.value)} />
-      </label>
+      <FormOptionalPanel label="Detalles adicionales" value={accion || foto || observacion}>
+        <div className="form-grid form-grid--nested">
+          <label className="field field--full">
+            <span>Accion tomada</span>
+            <input value={accion} onChange={(event) => setAccion(event.target.value)} />
+          </label>
+          <label className="field field--full">
+            <span>Foto opcional</span>
+            <input type="file" accept="image/*" capture="environment" onChange={(event) => void fileToDataUrl(event.target.files?.[0]).then(setFoto)} />
+          </label>
+          <label className="field field--full">
+            <span>Observacion</span>
+            <textarea rows={3} value={observacion} onChange={(event) => setObservacion(event.target.value)} />
+          </label>
+        </div>
+      </FormOptionalPanel>
       <button className="primary-action">Guardar agua</button>
     </form>
   );
