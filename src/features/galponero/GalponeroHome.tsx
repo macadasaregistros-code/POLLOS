@@ -152,15 +152,23 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
 
   function handleAgendaRecordSaved(message: string) {
     onToast(message);
-    if (activeRecordContext) {
-      setActiveActivityRecord('');
-      setActiveRecordContext(undefined);
-    }
+    setActiveActivityRecord('');
+    setActiveRecordContext(undefined);
   }
 
   function handleDailySaved(message: string) {
     onToast(message);
     setActiveDailyLoteId('');
+  }
+
+  function handleGalponDailySaved(message: string) {
+    onToast(message);
+    setSelectedGalponId('');
+  }
+
+  function handleEntrySaved(message: string) {
+    onToast(message);
+    setActiveEntryRecord('');
   }
 
   async function handleAgendaTask(task: AgendaTask) {
@@ -213,7 +221,7 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
         )}
 
         {selectedLote && selectedSummary ? (
-          <OccupiedGalponPanel lote={selectedLote} summary={selectedSummary} user={user} onSaved={onToast} />
+          <OccupiedGalponPanel lote={selectedLote} summary={selectedSummary} user={user} onSaved={handleGalponDailySaved} />
         ) : (
           <MobileCard className="native-view-card">
             <GalponPreparationPanel galpon={selectedGalpon} onSaved={onToast} />
@@ -225,7 +233,7 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
 
   if (activeView === 'actividades' && activeDailyLote) {
     return (
-      <main className="page-shell page-shell--mobile page-shell--detail page-shell--record-view">
+      <main className="page-shell page-shell--mobile page-shell--detail page-shell--record-view page-shell--daily-record">
         <header className="native-detail-header">
           <button className="native-back-button" type="button" aria-label="Volver a hoy" onClick={() => setActiveDailyLoteId('')}>
             <ArrowLeft size={22} />
@@ -236,7 +244,7 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
             <small>{activeDailyLote.CodigoLote}</small>
           </div>
         </header>
-        <MobileCard className="native-view-card" title="Registro diario" subtitle="Alimento, mortalidad y sacrificio">
+        <MobileCard className="native-view-card daily-register-card">
           <RegistrarDiaForm lote={activeDailyLote} user={user} onSaved={handleDailySaved} />
         </MobileCard>
       </main>
@@ -260,7 +268,7 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
             <NaturalAgenda agenda={agenda} onTask={handleAgendaTask} />
             <details className="manual-record-panel">
               <summary>Registrar no programado</summary>
-              <GalponeroActivityRecords user={user} activeKind={activeActivityRecord} onActiveKindChange={handleActivityRecordChange} onSaved={onToast} />
+              <GalponeroActivityRecords user={user} activeKind={activeActivityRecord} onActiveKindChange={handleActivityRecordChange} onSaved={handleAgendaRecordSaved} />
             </details>
           </>
         )
@@ -282,11 +290,11 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
 
       {activeView === 'entrada' && (
         activeEntryRecord ? (
-          <GalponeroEntradaView user={user} activeEntry={activeEntryRecord} onActiveEntryChange={setActiveEntryRecord} onSaved={onToast} />
+          <GalponeroEntradaView user={user} activeEntry={activeEntryRecord} onActiveEntryChange={setActiveEntryRecord} onSaved={handleEntrySaved} />
         ) : (
           <>
             <GalponeroTitle eyebrow="MATERIALES" title="Entrada" icon={<Truck size={34} />} />
-            <GalponeroEntradaView user={user} activeEntry={activeEntryRecord} onActiveEntryChange={setActiveEntryRecord} onSaved={onToast} />
+            <GalponeroEntradaView user={user} activeEntry={activeEntryRecord} onActiveEntryChange={setActiveEntryRecord} onSaved={handleEntrySaved} />
           </>
         )
       )}
@@ -392,7 +400,7 @@ function OccupiedGalponPanel({
         </span>
       </div>
 
-      <MobileCard className="native-view-card" title="Registro diario" subtitle="Alimento, mortalidad y sacrificio">
+      <MobileCard className="native-view-card daily-register-card">
         <RegistrarDiaForm lote={lote} user={user} onSaved={onSaved} />
       </MobileCard>
     </div>
@@ -420,7 +428,7 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
         getGalponStateForPrepProgress(nextCompleted.map((record) => record.id)),
         writePrepProgressRecords(galpon.Observaciones, nextCompleted),
       );
-      onSaved('Avance de alistamiento guardado offline.');
+      onSaved('Avance de alistamiento guardado en este dispositivo.');
     } finally {
       setSaving(false);
     }

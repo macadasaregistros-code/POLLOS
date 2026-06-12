@@ -57,7 +57,7 @@ export function PesajeForm({ lote, user, onSaved }: PesajeFormProps) {
           user,
         );
         setLastPesajeId(pesaje.PesajeID);
-        onSaved('Pesaje completo guardado offline.');
+        onSaved('Pesaje completo guardado en este dispositivo.');
       } finally {
         setSaving(false);
       }

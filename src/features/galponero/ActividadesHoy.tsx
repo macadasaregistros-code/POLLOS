@@ -27,7 +27,7 @@ export function ActividadesHoy({ lote, user, onSaved }: ActividadesHoyProps) {
     const needsGas = actividad.NombreActividad.toLowerCase().includes('retirada calentadoras') && estado === 'REALIZADA';
     const gas = needsGas ? Number(window.prompt('Cilindros de gas consumidos') ?? 0) : undefined;
     await actualizarActividad(actividad.ActividadLoteID, estado, user, '', gas);
-    onSaved('Actividad actualizada offline.');
+    onSaved('Actividad guardada en este dispositivo.');
   }
 
   return (

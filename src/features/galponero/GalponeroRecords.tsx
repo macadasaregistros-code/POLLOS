@@ -496,7 +496,7 @@ function FoodEntryForm({ user, onSaved }: { user: Usuario; onSaved: (message: st
     );
     setBultos('0');
     setObservaciones('');
-    onSaved('Entrada de alimento guardada offline.');
+    onSaved('Entrada de alimento guardada en este dispositivo.');
   }
 
   return (
@@ -555,7 +555,7 @@ function MaterialEntryForm({
     );
     setCantidad('0');
     setObservaciones('');
-    onSaved(`Entrada de ${type.toLowerCase()} guardada offline.`);
+    onSaved(`Entrada de ${type.toLowerCase()} guardada en este dispositivo.`);
   }
 
   return (
@@ -692,7 +692,7 @@ function VaccinationRecordForm({ user, context, onSaved }: { user: Usuario; cont
     setMedicoVeterinario('');
     setFoto('');
     setError('');
-    onSaved('Vacunación registrada offline.');
+    onSaved('Vacunación guardada en este dispositivo.');
   }
 
   return (
@@ -993,7 +993,7 @@ function WaterTreatmentForm({ user, context, onSaved }: { user: Usuario; context
     setPhSeleccionado('');
     setCloroAdicionado('');
     setCloroResidualSeleccionado('');
-    onSaved('Tratamiento de agua guardado offline.');
+    onSaved('Tratamiento de agua guardado en este dispositivo.');
   }
 
   return (
@@ -1014,57 +1014,61 @@ function WaterTreatmentForm({ user, context, onSaved }: { user: Usuario; context
 
       <section className="water-form-card">
         <RecordFormCardTitle icon={<Droplets size={38} />} title="TRATAMIENTO DE AGUA" />
-        <WaterSectionTitle icon={<FlaskConical size={26} />} title="Verificacion de pH" />
-        <WaterOptionGrid
-          name="ph"
-          options={phOptions}
-          selectedValue={phSeleccionado}
-          onSelect={(value) => {
-            setPhSeleccionado(value);
-            setError('');
-          }}
-        />
-        <p className="water-range-note">Rango ideal: 6.0 - 6.8 pH</p>
+        <div className="water-measure-grid">
+          <section className="water-measure-block">
+            <WaterSectionTitle icon={<FlaskConical size={26} />} title="Verificacion de pH" />
+            <WaterOptionGrid
+              name="ph"
+              options={phOptions}
+              selectedValue={phSeleccionado}
+              onSelect={(value) => {
+                setPhSeleccionado(value);
+                setError('');
+              }}
+            />
+            <p className="water-range-note">Rango ideal: 6.0 - 6.8 pH</p>
+          </section>
 
-        <div className="water-form-divider" />
+          <section className="water-measure-block water-measure-block--dose">
+            <div className="water-input-heading">
+              <span>
+                <Droplets size={24} />
+                <strong>Cloro Adicionado</strong>
+              </span>
+              <em>(gramos)</em>
+            </div>
+            <label className={`water-amount-input ${!phCorrecto ? 'is-disabled' : ''}`}>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="0"
+                value={cloroAdicionado}
+                disabled={!phCorrecto}
+                onChange={(event) => setCloroAdicionado(toWholeGramInput(event.target.value))}
+              />
+              <span>g</span>
+            </label>
+            <p className="water-helper-text">
+              <Info size={18} />
+              <span>Ingrese la cantidad si el pH es correcto para asegurar la desinfeccion optima.</span>
+            </p>
+          </section>
 
-        <div className="water-input-heading">
-          <span>
-            <Droplets size={24} />
-            <strong>Cloro Adicionado</strong>
-          </span>
-          <em>(gramos)</em>
+          <section className="water-measure-block">
+            <WaterSectionTitle icon={<CheckCircle2 size={26} />} title="Verificacion de Cloro" unit="(ppm)" />
+            <WaterOptionGrid
+              name="cloro"
+              options={chlorineOptions}
+              selectedValue={cloroResidualSeleccionado}
+              onSelect={(value) => {
+                setCloroResidualSeleccionado(value);
+                setError('');
+              }}
+            />
+            <p className="water-range-note">Rango ideal: 3 ppm</p>
+          </section>
         </div>
-        <label className={`water-amount-input ${!phCorrecto ? 'is-disabled' : ''}`}>
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder="0"
-            value={cloroAdicionado}
-            disabled={!phCorrecto}
-            onChange={(event) => setCloroAdicionado(toWholeGramInput(event.target.value))}
-          />
-          <span>g</span>
-        </label>
-        <p className="water-helper-text">
-          <Info size={18} />
-          <span>Ingrese la cantidad si el pH es correcto para asegurar la desinfeccion optima.</span>
-        </p>
-
-        <div className="water-form-divider" />
-
-        <WaterSectionTitle icon={<CheckCircle2 size={26} />} title="Verificacion de Cloro" unit="(ppm)" />
-        <WaterOptionGrid
-          name="cloro"
-          options={chlorineOptions}
-          selectedValue={cloroResidualSeleccionado}
-          onSelect={(value) => {
-            setCloroResidualSeleccionado(value);
-            setError('');
-          }}
-        />
-        <p className="water-range-note">Rango ideal: 3 ppm</p>
       </section>
 
       {error && <p className="water-form-error" role="alert">{error}</p>}
@@ -1229,7 +1233,7 @@ function PestControlForm({ user, context, onSaved }: { user: Usuario; context?: 
     setSelectedStationIds([]);
     setSelectedFlyDosage('30 cc/bomba');
     setError('');
-    onSaved('Control de plagas guardado offline.');
+    onSaved('Control de plagas guardado en este dispositivo.');
   }
 
   return (
@@ -1248,12 +1252,11 @@ function PestControlForm({ user, context, onSaved }: { user: Usuario; context?: 
         </div>
       </section>
 
-      <section className="water-form-card pest-title-card">
-        <RecordFormCardTitle icon={<Bug size={38} />} title="CONTROL DE PLAGAS" />
-      </section>
-
       <section className="water-form-card pest-section-card pest-section-card--rodents">
-        <WaterSectionTitle icon={<Crosshair size={30} />} title="ROEDORES" />
+        <div className="pest-title-row">
+          <RecordFormCardTitle icon={<Bug size={38} />} title="CONTROL DE PLAGAS" />
+          <WaterSectionTitle icon={<Crosshair size={30} />} title="ROEDORES" />
+        </div>
         <div className="pest-map-heading">
           <MapPin size={20} />
           <strong>Mapa de Roedores</strong>
@@ -1459,7 +1462,7 @@ function MedicationForm({ user, onSaved }: { user: Usuario; onSaved: (message: s
     setMedicoVeterinario('');
     setFoto('');
     setError('');
-    onSaved('Medicamento guardado offline.');
+    onSaved('Medicamento guardado en este dispositivo.');
   }
 
   return (
@@ -1765,7 +1768,7 @@ function DogRecordForm({ user, context, onSaved }: { user: Usuario; context?: Ag
     setTipo('');
     setFoto('');
     setError('');
-    onSaved('Registro de perros guardado offline.');
+    onSaved('Registro de perros guardado en este dispositivo.');
   }
 
   return (
@@ -2032,7 +2035,7 @@ function TrainingForm({ user, onSaved }: { user: Usuario; onSaved: (message: str
     setFirmaCapacitador('');
     setAsistentes([createTrainingAssistantDraft()]);
     setError('');
-    onSaved('Capacitación guardada offline.');
+    onSaved('Capacitación guardada en este dispositivo.');
   }
 
   return (

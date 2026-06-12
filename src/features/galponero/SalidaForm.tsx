@@ -45,7 +45,7 @@ export function SalidaForm({ lote, user, onSaved, initialTipoSalida = 'VENTA' }:
     setCantidad('0');
     setKg('0');
     setObservaciones('');
-    onSaved('Salida guardada offline.');
+    onSaved('Salida guardada en este dispositivo.');
   }
 
   return (

@@ -8084,22 +8084,13 @@ body {
 .native-record-screen .pest-control-form {
   grid-template-columns: 1fr !important;
   gap: 14px;
-  padding-bottom: 0;
+  padding-bottom: calc(var(--sticky-action-height) + 10px);
 }
 
 .native-record-screen .pest-control-form > .water-date-card,
 .native-record-screen .pest-control-form > .water-form-card,
 .native-record-screen .pest-control-form > .water-form-error {
   grid-column: 1 / -1;
-}
-
-.native-record-screen .pest-control-form > .primary-action {
-  position: static;
-  left: auto;
-  right: auto;
-  bottom: auto;
-  z-index: auto;
-  width: 100%;
 }
 
 .pest-section-card {
@@ -9916,19 +9907,13 @@ body {
 .native-record-screen--medicine .flow-form.medication-record-form,
 .native-record-screen--dogs .flow-form.dog-record-form,
 .native-record-screen--training .flow-form.training-record-form {
-  padding-bottom: 0;
+  padding-bottom: calc(var(--sticky-action-height) + 10px);
 }
 
 .native-record-screen--vaccine .vaccination-record-form > .primary-action.vaccination-save-button,
 .native-record-screen--medicine .medication-record-form > .primary-action.medication-save-button,
 .native-record-screen--dogs .dog-record-form > .primary-action.dog-save-button,
 .native-record-screen--training .training-record-form > .primary-action.training-save-button {
-  position: static;
-  left: auto;
-  right: auto;
-  bottom: auto;
-  z-index: auto;
-  width: 100%;
   min-height: 64px;
   gap: 12px;
   border-radius: 10px;
@@ -10283,6 +10268,401 @@ body:has(.native-record-screen--water) {
 
 .page-shell--record-view:has(.native-record-screen--water.native-record-screen--no-hero) .native-record-screen--water {
   grid-template-rows: minmax(0, 1fr);
+}
+
+/* Wide operational layouts: use the available page instead of leaving an empty half. */
+.page-shell.page-shell--mobile.page-shell--record-view:has(.native-record-screen--water),
+.page-shell.page-shell--mobile.page-shell--record-view:has(.native-record-screen--pest) {
+  width: min(1180px, 100%);
+}
+
+.water-measure-grid,
+.water-measure-block {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.water-measure-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.water-measure-block {
+  align-content: start;
+  border: 1px solid rgb(22 34 29 / 9%);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfdfb;
+}
+
+.water-measure-block--dose {
+  grid-template-rows: auto auto auto;
+}
+
+.native-record-screen--water .water-form-card {
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
+}
+
+.native-record-screen--water .water-measure-grid {
+  min-height: 0;
+  height: 100%;
+}
+
+.native-record-screen--water .water-measure-block {
+  align-content: center;
+}
+
+@media (min-width: 820px) {
+  .native-record-screen .pest-control-form {
+    grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr) !important;
+    align-items: stretch;
+  }
+
+  .native-record-screen .pest-control-form > .water-date-card,
+  .native-record-screen .pest-control-form > .water-form-error,
+  .native-record-screen .pest-control-form > .primary-action {
+    grid-column: 1 / -1;
+  }
+
+  .native-record-screen .pest-control-form > .pest-section-card--rodents {
+    grid-column: 1;
+  }
+
+  .native-record-screen .pest-control-form > .pest-section-card--flies {
+    grid-column: 2;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    align-content: start;
+  }
+
+  .pest-section-card--flies .pest-dosage-grid {
+    grid-template-columns: 1fr;
+    align-content: stretch;
+  }
+
+  .pest-section-card--flies .pest-dosage-option {
+    min-height: 0;
+  }
+
+  .native-record-screen .pest-control-form > .pest-section-card--rodents {
+    grid-template-columns: minmax(170px, 0.48fr) minmax(0, 1.52fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .pest-title-row {
+    grid-column: 1;
+    display: grid;
+    align-content: start;
+    gap: 14px;
+  }
+
+  .pest-title-row .record-form-card-title,
+  .pest-title-row .water-section-title {
+    padding: 0;
+  }
+
+  .pest-title-row .record-form-card-title {
+    display: grid;
+    gap: 6px;
+  }
+
+  .pest-title-row .record-form-card-title strong {
+    font-size: 1.55rem;
+    line-height: 1.05;
+  }
+
+  .pest-title-row .water-section-title {
+    justify-content: start;
+  }
+
+  .pest-section-card--rodents .pest-map-heading {
+    grid-column: 1;
+    align-self: end;
+  }
+
+  .pest-section-card--rodents .rodent-station-panel {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
+
+@media (max-width: 819px) {
+  .water-measure-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .water-measure-block {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .water-measure-block + .water-measure-block {
+    padding-top: 12px;
+    border-top: 1px solid rgb(22 34 29 / 10%);
+  }
+
+  .native-record-screen--water .water-form-card {
+    grid-template-rows: auto auto;
+    align-content: start;
+    overflow: auto;
+  }
+
+  .native-record-screen--water .water-measure-grid {
+    height: auto;
+  }
+
+  .native-record-screen--water .water-measure-block {
+    align-content: start;
+  }
+
+  .pest-title-row {
+    display: grid;
+    gap: 8px;
+  }
+}
+
+/* Compact single-screen daily register */
+.daily-register-card {
+  padding: 8px;
+}
+
+.daily-register-complete-layout {
+  display: grid;
+  gap: 8px;
+}
+
+.daily-register-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px;
+}
+
+.daily-register-date-card,
+.daily-register-form > .form-optional-panel,
+.daily-register-form > .daily-register-error,
+.daily-register-form > .primary-action {
+  grid-column: 1 / -1;
+}
+
+.daily-register-date-card {
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 9px 10px;
+}
+
+.daily-register-date-card .water-date-card__icon {
+  width: 46px;
+  height: 46px;
+}
+
+.daily-register-date-card .water-date-card__date {
+  gap: 1px;
+}
+
+.daily-register-date-card .water-date-card__date span,
+.daily-register-date-card .water-date-card__status span {
+  font-size: 0.72rem;
+}
+
+.daily-register-date-card .water-date-card__date strong {
+  font-size: 1.14rem;
+}
+
+.daily-register-date-card .water-date-card__date small {
+  color: #64706a;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.daily-register-date-card .water-date-card__status strong {
+  padding: 5px 9px;
+  font-size: 0.72rem;
+}
+
+.daily-register-form > .form-section {
+  grid-column: auto;
+  gap: 7px;
+  padding: 9px;
+  box-shadow: none;
+}
+
+.mobile-card .daily-register-form--with-sacrifice > .daily-register-form__section--feed {
+  grid-column: 1 / -1;
+}
+
+.mobile-card .daily-register-form--with-sacrifice > .daily-register-form__section--mortality,
+.mobile-card .daily-register-form--with-sacrifice > .daily-register-form__section--sacrifice {
+  grid-column: auto;
+}
+
+.daily-register-form--with-sacrifice .count-button-grid {
+  grid-template-columns: 1fr;
+}
+
+.daily-register-form .form-section + .form-section {
+  padding-top: 9px;
+}
+
+.daily-register-form .form-section h3 {
+  font-size: 0.88rem;
+}
+
+.daily-register-form .form-section > .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 7px;
+}
+
+.daily-register-form .field {
+  gap: 3px;
+}
+
+.daily-register-form .field input,
+.daily-register-form .field select {
+  min-height: 40px;
+  padding: 7px 9px;
+}
+
+.daily-register-form .field small {
+  font-size: 0.66rem;
+}
+
+.daily-register-form > .form-optional-panel {
+  gap: 6px;
+  padding: 6px 9px;
+  box-shadow: none;
+}
+
+.daily-register-form .form-optional-panel__toggle {
+  min-height: 34px;
+}
+
+.daily-register-form .form-optional-panel__label strong {
+  font-size: 0.88rem;
+}
+
+.daily-register-form .form-optional-panel__toggle small {
+  padding: 4px 8px;
+  font-size: 0.66rem;
+}
+
+html:has(.page-shell--daily-record),
+body:has(.page-shell--daily-record) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.app:has(.page-shell--daily-record) {
+  height: 100svh;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.page-shell--daily-record {
+  width: min(680px, 100%);
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  overflow: hidden;
+  padding-top: 8px;
+  padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 4px) !important;
+}
+
+.page-shell--daily-record .native-detail-header {
+  position: static;
+}
+
+.page-shell--daily-record .daily-register-card {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.page-shell--daily-record .daily-register-form {
+  height: 100%;
+  min-height: 0;
+  align-content: start;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.page-shell--daily-record .daily-register-form > .primary-action {
+  position: static;
+  width: 100%;
+  min-height: 46px;
+}
+
+.page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) > .form-optional-panel.is-open {
+  position: fixed;
+  right: max(calc(10px + var(--safe-right)), calc((100vw - 680px) / 2 + 10px));
+  bottom: calc(var(--bottom-nav-height) + var(--sticky-action-height) + var(--safe-bottom) + 16px);
+  left: max(calc(10px + var(--safe-left)), calc((100vw - 680px) / 2 + 10px));
+  z-index: 44;
+  max-height: calc(100svh - 190px);
+  overflow: hidden;
+  border: 1px solid #b9c8bd;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgb(20 33 29 / 20%);
+}
+
+.page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) > .primary-action {
+  position: fixed;
+  right: max(calc(10px + var(--safe-right)), calc((100vw - 680px) / 2 + 10px));
+  bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 8px);
+  left: max(calc(10px + var(--safe-left)), calc((100vw - 680px) / 2 + 10px));
+  z-index: 44;
+  width: auto;
+}
+
+@media (max-width: 560px) {
+  .daily-register-form {
+    grid-template-columns: 1fr !important;
+  }
+
+  .daily-register-form > .form-section {
+    grid-column: 1 / -1;
+  }
+
+  .daily-register-form--with-sacrifice {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .daily-register-form--with-sacrifice > .daily-register-form__section--feed {
+    grid-column: 1 / -1;
+  }
+
+  .daily-register-form--with-sacrifice > .daily-register-form__section--mortality,
+  .daily-register-form--with-sacrifice > .daily-register-form__section--sacrifice {
+    grid-column: auto;
+  }
+}
+
+@media (max-height: 700px) {
+  .page-shell--daily-record {
+    gap: 6px;
+    padding-top: 6px;
+  }
+
+  .page-shell--daily-record .native-detail-header {
+    padding: 4px 6px;
+  }
+
+  .daily-register-form {
+    gap: 6px;
+  }
+
+  .daily-register-date-card {
+    padding-block: 7px;
+  }
+
+  .daily-register-form > .form-section {
+    padding: 7px 8px;
+  }
 }
 
 /* Keep the galpon map on the stable 2D paint path to avoid GPU interference artifacts. */

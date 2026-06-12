@@ -37,7 +37,7 @@ export function EventoSanitarioForm({ lote, user, onSaved }: EventoSanitarioForm
       user,
     );
     setDescripcion('');
-    onSaved('Evento sanitario guardado offline.');
+    onSaved('Evento sanitario guardado en este dispositivo.');
   }
 
   return (

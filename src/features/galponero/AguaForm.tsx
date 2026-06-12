@@ -50,7 +50,7 @@ export function AguaForm({ lote, user, onSaved }: AguaFormProps) {
     setAccion('');
     setFoto('');
     setObservacion('');
-    onSaved('Control de agua guardado offline.');
+    onSaved('Control de agua guardado en este dispositivo.');
   }
 
   return (

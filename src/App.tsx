@@ -194,7 +194,8 @@ function AuthenticatedApp({
   const [bootstrappedRemote, setBootstrappedRemote] = useState(false);
   const [activeView, setActiveView] = useState<MainView>(() => getDefaultViewForRole(user.Rol));
   const online = useOnlineStatus();
-  const pendingCount = useLiveQuery(() => db.syncQueue.where('EstadoSync').anyOf(['PENDIENTE', 'ERROR']).count(), []);
+  const pendingCount = useLiveQuery(() => db.syncQueue.where('EstadoSync').equals('PENDIENTE').count(), []);
+  const failedCount = useLiveQuery(() => db.syncQueue.where('EstadoSync').equals('ERROR').count(), []);
 
   useEffect(() => {
     if (!toast) return;
@@ -234,9 +235,8 @@ function AuthenticatedApp({
     setSyncing(true);
     try {
       const result = await processSyncQueue(user);
-      if (result.synced > 0 || result.failed > 0) {
-        setToast(`${result.synced} sincronizado(s), ${result.failed} con error (${result.mode}).`);
-      }
+      if (result.failed > 0) setToast(`${result.failed} registro(s) siguen guardados en este dispositivo; no se pudieron enviar.`);
+      else if (result.synced > 0) setToast(`${result.synced} registro(s) enviados.`);
     } finally {
       setSyncing(false);
     }
@@ -274,7 +274,7 @@ function AuthenticatedApp({
               <span className="button-label">Demo</span>
             </button>
           )}
-          <SyncStatusBadge pendingCount={pendingCount ?? 0} online={online} syncing={syncing} onSync={handleSync} />
+          <SyncStatusBadge pendingCount={pendingCount ?? 0} failedCount={failedCount ?? 0} online={online} syncing={syncing} onSync={handleSync} />
         </div>
       </header>
 

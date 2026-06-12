@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Save } from 'lucide-react';
+import { CalendarDays, Save } from 'lucide-react';
 import { FormOptionalPanel } from '../../components/FormOptionalPanel';
 import { registrarDia } from '../../services/domainService';
 import { db } from '../../services/localDbService';
@@ -15,6 +15,7 @@ interface RegistrarDiaFormProps {
 }
 
 const foodOrder = ['preiniciador', 'iniciador', 'engorde'] as const;
+const dailyShortMonths = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] as const;
 
 export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps) {
   const tiposAlimento = useLiveQuery(() => db.tiposAlimento.toArray().then((items) => items.filter((item) => item.Activo)), []);
@@ -91,7 +92,7 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
       setSacrificadosM('0');
       setSacrificadosH('0');
       setObservacion('');
-      onSaved('Registro diario guardado.');
+      onSaved('Registro diario guardado en este dispositivo.');
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'No se pudo guardar el registro diario.');
     } finally {
@@ -101,21 +102,25 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
 
   if (todayRecord) {
     return (
-      <div className="daily-register-complete" role="status">
-        <strong>Registro diario completado</strong>
-        <span>Este lote ya fue registrado hoy. No se descontará alimento ni se sumará mortalidad nuevamente.</span>
-        <small>{todayRecord.EstadoSync === 'SINCRONIZADO' ? 'Guardado en Supabase' : 'Guardado y pendiente por enviar'}</small>
+      <div className="daily-register-complete-layout">
+        <DailyRegisterDateCard
+          date={today}
+          loteCode={lote.CodigoLote}
+          diaLote={diaLote}
+          status={todayRecord.EstadoSync === 'SINCRONIZADO' ? 'Guardado' : 'Por enviar'}
+        />
+        <div className="daily-register-complete" role="status">
+          <strong>Registro diario completado</strong>
+          <span>Este lote ya fue registrado hoy. No se descontará alimento ni se sumará mortalidad nuevamente.</span>
+          <small>{todayRecord.EstadoSync === 'SINCRONIZADO' ? 'Guardado en Supabase' : 'Guardado y pendiente por enviar'}</small>
+        </div>
       </div>
     );
   }
 
   return (
-    <form className="form-grid daily-register-form flow-form" onSubmit={handleSubmit}>
-      <div className="daily-form-intro field--full">
-        <span>Dia {diaLote}</span>
-        <strong>Registra solo lo que cambio hoy</strong>
-        <small>{lote.CodigoLote}</small>
-      </div>
+    <form className={`form-grid daily-register-form flow-form ${sacrificeCanStart ? 'daily-register-form--with-sacrifice' : ''}`} onSubmit={handleSubmit}>
+      <DailyRegisterDateCard date={today} loteCode={lote.CodigoLote} diaLote={diaLote} status="Pendiente" />
 
       <section className="form-section daily-register-form__section daily-register-form__section--feed">
         <h3>Alimentación</h3>
@@ -212,8 +217,32 @@ function CountButton({ label, value, onChange }: { label: string; value: string;
   );
 }
 
+function DailyRegisterDateCard({ date, loteCode, diaLote, status }: { date: string; loteCode: string; diaLote: number; status: string }) {
+  return (
+    <section className="water-date-card daily-register-date-card" aria-label="Fecha y estado del registro">
+      <span className="water-date-card__icon">
+        <CalendarDays size={30} />
+      </span>
+      <div className="water-date-card__date">
+        <span>Fecha de Registro</span>
+        <strong>{formatDailyDate(date)}</strong>
+        <small>{loteCode} · Dia {diaLote}</small>
+      </div>
+      <div className="water-date-card__status">
+        <span>Estado</span>
+        <strong>{status}</strong>
+      </div>
+    </section>
+  );
+}
+
 function normalizeFoodName(name: string): string {
   return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function formatDailyDate(dateISO: string): string {
+  const [year, month, day] = dateISO.split('-').map(Number);
+  return `${day} ${dailyShortMonths[month - 1] ?? ''} ${year}`;
 }
 
 function getFoodOrderIndex(tipo: TipoAlimento): number {
