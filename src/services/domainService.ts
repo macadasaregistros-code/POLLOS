@@ -1,4 +1,4 @@
-import { calculatePesajeStats } from './calculationsService';
+import { avesVivasHembras, avesVivasMachos, calculatePesajeStats, sumLoteTotals } from './calculationsService';
 import { db } from './localDbService';
 import { enqueueSync } from './syncService';
 import { addDays, getDiaLote, getSemanaLote, nowISO, todayISO } from '../lib/date';
@@ -50,7 +50,6 @@ export interface RegistroDiaInput {
   Fecha: string;
   TipoAlimentoID: string;
   BultosConsumidos: number;
-  KgConsumidos: number;
   MuertosMachos: number;
   MuertosHembras: number;
   MuertosSinClasificar: number;
@@ -356,8 +355,40 @@ async function prepareCompostCajonForMortality(fecha: string): Promise<{
 export async function registrarDia(input: RegistroDiaInput, user: Usuario): Promise<RegistroDiarioLote> {
   const lote = await db.lotes.get(input.LoteID);
   if (!lote) throw new Error('Lote no encontrado.');
+  if (lote.EstadoLote !== 'ACTIVO') throw new Error('Este lote ya no está activo.');
+  if (input.Fecha < lote.FechaLlegada || input.Fecha > todayISO()) throw new Error('La fecha del registro diario no es válida.');
+
+  const existingRecord = await db.registroDiarioLote.where('LoteID').equals(input.LoteID).and((record) => record.Fecha === input.Fecha).first();
+  if (existingRecord) throw new Error('El registro diario de este lote ya fue guardado hoy.');
+
+  const tipoAlimento = await db.tiposAlimento.get(input.TipoAlimentoID);
+  if (!tipoAlimento?.Activo) throw new Error('Selecciona un tipo de alimento activo.');
+
+  const values = [
+    input.BultosConsumidos,
+    input.MuertosMachos,
+    input.MuertosHembras,
+    input.MuertosSinClasificar,
+    input.SacrificadosMachos,
+    input.SacrificadosHembras,
+  ];
+  if (values.some((value) => !Number.isFinite(value) || value < 0)) throw new Error('Los valores del registro no pueden ser negativos.');
+  if (values.slice(1).some((value) => !Number.isInteger(value))) throw new Error('Las cantidades de aves deben ser números enteros.');
+
+  const previousRecords = await db.registroDiarioLote.where('LoteID').equals(input.LoteID).toArray();
+  const previousTotals = sumLoteTotals(previousRecords);
+  const machosDisponibles = avesVivasMachos(lote, previousTotals);
+  const hembrasDisponibles = avesVivasHembras(lote, previousTotals);
+  if (input.MuertosMachos + input.SacrificadosMachos > machosDisponibles) {
+    throw new Error(`No puedes registrar más de ${machosDisponibles} machos disponibles.`);
+  }
+  if (input.MuertosHembras + input.SacrificadosHembras > hembrasDisponibles) {
+    throw new Error(`No puedes registrar más de ${hembrasDisponibles} hembras disponibles.`);
+  }
+
   const now = nowISO();
   const diaLote = getDiaLote(lote.FechaLlegada, input.Fecha);
+  const kgConsumidos = input.BultosConsumidos * tipoAlimento.KgPorBulto;
   const activeAssignment = await db.loteGalpones
     .where('LoteID')
     .equals(input.LoteID)
@@ -372,7 +403,7 @@ export async function registrarDia(input: RegistroDiaInput, user: Usuario): Prom
     DiaLote: diaLote,
     TipoAlimentoID: input.TipoAlimentoID,
     BultosConsumidos: input.BultosConsumidos,
-    KgConsumidos: input.KgConsumidos,
+    KgConsumidos: kgConsumidos,
     MuertosMachos: input.MuertosMachos,
     MuertosHembras: input.MuertosHembras,
     MuertosSinClasificar: input.MuertosSinClasificar,
@@ -395,7 +426,7 @@ export async function registrarDia(input: RegistroDiaInput, user: Usuario): Prom
     LoteID: input.LoteID,
     TipoAlimentoID: input.TipoAlimentoID,
     BultosConsumidos: input.BultosConsumidos,
-    KgConsumidos: input.KgConsumidos,
+    KgConsumidos: kgConsumidos,
     PorcentajeMañana: 70,
     PorcentajeTarde: 30,
     RegistradoPor: user.UsuarioID,
@@ -408,7 +439,7 @@ export async function registrarDia(input: RegistroDiaInput, user: Usuario): Prom
     TipoMovimiento: 'CONSUMO_LOTE',
     TipoAlimentoID: input.TipoAlimentoID,
     CantidadBultos: input.BultosConsumidos,
-    KgTotal: input.KgConsumidos,
+    KgTotal: kgConsumidos,
     LoteID: input.LoteID,
     ProveedorID: '',
     FacturaID: '',
@@ -430,13 +461,18 @@ export async function registrarDia(input: RegistroDiaInput, user: Usuario): Prom
       db.syncQueue,
     ],
     async () => {
+      const duplicate = await db.registroDiarioLote.where('LoteID').equals(input.LoteID).and((record) => record.Fecha === input.Fecha).first();
+      if (duplicate) throw new Error('El registro diario de este lote ya fue guardado hoy.');
+
       await db.registroDiarioLote.add(registro);
       await db.consumosAlimentoLote.add(consumo);
-      await updateInventory(input.TipoAlimentoID, -input.BultosConsumidos, -input.KgConsumidos);
-      await db.movimientosInventarioAlimento.add(movimiento);
       await enqueueSync('RegistroDiarioLote', registro.RegistroDiarioID, 'CREATE', registro);
       await enqueueSync('ConsumoAlimentoLote', consumo.ConsumoID, 'CREATE', consumo);
-      await enqueueSync('MovimientosInventarioAlimento', movimiento.MovimientoInventarioID, 'CREATE', movimiento);
+      if (input.BultosConsumidos > 0) {
+        await updateInventory(input.TipoAlimentoID, -input.BultosConsumidos, -kgConsumidos);
+        await db.movimientosInventarioAlimento.add(movimiento);
+        await enqueueSync('MovimientosInventarioAlimento', movimiento.MovimientoInventarioID, 'CREATE', movimiento);
+      }
 
       if (totalMuertos > 0) {
         const compost = await prepareCompostCajonForMortality(input.Fecha);

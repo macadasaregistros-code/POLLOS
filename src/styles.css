@@ -9849,6 +9849,33 @@ body {
   font-weight: 750;
 }
 
+.daily-register-complete {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid #b8d9b1;
+  border-radius: 14px;
+  background: #f2faef;
+  color: #174c22;
+}
+
+.daily-register-complete strong {
+  font-size: 1.05rem;
+}
+
+.daily-register-complete span,
+.daily-register-complete small {
+  line-height: 1.35;
+}
+
+.daily-register-complete small {
+  font-weight: 800;
+}
+
+.daily-register-error {
+  grid-column: 1 / -1;
+}
+
 .daily-register-form .form-section {
   gap: 10px;
 }

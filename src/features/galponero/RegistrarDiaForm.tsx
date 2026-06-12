@@ -31,11 +31,14 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
   const [sacrificioActivo, setSacrificioActivo] = useState(false);
   const [observacion, setObservacion] = useState('');
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const tiposOrdenados = useMemo(() => orderFoodTypes(tiposAlimento ?? []), [tiposAlimento]);
   const defaultTipo = tiposOrdenados[0]?.TipoAlimentoID ?? '';
   const latestTipoAlimentoId = useMemo(() => getLatestTipoAlimentoId(registrosLote ?? [], tiposOrdenados), [registrosLote, tiposOrdenados]);
   const currentTipoId = tipoAlimentoId || latestTipoAlimentoId || defaultTipo;
+  const selectedTipo = tiposOrdenados.find((tipo) => tipo.TipoAlimentoID === currentTipoId);
+  const todayRecord = (registrosLote ?? []).find((registro) => registro.Fecha === today);
   const sacrificeStorageKey = `pollos.sacrificioActivo.${lote.LoteID}`;
   const sacrificeCanStart = diaLote > 35;
   const sacrificeAlreadyStarted = useMemo(
@@ -44,7 +47,7 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
       (salidasLote ?? []).some((salida) => salida.TipoSalida === 'SACRIFICIO'),
     [registrosLote, salidasLote],
   );
-  const kgConsumidos = Number(bultos || 0) * 40;
+  const kgConsumidos = Number(bultos || 0) * (selectedTipo?.KgPorBulto ?? 40);
 
   useEffect(() => {
     setTipoAlimentoId(latestTipoAlimentoId || defaultTipo);
@@ -63,7 +66,8 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!currentTipoId) return;
+    if (!currentTipoId || todayRecord || saving) return;
+    setError('');
     setSaving(true);
     try {
       await registrarDia(
@@ -72,7 +76,6 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
           Fecha: today,
           TipoAlimentoID: currentTipoId,
           BultosConsumidos: Number(bultos || 0),
-          KgConsumidos: kgConsumidos,
           MuertosMachos: Number(muertosM || 0),
           MuertosHembras: Number(muertosH || 0),
           MuertosSinClasificar: 0,
@@ -88,10 +91,22 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
       setSacrificadosM('0');
       setSacrificadosH('0');
       setObservacion('');
-      onSaved('Registro diario guardado offline.');
+      onSaved('Registro diario guardado.');
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'No se pudo guardar el registro diario.');
     } finally {
       setSaving(false);
     }
+  }
+
+  if (todayRecord) {
+    return (
+      <div className="daily-register-complete" role="status">
+        <strong>Registro diario completado</strong>
+        <span>Este lote ya fue registrado hoy. No se descontará alimento ni se sumará mortalidad nuevamente.</span>
+        <small>{todayRecord.EstadoSync === 'SINCRONIZADO' ? 'Guardado en Supabase' : 'Guardado y pendiente por enviar'}</small>
+      </div>
+    );
   }
 
   return (
@@ -125,6 +140,7 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
               value={bultos}
               onChange={(event) => setBultos(event.target.value)}
             />
+            <small>{kgConsumidos.toFixed(1)} kg calculados</small>
           </label>
         </div>
       </section>
@@ -164,9 +180,10 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
         <textarea value={observacion} onChange={(event) => setObservacion(event.target.value)} rows={3} />
       </label>
       </FormOptionalPanel>
+      {error && <p className="water-form-error daily-register-error" role="alert">{error}</p>}
       <button className="primary-action" disabled={saving || !currentTipoId}>
         <Save size={21} />
-        <span>Guardar registro diario</span>
+        <span>{saving ? 'Guardando...' : 'Guardar registro diario'}</span>
       </button>
     </form>
   );
