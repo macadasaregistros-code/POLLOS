@@ -1,11 +1,9 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Activity, BarChart3, CalendarClock, ClipboardList, Home, Map, Package, RefreshCcw, Shield, Truck, UserRound } from 'lucide-react';
 import { RoleGuard } from './components/RoleGuard';
 import { SyncStatusBadge } from './components/SyncStatusBadge';
-import { AdminDashboard } from './features/admin/AdminDashboard';
-import { GalponeroHome } from './features/galponero/GalponeroHome';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { getCurrentUser, getOrCreateSupabaseUser, switchRole } from './services/authService';
 import { db, prepareRemoteLocalData, resetLocalDemoData, seedDemoDataIfNeeded } from './services/localDbService';
@@ -13,6 +11,9 @@ import { getSupabaseSession, isSupabaseAuthRequired, signInSupabase, type Supaba
 import { bootstrapFromRemote, processSyncQueue } from './services/syncService';
 import type { MainView } from './types/navigation';
 import type { Role, Usuario } from './types/entities';
+
+const AdminDashboard = lazy(() => import('./features/admin/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
+const GalponeroHome = lazy(() => import('./features/galponero/GalponeroHome').then((module) => ({ default: module.GalponeroHome })));
 
 const FORCE_RESET_KEY = 'pollos.forceResetDb';
 const RESET_ATTEMPTED_KEY = 'pollos.resetAttempted';
@@ -132,6 +133,7 @@ export function App() {
       user={user}
       setUser={setUser}
       allowDemoReset={!supabaseRequired}
+      allowRoleSwitch={!supabaseRequired}
     />
   );
 }
@@ -180,10 +182,12 @@ function AuthenticatedApp({
   user,
   setUser,
   allowDemoReset,
+  allowRoleSwitch,
 }: {
   user: Usuario;
   setUser: (user: Usuario) => void;
   allowDemoReset: boolean;
+  allowRoleSwitch: boolean;
 }) {
   const [toast, setToast] = useState('');
   const [syncing, setSyncing] = useState(false);
@@ -250,16 +254,18 @@ function AuthenticatedApp({
       <header className="top-bar">
         <div className="top-bar__brand">
           <strong>POLLOS</strong>
-          <div className="role-switch" aria-label="Selector de rol">
-            <button className={user.Rol === 'GALPONERO' ? 'is-active' : ''} type="button" onClick={() => handleRoleChange('GALPONERO')}>
-              <UserRound size={18} />
-              Galponero
-            </button>
-            <button className={user.Rol === 'ADMIN' ? 'is-active' : ''} type="button" onClick={() => handleRoleChange('ADMIN')}>
-              <Shield size={18} />
-              Admin
-            </button>
-          </div>
+          {allowRoleSwitch && (
+            <div className="role-switch" aria-label="Selector de rol">
+              <button className={user.Rol === 'GALPONERO' ? 'is-active' : ''} type="button" onClick={() => handleRoleChange('GALPONERO')}>
+                <UserRound size={18} />
+                Galponero
+              </button>
+              <button className={user.Rol === 'ADMIN' ? 'is-active' : ''} type="button" onClick={() => handleRoleChange('ADMIN')}>
+                <Shield size={18} />
+                Admin
+              </button>
+            </div>
+          )}
         </div>
         <div className="top-bar__actions">
           {allowDemoReset && (
@@ -273,10 +279,14 @@ function AuthenticatedApp({
       </header>
 
       <RoleGuard user={user} allow={['GALPONERO']}>
-        <GalponeroHome user={user} activeView={activeView} onViewChange={handleViewChange} onToast={setToast} />
+        <Suspense fallback={<div className="boot-screen">Cargando operacion...</div>}>
+          <GalponeroHome user={user} activeView={activeView} onViewChange={handleViewChange} onToast={setToast} />
+        </Suspense>
       </RoleGuard>
       <RoleGuard user={user} allow={['ADMIN']}>
-        <AdminDashboard user={user} activeView={activeView} onToast={setToast} />
+        <Suspense fallback={<div className="boot-screen">Cargando administracion...</div>}>
+          <AdminDashboard user={user} activeView={activeView} onToast={setToast} />
+        </Suspense>
       </RoleGuard>
 
       <MainNavigation role={user.Rol} activeView={activeView} onViewChange={handleViewChange} />

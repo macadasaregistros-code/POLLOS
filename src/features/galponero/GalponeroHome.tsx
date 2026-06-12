@@ -45,15 +45,32 @@ const galponeroViews: MainView[] = ['actividades', 'galpones', 'entrada'];
 export function GalponeroHome({ user, activeView, onViewChange, onToast }: GalponeroHomeProps) {
   const today = todayISO();
   const lotes = useLiveQuery(() => db.lotes.where('EstadoLote').equals('ACTIVO').toArray(), []);
-  const registros = useLiveQuery(() => db.registroDiarioLote.toArray(), []);
-  const consumos = useLiveQuery(() => db.consumosAlimentoLote.toArray(), []);
-  const pesajes = useLiveQuery(() => db.pesajes.toArray(), []);
-  const loteGalpones = useLiveQuery(() => db.loteGalpones.toArray(), []);
+  const activeLoteIds = useMemo(() => (lotes ?? []).map((lote) => lote.LoteID), [lotes]);
+  const activeLoteIdsKey = activeLoteIds.join('|');
+  const registros = useLiveQuery(
+    () => activeLoteIds.length ? db.registroDiarioLote.where('LoteID').anyOf(activeLoteIds).toArray() : [],
+    [activeLoteIdsKey],
+  );
+  const consumos = useLiveQuery(
+    () => activeLoteIds.length ? db.consumosAlimentoLote.where('LoteID').anyOf(activeLoteIds).toArray() : [],
+    [activeLoteIdsKey],
+  );
+  const pesajes = useLiveQuery(
+    () => activeLoteIds.length ? db.pesajes.where('LoteID').anyOf(activeLoteIds).toArray() : [],
+    [activeLoteIdsKey],
+  );
+  const loteGalpones = useLiveQuery(() => db.loteGalpones.where('Estado').equals('ACTIVO').toArray(), []);
   const galpones = useLiveQuery(() => db.galpones.toArray(), []);
-  const actividades = useLiveQuery(() => db.actividadesLote.toArray(), []);
-  const vacunas = useLiveQuery(() => db.vacunasLote.toArray(), []);
-  const perros = useLiveQuery(() => db.perros.toArray(), []);
-  const syncQueue = useLiveQuery(() => db.syncQueue.toArray(), []);
+  const actividades = useLiveQuery(
+    () => activeLoteIds.length ? db.actividadesLote.where('LoteID').anyOf(activeLoteIds).toArray() : [],
+    [activeLoteIdsKey],
+  );
+  const vacunas = useLiveQuery(
+    () => activeLoteIds.length ? db.vacunasLote.where('LoteID').anyOf(activeLoteIds).toArray() : [],
+    [activeLoteIdsKey],
+  );
+  const perros = useLiveQuery(() => db.perros.toArray().then((items) => items.filter((perro) => perro.Activo)), []);
+  const syncQueue = useLiveQuery(() => db.syncQueue.where('EstadoSync').anyOf(['PENDIENTE', 'ERROR']).toArray(), []);
   const [selectedGalponId, setSelectedGalponId] = useState('');
   const [activeDailyLoteId, setActiveDailyLoteId] = useState('');
   const [activeActivityRecord, setActiveActivityRecord] = useState<ActivityRecordKind | ''>('');
