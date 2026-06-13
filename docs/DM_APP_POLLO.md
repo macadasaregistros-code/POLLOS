@@ -159,7 +159,7 @@ Roedores:
 
 Mosca:
 
-- Frecuencia semanal.
+- Frecuencia diaria a las 5pm.
 - Fumigacion con cipermetrina.
 - Producto.
 - Dosificacion.
@@ -327,46 +327,59 @@ Categorias y actividades definitivas.
 
 ### Retiro
 
-1. Recoger Equipo.
-2. Barrer Pluma.
-3. Sacar Caracha.
-4. Amontonar Cama durante 8 dias.
-5. Retiro de Pollinaza Reusada en Exceso.
+1. Recoger Equipo: Bebederos y Comederos.
+2. Lavar Equipo: Bebederos / Comederos.
+3. Barrer Pluma.
+4. Sacar Caracha.
+5. Amontonar Pollinaza durante 8 dias y registrar temperatura interna.
+6. Retiro de Pollinaza Reusada en Exceso.
 
 Regla especial:
 
-- En "Amontonar Cama" se debe registrar temperatura interna de la pila de pollinaza por lo menos una vez al dia.
+- En "Amontonar Pollinaza" se debe registrar temperatura interna de la pila por lo menos una vez al dia.
 
 ### Desinfeccion
 
-6. Fumiga Coquito 1.
-7. Fumiga Coquito 2.
-8. Lavar Equipo: Bebederos / Comederos.
-9. Barrer / Lavado Galpon.
-10. Barrer Malla y Limpiar Techo.
-11. Reparaciones Locativas.
-12. Lavar Tanques de Agua y Purgar Lineas.
-13. Calear.
-14. Fumiga Desinfectante.
+1. Fumiga Coquito 1.
+2. Fumiga Coquito 2.
+3. Barrer / Lavado Galpon.
+4. Barrer Malla y Limpiar Techo.
+5. Reparaciones Locativas.
+6. Lavar Tanques de Agua y Purgar Lineas.
+7. Calear.
+8. Fumiga Desinfectante.
 
 ### Instalacion
 
-15. Cisco Nuevo en la mitad sin cama usada.
-16. Divisiones.
-17. Encortinar.
-18. Instalar Calentadoras.
-19. Meter Bebederos de Volteo y Comederos Babies.
-20. Retirar / lavar cortinas cuando salen calentadoras.
+1. Cisco Nuevo en la mitad sin cama usada.
+2. Divisiones.
+3. Instalar Calentadoras.
+4. Meter Bebederos de Volteo y Comederos Babies.
+5. Encortinar.
 
 ### Recibimiento
 
-21. Precalentar 8h antes de la llegada.
-22. Purgar Lineas.
-23. Neutrar el Agua de Bebida.
-24. Verificar Temperatura.
-25. Llegada del Pollito.
+1. Precalentar 8h antes de la llegada a 32 grados.
+2. Purgar Lineas.
+3. Neutrar el Agua de Bebida.
+4. Verificar Temperatura.
+5. Llegada del Pollito.
 
-## 8. Modulo Galponero - Entrada
+## 8. Actividades del Lote
+
+Actividades por dia:
+
+- Dia 3: Ampliacion.
+- Dia 8: Ampliacion.
+- Dia 8: Vacunacion Gumboro.
+- Dia 10: Vacunacion Newcastle.
+- Dia 11: Sacar Bebederos Babies.
+- Dia 15: Ampliacion y Retirada de Calentadoras.
+- Dia 20: Ampliacion.
+- Dia 20: Desencortinar.
+- Dia 21: Bajar Hembras.
+
+## 9. Modulo Galponero - Entrada
 
 Pantalla para registrar entradas de materiales.
 
@@ -414,22 +427,27 @@ Regla:
 - El galponero no ve existencias calculadas.
 - Solo registra entradas.
 
-## 9. Recordatorios Operativos
+## 10. Rutinas Operativas
 
 ### Diarios
 
-- Fumigacion diaria a las 4pm.
-- Cambio diario de pediluvios con creolina.
-- Purgar linea a diario.
+- Clorar Tanque Principal cada 3 dias.
+- Sulfatar Tanque 24 horas antes de clorar.
+- Medir Cloro y pH en Lineas y Tanques.
+- Purgar Linea.
+- Alimentacion manana 70% entre 5:00 y 5:30am.
+- Alimentacion tarde 30% entre 3:00 y 4:00pm.
+- Fumigacion con Desinfectante dentro del Galpon a las 9am y 4pm. Novabroncol o Vircon X solo en casos especiales.
+- Revolcar Cama.
+- Control de Pediluvios con Creolina.
+- Control de Plagas con Cicario / Cipermetrina para la Mosca alrededor del Galpon a las 5pm.
 
 ### Semanales
 
-- Limpiar malla y telaranas.
-- Barrer bodegas.
-- Control de roedores.
-- Control de mosca con cipermetrina.
+- Limpiar Mallas y Telaranas.
+- Lavar Filtros.
 
-## 10. Modulo Admin - Inicio
+## 11. Modulo Admin - Inicio
 
 Debe ser tablero general.
 
@@ -444,7 +462,7 @@ Debe mostrar:
 - Lotes activos.
 - Incidencias.
 
-## 11. Modulo Admin - Galpones
+## 12. Modulo Admin - Galpones
 
 Debe permitir:
 
@@ -455,7 +473,7 @@ Debe permitir:
 - Revisar lote asociado.
 - Revisar registros diarios del galpon.
 
-## 12. Modulo Admin - Lotes
+## 13. Modulo Admin - Lotes
 
 Debe permitir:
 
@@ -483,7 +501,7 @@ Indicadores:
 - Salidas / sacrificio.
 - Estado del lote.
 
-## 13. Modulo Admin - Inventario
+## 14. Modulo Admin - Inventario
 
 Debe manejar:
 
@@ -506,7 +524,7 @@ Calculos:
 - Cisco disponible = entradas - consumos/asignaciones - ajustes.
 - Gas disponible = entradas - consumos/asignaciones - ajustes.
 
-## 14. Modulo Admin - Reportes
+## 15. Modulo Admin - Reportes
 
 Debe incluir:
 
@@ -538,7 +556,7 @@ Reportes posibles:
 - Costos por kg producido.
 - Ventas / salidas.
 
-## 15. Datos y Entidades
+## 16. Datos y Entidades
 
 Entidades principales:
 
@@ -569,7 +587,7 @@ Entidades principales:
 - Clientes.
 - SyncQueue.
 
-## 16. Reglas Generales de Registro
+## 17. Reglas Generales de Registro
 
 Todos los registros deben guardar:
 
@@ -587,7 +605,7 @@ Cuando aplique:
 - Firma.
 - Responsable.
 
-## 17. Sincronizacion
+## 18. Sincronizacion
 
 La app debe funcionar offline.
 
@@ -605,7 +623,7 @@ Debe evitar:
 - Duplicar registros.
 - Mostrar como sincronizado algo que fallo.
 
-## 18. Estados de Galpon
+## 19. Estados de Galpon
 
 Estados esperados:
 
@@ -625,7 +643,7 @@ Transicion:
 - Recibimiento -> Ocupado.
 - Ocupado -> Vacio al cerrar lote o retirar pollo.
 
-## 19. Estados de Lote
+## 20. Estados de Lote
 
 Estados esperados:
 
@@ -640,7 +658,7 @@ Reglas:
 - El sacrificio aparece desde dia 36 o cuando ya fue activado.
 - El historial y cierres pertenecen al Admin.
 
-## 20. Pendientes por Definir
+## 21. Pendientes por Definir
 
 - Si el sacrificio se registra como parte del registro diario, como salida formal o ambos.
 - Si las firmas seran texto, dibujo en pantalla o foto.
@@ -654,7 +672,7 @@ Reglas:
 - Estructura final de costos.
 - Reportes prioritarios para la primera version.
 
-## 21. Versiones de Trabajo
+## 22. Versiones de Trabajo
 
 ### Version 1 - Operacion Galponero
 
@@ -686,7 +704,7 @@ Reglas:
 - Proveedores/clientes.
 - Cierres.
 
-## 22. Criterio de Calidad
+## 23. Criterio de Calidad
 
 La app debe cumplir:
 

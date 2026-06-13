@@ -271,11 +271,12 @@ export function GalponeroEntradaView({ user, activeEntry, onActiveEntryChange, o
   }
 
   if (resolvedActiveEntry && activeOption) {
+    const handleBack = () => setActiveEntry('');
     return (
-      <NativeRecordScreen option={activeOption} context="Entrada" onBack={() => setActiveEntry('')}>
-        {resolvedActiveEntry === 'alimento' && <FoodEntryForm user={user} onSaved={onSaved} />}
-        {resolvedActiveEntry === 'cisco' && <MaterialEntryForm type="CISCO" unit="PACAS" label="Pacas de cisco" user={user} onSaved={onSaved} />}
-        {resolvedActiveEntry === 'gas' && <MaterialEntryForm type="GAS" unit="CILINDROS" label="Cilindros de gas" user={user} onSaved={onSaved} />}
+      <NativeRecordScreen option={activeOption} context="Entrada" onBack={handleBack}>
+        {resolvedActiveEntry === 'alimento' && <FoodEntryForm option={activeOption} user={user} onBack={handleBack} onSaved={onSaved} />}
+        {resolvedActiveEntry === 'cisco' && <MaterialEntryForm option={activeOption} type="CISCO" unit="PACAS" label="Pacas de cisco" user={user} onBack={handleBack} onSaved={onSaved} />}
+        {resolvedActiveEntry === 'gas' && <MaterialEntryForm option={activeOption} type="GAS" unit="CILINDROS" label="Cilindros de gas" user={user} onBack={handleBack} onSaved={onSaved} />}
       </NativeRecordScreen>
     );
   }
@@ -304,7 +305,7 @@ function NativeRecordScreen({
   onBack: () => void;
   children: ReactNode;
 }) {
-  const showHero = context !== 'Registro';
+  const showHero = context !== 'Registro' && context !== 'Entrada';
 
   return (
     <section className={`native-record-screen native-record-screen--${option.tone} ${showHero ? '' : 'native-record-screen--no-hero'}`}>
@@ -468,13 +469,24 @@ function GalponField({ galpones, galponId, onChange }: { galpones: Array<{ Galpo
   );
 }
 
-function FoodEntryForm({ user, onSaved }: { user: Usuario; onSaved: (message: string) => void }) {
+function FoodEntryForm({
+  option,
+  user,
+  onBack,
+  onSaved,
+}: {
+  option: RecordOption<EntryKind>;
+  user: Usuario;
+  onBack: () => void;
+  onSaved: (message: string) => void;
+}) {
   const tipos = useLiveQuery(() => db.tiposAlimento.toArray().then((items) => items.filter((item) => item.Activo)), []);
   const [tipoId, setTipoId] = useState('');
   const [bultos, setBultos] = useState('0');
   const [observaciones, setObservaciones] = useState('');
   const tiposOrdenados = useMemo(() => orderFoodTypes(tipos ?? []), [tipos]);
   const selected = tiposOrdenados.find((tipo) => tipo.TipoAlimentoID === tipoId);
+  const totalKg = Number(bultos || 0) * (selected?.KgPorBulto ?? 0);
 
   useEffect(() => {
     if (!tipoId && tiposOrdenados[0]) setTipoId(tiposOrdenados[0].TipoAlimentoID);
@@ -496,26 +508,40 @@ function FoodEntryForm({ user, onSaved }: { user: Usuario; onSaved: (message: st
     );
     setBultos('0');
     setObservaciones('');
-    onSaved('Entrada de alimento guardada offline.');
+    onSaved('Entrada de alimento guardada en este dispositivo.');
   }
 
   return (
-    <form className="form-grid flow-form" onSubmit={handleSubmit}>
-      <label className="field">
-        <span>Tipo de alimento</span>
-        <select value={tipoId} onChange={(event) => setTipoId(event.target.value)} required>
-          {tiposOrdenados.map((tipo) => (
-            <option key={tipo.TipoAlimentoID} value={tipo.TipoAlimentoID}>
-              {tipo.Nombre}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="field">
-        <span>Bultos</span>
-        <input type="number" min="0" step="0.25" inputMode="decimal" value={bultos} onChange={(event) => setBultos(event.target.value)} />
-      </label>
-      <ObservationField value={observaciones} onChange={setObservaciones} />
+    <form className="form-grid flow-form entry-record-form entry-food-form" onSubmit={handleSubmit}>
+      <EntryRecordDateCard onBack={onBack} />
+      <section className="water-form-card entry-record-main-card">
+        <EntryRecordCardHeader option={option} />
+        <div className="entry-record-content-layout">
+          <section className="entry-record-inputs">
+            <label className="field">
+              <span>Tipo de alimento</span>
+              <select value={tipoId} onChange={(event) => setTipoId(event.target.value)} required>
+                {tiposOrdenados.map((tipo) => (
+                  <option key={tipo.TipoAlimentoID} value={tipo.TipoAlimentoID}>
+                    {tipo.Nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>Bultos recibidos</span>
+              <input type="number" min="0" step="0.25" inputMode="decimal" value={bultos} onChange={(event) => setBultos(event.target.value)} />
+            </label>
+          </section>
+          <EntryRecordSummary
+            items={[
+              { label: 'Kg por bulto', value: `${selected?.KgPorBulto ?? 0} kg` },
+              { label: 'Total recibido', value: `${totalKg.toFixed(1)} kg` },
+            ]}
+          />
+        </div>
+        <ObservationField value={observaciones} onChange={setObservaciones} />
+      </section>
       <button className="primary-action">
         <Save size={21} />
         <span>Guardar entrada</span>
@@ -525,16 +551,20 @@ function FoodEntryForm({ user, onSaved }: { user: Usuario; onSaved: (message: st
 }
 
 function MaterialEntryForm({
+  option,
   type,
   unit,
   label,
   user,
+  onBack,
   onSaved,
 }: {
+  option: RecordOption<EntryKind>;
   type: TipoMaterialInventario;
   unit: string;
   label: string;
   user: Usuario;
+  onBack: () => void;
   onSaved: (message: string) => void;
 }) {
   const [cantidad, setCantidad] = useState('0');
@@ -555,21 +585,81 @@ function MaterialEntryForm({
     );
     setCantidad('0');
     setObservaciones('');
-    onSaved(`Entrada de ${type.toLowerCase()} guardada offline.`);
+    onSaved(`Entrada de ${type.toLowerCase()} guardada en este dispositivo.`);
   }
 
   return (
-    <form className="form-grid flow-form" onSubmit={handleSubmit}>
-      <label className="field">
-        <span>{label}</span>
-        <input type="number" min="0" step="1" inputMode="numeric" value={cantidad} onChange={(event) => setCantidad(event.target.value)} />
-      </label>
-      <ObservationField value={observaciones} onChange={setObservaciones} />
+    <form className="form-grid flow-form entry-record-form entry-material-form" onSubmit={handleSubmit}>
+      <EntryRecordDateCard onBack={onBack} />
+      <section className="water-form-card entry-record-main-card">
+        <EntryRecordCardHeader option={option} />
+        <div className="entry-record-content-layout">
+          <section className="entry-record-inputs">
+            <label className="field">
+              <span>{label}</span>
+              <input type="number" min="0" step="1" inputMode="numeric" value={cantidad} onChange={(event) => setCantidad(event.target.value)} />
+            </label>
+          </section>
+          <EntryRecordSummary
+            items={[
+              { label: 'Material', value: option.title },
+              { label: 'Total recibido', value: `${Number(cantidad || 0)} ${unit.toLowerCase()}` },
+            ]}
+          />
+        </div>
+        <ObservationField value={observaciones} onChange={setObservaciones} />
+      </section>
       <button className="primary-action">
         <Save size={21} />
         <span>Guardar entrada</span>
       </button>
     </form>
+  );
+}
+
+function EntryRecordDateCard({ onBack }: { onBack: () => void }) {
+  return (
+    <section className="water-date-card entry-record-date-card" aria-label="Fecha y estado del registro">
+      <button className="entry-record-back-button" type="button" aria-label="Volver a entrada" onClick={onBack}>
+        <ArrowLeft size={24} />
+      </button>
+      <span className="water-date-card__icon">
+        <CalendarDays size={30} />
+      </span>
+      <div className="water-date-card__date">
+        <span>Fecha de Registro</span>
+        <strong>{formatWaterDate(todayISO())}</strong>
+      </div>
+      <div className="water-date-card__status">
+        <span>Estado</span>
+        <strong>EN PROCESO</strong>
+      </div>
+    </section>
+  );
+}
+
+function EntryRecordCardHeader({ option }: { option: RecordOption<EntryKind> }) {
+  return (
+    <header className="entry-record-main-card__header">
+      <span className="entry-record-main-card__icon" aria-hidden="true">{option.icon}</span>
+      <div>
+        <strong>ENTRADA DE {option.title.toUpperCase()}</strong>
+        <small>{option.subtitle}</small>
+      </div>
+    </header>
+  );
+}
+
+function EntryRecordSummary({ items }: { items: Array<{ label: string; value: string }> }) {
+  return (
+    <section className="entry-record-summary" aria-label="Resumen de entrada">
+      {items.map((item) => (
+        <div key={item.label}>
+          <span>{item.label}</span>
+          <strong>{item.value}</strong>
+        </div>
+      ))}
+    </section>
   );
 }
 
@@ -692,12 +782,12 @@ function VaccinationRecordForm({ user, context, onSaved }: { user: Usuario; cont
     setMedicoVeterinario('');
     setFoto('');
     setError('');
-    onSaved('Vacunación registrada offline.');
+    onSaved('Vacunación guardada en este dispositivo.');
   }
 
   return (
     <form className="form-grid flow-form vaccination-record-form" onSubmit={handleSubmit}>
-      <section className="water-date-card vaccination-date-card" aria-label="Fecha y estado del registro">
+      <section className="water-date-card record-date-card vaccination-date-card" aria-label="Fecha y estado del registro">
         <span className="water-date-card__icon">
           <CalendarDays size={30} />
         </span>
@@ -719,6 +809,8 @@ function VaccinationRecordForm({ user, context, onSaved }: { user: Usuario; cont
           <strong>VACUNACIÓN</strong>
         </header>
 
+        <div className="vaccination-content-layout">
+          <section className="vaccination-content-column">
         <VaccinationStepTitle number={1} title="Nombre del Producto" />
         <div className="vaccination-option-grid" role="radiogroup" aria-label="Nombre del Producto">
           {vaccinationProductCatalog.map((product) => (
@@ -801,8 +893,9 @@ function VaccinationRecordForm({ user, context, onSaved }: { user: Usuario; cont
           </p>
         )}
 
-        <div className="water-form-divider" />
+          </section>
 
+          <section className="vaccination-content-column vaccination-content-column--support">
         <VaccinationStepTitle number={4} title="Información calculada" />
         <div className="vaccination-field-grid">
           <VaccinationReadOnlyField label="Edad de las aves" value={edadAvesDias ? `${edadAvesDias} días` : 'Sin lote'} helper="Calculada por la app" />
@@ -834,6 +927,8 @@ function VaccinationRecordForm({ user, context, onSaved }: { user: Usuario; cont
 
         <VaccinationStepTitle number={6} title="FOTO" />
         <VaccinationPhotoField value={foto} onChange={setFoto} />
+          </section>
+        </div>
       </section>
 
       {error && <p className="water-form-error vaccination-form-error" role="alert">{error}</p>}
@@ -993,12 +1088,12 @@ function WaterTreatmentForm({ user, context, onSaved }: { user: Usuario; context
     setPhSeleccionado('');
     setCloroAdicionado('');
     setCloroResidualSeleccionado('');
-    onSaved('Tratamiento de agua guardado offline.');
+    onSaved('Tratamiento de agua guardado en este dispositivo.');
   }
 
   return (
     <form className="form-grid flow-form water-treatment-form" onSubmit={handleSubmit}>
-      <section className="water-date-card" aria-label="Fecha y estado del registro">
+      <section className="water-date-card record-date-card" aria-label="Fecha y estado del registro">
         <span className="water-date-card__icon">
           <CalendarDays size={30} />
         </span>
@@ -1014,57 +1109,61 @@ function WaterTreatmentForm({ user, context, onSaved }: { user: Usuario; context
 
       <section className="water-form-card">
         <RecordFormCardTitle icon={<Droplets size={38} />} title="TRATAMIENTO DE AGUA" />
-        <WaterSectionTitle icon={<FlaskConical size={26} />} title="Verificacion de pH" />
-        <WaterOptionGrid
-          name="ph"
-          options={phOptions}
-          selectedValue={phSeleccionado}
-          onSelect={(value) => {
-            setPhSeleccionado(value);
-            setError('');
-          }}
-        />
-        <p className="water-range-note">Rango ideal: 6.0 - 6.8 pH</p>
+        <div className="water-measure-grid">
+          <section className="water-measure-block">
+            <WaterSectionTitle icon={<FlaskConical size={26} />} title="Verificacion de pH" />
+            <WaterOptionGrid
+              name="ph"
+              options={phOptions}
+              selectedValue={phSeleccionado}
+              onSelect={(value) => {
+                setPhSeleccionado(value);
+                setError('');
+              }}
+            />
+            <p className="water-range-note">Rango ideal: 6.0 - 6.8 pH</p>
+          </section>
 
-        <div className="water-form-divider" />
+          <section className="water-measure-block water-measure-block--dose">
+            <div className="water-input-heading">
+              <span>
+                <Droplets size={24} />
+                <strong>Cloro Adicionado</strong>
+              </span>
+              <em>(gramos)</em>
+            </div>
+            <label className={`water-amount-input ${!phCorrecto ? 'is-disabled' : ''}`}>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="0"
+                value={cloroAdicionado}
+                disabled={!phCorrecto}
+                onChange={(event) => setCloroAdicionado(toWholeGramInput(event.target.value))}
+              />
+              <span>g</span>
+            </label>
+            <p className="water-helper-text">
+              <Info size={18} />
+              <span>Ingrese la cantidad si el pH es correcto para asegurar la desinfeccion optima.</span>
+            </p>
+          </section>
 
-        <div className="water-input-heading">
-          <span>
-            <Droplets size={24} />
-            <strong>Cloro Adicionado</strong>
-          </span>
-          <em>(gramos)</em>
+          <section className="water-measure-block">
+            <WaterSectionTitle icon={<CheckCircle2 size={26} />} title="Verificacion de Cloro" unit="(ppm)" />
+            <WaterOptionGrid
+              name="cloro"
+              options={chlorineOptions}
+              selectedValue={cloroResidualSeleccionado}
+              onSelect={(value) => {
+                setCloroResidualSeleccionado(value);
+                setError('');
+              }}
+            />
+            <p className="water-range-note">Rango ideal: 3 ppm</p>
+          </section>
         </div>
-        <label className={`water-amount-input ${!phCorrecto ? 'is-disabled' : ''}`}>
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder="0"
-            value={cloroAdicionado}
-            disabled={!phCorrecto}
-            onChange={(event) => setCloroAdicionado(toWholeGramInput(event.target.value))}
-          />
-          <span>g</span>
-        </label>
-        <p className="water-helper-text">
-          <Info size={18} />
-          <span>Ingrese la cantidad si el pH es correcto para asegurar la desinfeccion optima.</span>
-        </p>
-
-        <div className="water-form-divider" />
-
-        <WaterSectionTitle icon={<CheckCircle2 size={26} />} title="Verificacion de Cloro" unit="(ppm)" />
-        <WaterOptionGrid
-          name="cloro"
-          options={chlorineOptions}
-          selectedValue={cloroResidualSeleccionado}
-          onSelect={(value) => {
-            setCloroResidualSeleccionado(value);
-            setError('');
-          }}
-        />
-        <p className="water-range-note">Rango ideal: 3 ppm</p>
       </section>
 
       {error && <p className="water-form-error" role="alert">{error}</p>}
@@ -1229,12 +1328,12 @@ function PestControlForm({ user, context, onSaved }: { user: Usuario; context?: 
     setSelectedStationIds([]);
     setSelectedFlyDosage('30 cc/bomba');
     setError('');
-    onSaved('Control de plagas guardado offline.');
+    onSaved('Control de plagas guardado en este dispositivo.');
   }
 
   return (
     <form className="form-grid flow-form pest-control-form" onSubmit={handleSubmit}>
-      <section className="water-date-card" aria-label="Fecha y estado del registro">
+      <section className="water-date-card record-date-card" aria-label="Fecha y estado del registro">
         <span className="water-date-card__icon">
           <CalendarDays size={30} />
         </span>
@@ -1248,12 +1347,11 @@ function PestControlForm({ user, context, onSaved }: { user: Usuario; context?: 
         </div>
       </section>
 
-      <section className="water-form-card pest-title-card">
-        <RecordFormCardTitle icon={<Bug size={38} />} title="CONTROL DE PLAGAS" />
-      </section>
-
       <section className="water-form-card pest-section-card pest-section-card--rodents">
-        <WaterSectionTitle icon={<Crosshair size={30} />} title="ROEDORES" />
+        <div className="pest-title-row">
+          <RecordFormCardTitle icon={<Bug size={38} />} title="CONTROL DE PLAGAS" />
+          <WaterSectionTitle icon={<Crosshair size={30} />} title="ROEDORES" />
+        </div>
         <div className="pest-map-heading">
           <MapPin size={20} />
           <strong>Mapa de Roedores</strong>
@@ -1459,12 +1557,12 @@ function MedicationForm({ user, onSaved }: { user: Usuario; onSaved: (message: s
     setMedicoVeterinario('');
     setFoto('');
     setError('');
-    onSaved('Medicamento guardado offline.');
+    onSaved('Medicamento guardado en este dispositivo.');
   }
 
   return (
     <form className="form-grid flow-form vaccination-record-form medication-record-form" noValidate onSubmit={handleSubmit}>
-      <section className="water-date-card vaccination-date-card medication-date-card" aria-label="Fecha y estado del registro">
+      <section className="water-date-card record-date-card vaccination-date-card medication-date-card" aria-label="Fecha y estado del registro">
         <span className="water-date-card__icon">
           <CalendarDays size={30} />
         </span>
@@ -1486,6 +1584,8 @@ function MedicationForm({ user, onSaved }: { user: Usuario; onSaved: (message: s
           <strong>MEDICAMENTOS</strong>
         </header>
 
+        <div className="medication-content-layout">
+          <section className="medication-content-column">
         <label className="vaccination-field medication-field medication-field--full">
           <span>Nombre del Producto</span>
           <input
@@ -1563,6 +1663,9 @@ function MedicationForm({ user, onSaved }: { user: Usuario; onSaved: (message: s
           />
         </div>
 
+          </section>
+
+          <section className="medication-content-column medication-content-column--support">
         <header className="medication-section-title medication-section-title--plain">
           <strong>Médico Veterinario</strong>
         </header>
@@ -1583,6 +1686,8 @@ function MedicationForm({ user, onSaved }: { user: Usuario; onSaved: (message: s
         <div className="water-form-divider" />
 
         <VaccinationPhotoField value={foto} onChange={setFoto} />
+          </section>
+        </div>
       </section>
 
       {error && <p className="water-form-error vaccination-form-error medication-form-error" role="alert">{error}</p>}
@@ -1765,12 +1870,12 @@ function DogRecordForm({ user, context, onSaved }: { user: Usuario; context?: Ag
     setTipo('');
     setFoto('');
     setError('');
-    onSaved('Registro de perros guardado offline.');
+    onSaved('Registro de perros guardado en este dispositivo.');
   }
 
   return (
     <form className="form-grid flow-form dog-record-form" noValidate onSubmit={handleSubmit}>
-      <section className="water-date-card dog-date-card" aria-label="Fecha y estado del registro">
+      <section className="water-date-card record-date-card dog-date-card" aria-label="Fecha y estado del registro">
         <span className="water-date-card__icon">
           <CalendarDays size={30} />
         </span>
@@ -1792,6 +1897,8 @@ function DogRecordForm({ user, context, onSaved }: { user: Usuario; context?: Ag
           <strong>PERROS</strong>
         </header>
 
+        <div className="dog-content-layout">
+          <section className="dog-content-column">
         {(perros ?? []).length > 0 && (
           <label className="dog-field dog-field--full">
             <span>Perro</span>
@@ -1847,6 +1954,8 @@ function DogRecordForm({ user, context, onSaved }: { user: Usuario; context?: Ag
           </div>
         </div>
 
+          </section>
+
         <DogPhotoField
           value={foto}
           onChange={(value) => {
@@ -1854,6 +1963,7 @@ function DogRecordForm({ user, context, onSaved }: { user: Usuario; context?: Ag
             setError('');
           }}
         />
+        </div>
       </section>
 
       {error && <p className="water-form-error dog-form-error" role="alert">{error}</p>}
@@ -2032,12 +2142,12 @@ function TrainingForm({ user, onSaved }: { user: Usuario; onSaved: (message: str
     setFirmaCapacitador('');
     setAsistentes([createTrainingAssistantDraft()]);
     setError('');
-    onSaved('Capacitación guardada offline.');
+    onSaved('Capacitación guardada en este dispositivo.');
   }
 
   return (
     <form className="form-grid flow-form training-record-form" noValidate onSubmit={handleSubmit}>
-      <section className="water-date-card training-date-card" aria-label="Fecha y estado del registro">
+      <section className="water-date-card record-date-card training-date-card" aria-label="Fecha y estado del registro">
         <span className="water-date-card__icon">
           <CalendarDays size={30} />
         </span>
@@ -2059,6 +2169,8 @@ function TrainingForm({ user, onSaved }: { user: Usuario; onSaved: (message: str
           <strong>CAPACITACIONES</strong>
         </header>
 
+        <div className="training-content-layout">
+          <section className="training-content-column">
         <label className="training-field training-field--full">
           <span>Tema</span>
           <input
@@ -2092,6 +2204,8 @@ function TrainingForm({ user, onSaved }: { user: Usuario; onSaved: (message: str
           helper="El capacitador debe firmar en el área inferior"
           onOpen={() => setSignatureTarget({ type: 'trainer' })}
         />
+
+          </section>
 
         <section className="training-assistants-section">
           <header className="training-assistants-section__header">
@@ -2141,6 +2255,7 @@ function TrainingForm({ user, onSaved }: { user: Usuario; onSaved: (message: str
             <span>Agregar asistente</span>
           </button>
         </section>
+        </div>
       </section>
 
       {error && <p className="water-form-error training-form-error" role="alert">{error}</p>}

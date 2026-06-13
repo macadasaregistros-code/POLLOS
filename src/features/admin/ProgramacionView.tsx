@@ -65,9 +65,26 @@ export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
         </button>
       </MobileCard>
 
+      <MobileCard title="1. Alistamiento" subtitle="Se registra con fecha desde el galpon en alistamiento">
+        <PreparationReview galpones={galpones} />
+      </MobileCard>
+
       <MobileCard title="2. Actividades del lote" subtitle="Tareas propias del lote; no incluye rutinas ni alistamiento">
         <NewActivityForm onToast={onToast} />
         <ActivityProgramGroups actividades={loteActivities} onToast={onToast} />
+        <div className="routine-matrix-title">
+          <strong>Vacunación del lote</strong>
+          <span>Gumboro día 8 y Newcastle día 10</span>
+        </div>
+        <NewVaccineForm onToast={onToast} />
+        <div className="programming-list programming-list--compact">
+          {vacunas
+            .slice()
+            .sort((left, right) => left.DiaProgramado - right.DiaProgramado)
+            .map((vacuna) => (
+              <VaccineProgramRow key={vacuna.VacunaBaseID} vacuna={vacuna} onToast={onToast} />
+            ))}
+        </div>
       </MobileCard>
 
       <MobileCard title="3. Rutinas" subtitle="Checks diarios, semanales y mensuales">
@@ -78,22 +95,6 @@ export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
           <span>Checks registrados por dia</span>
         </div>
         <RoutineMatrix actividades={actividadesLote} today={today} user={user} editable onSaved={onToast} />
-      </MobileCard>
-
-      <MobileCard title="4. Alistamiento" subtitle="Se registra con fecha desde el galpon en alistamiento">
-        <PreparationReview galpones={galpones} />
-      </MobileCard>
-
-      <MobileCard title="Plan vacunal base">
-        <NewVaccineForm onToast={onToast} />
-        <div className="programming-list programming-list--compact">
-          {vacunas
-            .slice()
-            .sort((left, right) => left.DiaProgramado - right.DiaProgramado)
-            .map((vacuna) => (
-              <VaccineProgramRow key={vacuna.VacunaBaseID} vacuna={vacuna} onToast={onToast} />
-            ))}
-        </div>
       </MobileCard>
 
       <MobileCard title="Perros">

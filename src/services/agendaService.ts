@@ -81,11 +81,13 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
       (actividad.Estado === 'PENDIENTE' || actividad.Estado === 'VENCIDA') &&
       !isVaccineActivity(actividad),
   );
-  const routineActivities = todayActivities.filter(isRoutineActivity);
-  const nonRoutineActivities = todayActivities.filter((actividad) => !isRoutineActivity(actividad));
-  const pestActivities = nonRoutineActivities.filter(isPestActivity);
-  const waterActivities = nonRoutineActivities.filter(isWaterActivity);
-  const regularActivities = nonRoutineActivities.filter((actividad) => !isPestActivity(actividad) && !isWaterActivity(actividad));
+  const pestActivities = todayActivities.filter(isPestActivity);
+  const waterActivities = todayActivities.filter((actividad) => !isPestActivity(actividad) && isWaterActivity(actividad));
+  const specializedActivityIds = new Set([...pestActivities, ...waterActivities].map((actividad) => actividad.ActividadLoteID));
+  const routineActivities = todayActivities.filter((actividad) => !specializedActivityIds.has(actividad.ActividadLoteID) && isRoutineActivity(actividad));
+  const regularActivities = todayActivities.filter(
+    (actividad) => !specializedActivityIds.has(actividad.ActividadLoteID) && !isRoutineActivity(actividad),
+  );
 
   for (const [routineName, activities] of groupBy(routineActivities, getRoutineAgendaName)) {
     hoy.push({

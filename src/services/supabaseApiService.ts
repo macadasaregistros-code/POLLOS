@@ -63,6 +63,25 @@ const BOOTSTRAP_TABLES: Array<{ localName: string } & RemoteTable> = [
   { localName: 'ReportesPDF', schema: 'pollos', table: 'reportes_pdf', idField: 'ReporteID' },
 ];
 
+const GALPONERO_BOOTSTRAP_TABLE_NAMES = new Set([
+  'Usuarios',
+  'TiposAlimento',
+  'Galpones',
+  'Lotes',
+  'LoteGalpones',
+  'RegistroDiarioLote',
+  'Pesajes',
+  'SalidasPollo',
+  'ActividadesLote',
+  'VacunasLote',
+  'ConsumoAlimentoLote',
+  'InventarioAlimento',
+  'InventarioMaterial',
+  'CompostajeCajones',
+  'CompostajeRegistros',
+  'Perros',
+]);
+
 const SYNC_TABLES: Partial<Record<SyncEntityTable, RemoteTable>> = Object.fromEntries(
   BOOTSTRAP_TABLES.map((table) => [table.localName, table]),
 );
@@ -195,18 +214,21 @@ export async function bootstrap(user: Usuario): Promise<ApiResponse<BootstrapRes
   if (!isSupabaseConfigured()) return { ok: true, data: undefined };
 
   try {
-    const entries: Array<readonly [string, object[]]> = [];
-    for (const table of BOOTSTRAP_TABLES) {
+    const tablesToLoad = user.Rol === 'GALPONERO'
+      ? BOOTSTRAP_TABLES.filter((table) => GALPONERO_BOOTSTRAP_TABLE_NAMES.has(table.localName))
+      : BOOTSTRAP_TABLES;
+    const entries = await Promise.all(tablesToLoad.map(async (table): Promise<readonly [string, object[]] | undefined> => {
       try {
-        entries.push([table.localName, await listRemoteRows(table)] as const);
+        return [table.localName, await listRemoteRows(table)] as const;
       } catch (error) {
         if (!table.optional) throw error;
+        return undefined;
       }
-    }
+    }));
     return {
       ok: true,
       data: {
-        tables: Object.fromEntries(entries),
+        tables: Object.fromEntries(entries.filter((entry): entry is readonly [string, object[]] => Boolean(entry))),
         role: user.Rol,
         sheetId: 'supabase',
       },

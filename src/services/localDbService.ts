@@ -270,6 +270,18 @@ export class PollosDb extends Dexie {
       if (perrosByName.size) await perros.bulkPut([...perrosByName.values()]);
       if (updatedRegistros.length) await registros.bulkPut(updatedRegistros);
     });
+
+    this.version(5).upgrade(async (transaction: Transaction) => {
+      const reference = createDemoData();
+      const actividades = transaction.table('actividadesProgramadas') as Table<ActividadProgramada, string>;
+      const vacunas = transaction.table('planVacunalBase') as Table<PlanVacunalBase, string>;
+      const legacyActivityIds = (await actividades.toCollection().primaryKeys())
+        .filter((id): id is string => typeof id === 'string' && /^act_base_[0-9]{2}$/.test(id));
+
+      if (legacyActivityIds.length) await actividades.bulkDelete(legacyActivityIds);
+      await actividades.bulkPut(reference.actividadesProgramadas);
+      await vacunas.bulkPut(reference.planVacunalBase);
+    });
   }
 }
 

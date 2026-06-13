@@ -49,7 +49,7 @@ export function EntradaAlimentoForm({ user, onSaved }: EntradaAlimentoFormProps)
     );
     setBultos('0');
     setObservaciones('');
-    onSaved('Entrada de alimento guardada offline.');
+    onSaved('Entrada de alimento guardada en este dispositivo.');
   }
 
   return (

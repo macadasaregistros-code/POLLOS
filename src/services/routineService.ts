@@ -8,6 +8,7 @@ export interface RoutineDefinition {
   label: string;
   frequency: RoutineFrequency;
   suggestedHour: string;
+  aliases: string[];
 }
 
 export interface RoutineMatrixCell {
@@ -34,13 +35,19 @@ export interface RoutineMatrixModel {
 }
 
 export const routineDefinitions: RoutineDefinition[] = [
-  { key: 'fumigacion_diaria_4pm', label: 'Fumigacion diaria 4pm', frequency: 'DIARIA', suggestedHour: '16:00' },
-  { key: 'cambio_diario_pediluvios', label: 'Cambio diario de pediluvios', frequency: 'DIARIA', suggestedHour: '08:30' },
-  { key: 'purgar_linea_diario', label: 'Purgar linea diario', frequency: 'DIARIA', suggestedHour: '08:00' },
-  { key: 'revolcar_cama', label: 'Revolcar cama', frequency: 'DIARIA', suggestedHour: '10:00' },
-  { key: 'limpiar_malla_telaranas', label: 'Limpiar malla y telaranas', frequency: 'SEMANAL', suggestedHour: '' },
-  { key: 'barrer_bodegas', label: 'Barrer bodegas', frequency: 'SEMANAL', suggestedHour: '' },
-  { key: 'lavar_filtros', label: 'Lavar filtros', frequency: 'SEMANAL', suggestedHour: '' },
+  { key: 'clorar_tanque', label: 'Clorar tanque principal cada 3 días', frequency: 'DIARIA', suggestedHour: '', aliases: ['clorar tanque principal'] },
+  { key: 'sulfatar_tanque', label: 'Sulfatar tanque 24 horas antes de clorar', frequency: 'DIARIA', suggestedHour: '', aliases: ['sulfatar tanque'] },
+  { key: 'medir_cloro_ph', label: 'Medir cloro y pH en líneas y tanques', frequency: 'DIARIA', suggestedHour: '08:00', aliases: ['medir cloro y ph'] },
+  { key: 'purgar_linea', label: 'Purgar línea', frequency: 'DIARIA', suggestedHour: '08:00', aliases: ['purgar linea'] },
+  { key: 'alimentacion_manana', label: 'Alimentación mañana 70%', frequency: 'DIARIA', suggestedHour: '05:00', aliases: ['alimentacion manana 70'] },
+  { key: 'alimentacion_tarde', label: 'Alimentación tarde 30%', frequency: 'DIARIA', suggestedHour: '15:00', aliases: ['alimentacion tarde 30'] },
+  { key: 'fumigacion_9am', label: 'Fumigación con desinfectante 9am', frequency: 'DIARIA', suggestedHour: '09:00', aliases: ['fumigacion con desinfectante dentro del galpon 9am'] },
+  { key: 'fumigacion_4pm', label: 'Fumigación con desinfectante 4pm', frequency: 'DIARIA', suggestedHour: '16:00', aliases: ['fumigacion con desinfectante dentro del galpon 4pm', 'fumigacion diaria 4pm'] },
+  { key: 'revolcar_cama', label: 'Revolcar cama', frequency: 'DIARIA', suggestedHour: '10:00', aliases: ['revolcar cama'] },
+  { key: 'control_pediluvios', label: 'Control de pediluvios con creolina', frequency: 'DIARIA', suggestedHour: '08:30', aliases: ['pediluvio'] },
+  { key: 'control_plagas', label: 'Control de plagas con Cicario / Cipermetrina', frequency: 'DIARIA', suggestedHour: '17:00', aliases: ['control de plagas con cicario', 'control de plagas con cipermetrina', 'control de mosca con cipermetrina'] },
+  { key: 'limpiar_mallas_telaranas', label: 'Limpiar mallas y telarañas', frequency: 'SEMANAL', suggestedHour: '', aliases: ['limpiar malla', 'limpiar mallas', 'telarana'] },
+  { key: 'lavar_filtros', label: 'Lavar filtros', frequency: 'SEMANAL', suggestedHour: '', aliases: ['lavar filtro'] },
 ];
 
 export const routineFrequencyLabels: Record<RoutineFrequency, string> = {
@@ -59,14 +66,9 @@ export function isRoutineTemplate(template: Pick<ActividadProgramada, 'NombreAct
 
 export function getRoutineDefinition(item: Pick<ActividadProgramada | ActividadLote, 'NombreActividad' | 'Categoria'>): RoutineDefinition | undefined {
   const text = normalizeText(`${item.Categoria} ${item.NombreActividad}`);
-  if (text.includes('fumigacion diaria') || text.includes('fumigacion diaria 4pm')) return routineDefinitions[0];
-  if (text.includes('pediluvio')) return routineDefinitions[1];
-  if (text.includes('purgar linea diario')) return routineDefinitions[2];
-  if (text.includes('revolcar cama')) return routineDefinitions[3];
-  if (text.includes('limpiar malla') || text.includes('telarana')) return routineDefinitions[4];
-  if (text.includes('barrer bodega')) return routineDefinitions[5];
-  if (text.includes('lavar filtro')) return routineDefinitions[6];
-  return undefined;
+  return routineDefinitions.find((definition) =>
+    [definition.label, ...definition.aliases].some((alias) => text.includes(normalizeText(alias))),
+  );
 }
 
 export function getRoutineFrequency(item: Pick<ActividadProgramada, 'TipoFrecuencia' | 'NombreActividad' | 'Categoria'>): RoutineFrequency {
