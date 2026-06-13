@@ -22,10 +22,11 @@ export const preparationCategories: Array<{ key: PrepCategoryKey; label: string;
     label: 'Retiro',
     state: 'LIMPIEZA',
     tasks: [
-      { id: 'recoger_equipo', title: 'Recoger Equipo', category: 'RETIRO' },
+      { id: 'recoger_equipo', title: 'Recoger Equipo (Bebederos y Comederos)', category: 'RETIRO' },
+      { id: 'lavar_equipo', title: 'Lavar Equipo (Bebederos / Comederos)', category: 'RETIRO' },
       { id: 'barrer_pluma', title: 'Barrer Pluma', category: 'RETIRO' },
       { id: 'sacar_caracha', title: 'Sacar Caracha', category: 'RETIRO' },
-      { id: 'amontonar_pollinaza', title: 'Amontonar pollinaza 8 dias y registrar temperatura interna', category: 'RETIRO' },
+      { id: 'amontonar_pollinaza', title: 'Amontonar pollinaza 8 días y registrar temperatura interna', category: 'RETIRO' },
       { id: 'retiro_pollinaza', title: 'Retiro de Pollinaza Reusada en Exceso', category: 'RETIRO' },
     ],
   },
@@ -36,7 +37,6 @@ export const preparationCategories: Array<{ key: PrepCategoryKey; label: string;
     tasks: [
       { id: 'fumiga_coquito_1', title: 'Fumiga Coquito 1', category: 'DESINFECCION' },
       { id: 'fumiga_coquito_2', title: 'Fumiga Coquito 2', category: 'DESINFECCION' },
-      { id: 'lavar_equipo', title: 'Lavar Equipo (Bebederos / Comederos)', category: 'DESINFECCION' },
       { id: 'barrer_lavado_galpon', title: 'Barrer / Lavado Galpon', category: 'DESINFECCION' },
       { id: 'barrer_malla_techo', title: 'Barrer malla y limpiar techo', category: 'DESINFECCION' },
       { id: 'reparaciones_locativas', title: 'Reparaciones locativas', category: 'DESINFECCION' },
@@ -52,9 +52,9 @@ export const preparationCategories: Array<{ key: PrepCategoryKey; label: string;
     tasks: [
       { id: 'cisco_nuevo', title: 'Cisco Nuevo (en la mitad sin cama usada)', category: 'INSTALACION' },
       { id: 'divisiones', title: 'Divisiones', category: 'INSTALACION' },
-      { id: 'encortinar', title: 'Encortinar', category: 'INSTALACION' },
       { id: 'instalar_calentadoras', title: 'Instalar Calentadoras', category: 'INSTALACION' },
       { id: 'bebederos_comederos_babies', title: 'Meter Bebederos de Volteo y Comederos Babies', category: 'INSTALACION' },
+      { id: 'encortinar', title: 'Encortinar', category: 'INSTALACION' },
     ],
   },
   {
@@ -62,7 +62,7 @@ export const preparationCategories: Array<{ key: PrepCategoryKey; label: string;
     label: 'Recibimiento',
     state: 'RECIBIMIENTO',
     tasks: [
-      { id: 'precalentar', title: 'Precalentar 8h antes de la llegada', category: 'RECIBIMIENTO' },
+      { id: 'precalentar', title: 'Precalentar 8h antes de la llegada (32 grados)', category: 'RECIBIMIENTO' },
       { id: 'purgar_lineas', title: 'Purgar Lineas', category: 'RECIBIMIENTO' },
       { id: 'neutrar_agua', title: 'Neutrar el Agua de Bebida', category: 'RECIBIMIENTO' },
       { id: 'verificar_temperatura', title: 'Verificar Temperatura', category: 'RECIBIMIENTO' },

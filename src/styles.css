@@ -10337,12 +10337,14 @@ body:has(.native-record-screen--water) {
   }
 
   .pest-section-card--flies .pest-dosage-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-content: stretch;
+    align-items: stretch;
   }
 
   .pest-section-card--flies .pest-dosage-option {
-    min-height: 0;
+    min-height: 150px;
+    padding: 12px 8px;
   }
 
   .native-record-screen .pest-control-form > .pest-section-card--rodents {
@@ -10694,4 +10696,953 @@ body:has(.page-shell--daily-record) {
 .farm-map-card img,
 .farm-map-card .farm-shed__compact-bird::after {
   filter: none;
+}
+
+/* Shared date header for every operational record form. */
+.page-shell.page-shell--mobile.page-shell--record-view:has(.record-date-card) {
+  width: min(1180px, 100%);
+}
+
+.native-record-screen .record-date-card {
+  min-height: 140px;
+  grid-template-columns: 80px minmax(0, 1fr) auto;
+  gap: 24px;
+  padding: 24px;
+}
+
+.native-record-screen .record-date-card .water-date-card__icon {
+  width: 80px;
+  height: 80px;
+}
+
+.native-record-screen .record-date-card .water-date-card__icon svg {
+  width: 40px;
+  height: 40px;
+}
+
+.native-record-screen .record-date-card .water-date-card__date,
+.native-record-screen .record-date-card .water-date-card__status {
+  gap: 6px;
+}
+
+.native-record-screen .record-date-card .water-date-card__date span,
+.native-record-screen .record-date-card .water-date-card__status span {
+  font-size: 1rem;
+}
+
+.native-record-screen .record-date-card .water-date-card__date strong {
+  font-size: 1.65rem;
+}
+
+.native-record-screen .record-date-card .water-date-card__status strong {
+  padding: 8px 14px;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 560px) {
+  .native-record-screen .record-date-card {
+    min-height: 140px;
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .native-record-screen .record-date-card .water-date-card__icon {
+    width: 64px;
+    height: 64px;
+  }
+
+  .native-record-screen .record-date-card .water-date-card__icon svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  .native-record-screen .record-date-card .water-date-card__date strong {
+    font-size: 1.35rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .native-record-screen .record-date-card {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .native-record-screen .record-date-card .water-date-card__status {
+    grid-column: 2;
+    justify-items: start;
+  }
+}
+
+/* Wide layouts for operational forms with several related sections. */
+.vaccination-content-layout,
+.medication-content-layout,
+.dog-content-layout,
+.training-content-layout,
+.vaccination-content-column,
+.medication-content-column,
+.dog-content-column,
+.training-content-column {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.vaccination-main-card,
+.medication-main-card,
+.dog-main-card,
+.training-main-card {
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .vaccination-content-layout,
+  .medication-content-layout,
+  .dog-content-layout,
+  .training-content-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 22px;
+    align-items: stretch;
+  }
+
+  .vaccination-content-column--support,
+  .medication-content-column--support,
+  .training-assistants-section,
+  .dog-content-layout > .dog-photo-field {
+    border-left: 1px solid #e1e6e1;
+    padding-left: 22px;
+  }
+
+  .vaccination-content-column--support,
+  .medication-content-column--support {
+    align-content: start;
+  }
+
+  .vaccination-content-column .vaccination-field-grid--manual {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vaccination-content-column .vaccination-field-grid--manual > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  .vaccination-content-column--support .vaccination-photo-field,
+  .medication-content-column--support .vaccination-photo-field {
+    min-height: 138px;
+    align-content: center;
+  }
+
+  .medication-content-layout {
+    grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+  }
+
+  .medication-content-column--support .medication-option-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dog-content-layout {
+    grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+  }
+
+  .dog-content-column {
+    align-content: center;
+  }
+
+  .dog-content-layout > .dog-photo-field,
+  .dog-content-layout > .dog-photo-field .dog-photo-field__surface {
+    height: 100%;
+    min-height: 300px;
+  }
+
+  .dog-content-layout > .dog-photo-field.has-photo .dog-photo-field__surface,
+  .dog-content-layout > .dog-photo-field .dog-photo-field__surface img {
+    height: 100%;
+    min-height: 300px;
+  }
+
+  .training-content-layout {
+    grid-template-columns: minmax(360px, 0.8fr) minmax(0, 1.2fr);
+  }
+
+  .training-content-column {
+    grid-template-rows: auto auto minmax(220px, 1fr);
+  }
+
+  .training-content-column .training-signature-field,
+  .training-content-column .training-signature-field__surface {
+    height: 100%;
+  }
+
+  .training-assistants-section {
+    margin-top: 0;
+    align-content: start;
+  }
+}
+
+/* Daily register aligned with the operational record form system. */
+html:has(.page-shell--daily-record),
+body:has(.page-shell--daily-record) {
+  overflow: auto;
+}
+
+.app:has(.page-shell--daily-record) {
+  height: auto;
+  min-height: 100svh;
+  display: block;
+  overflow: visible;
+}
+
+.page-shell.page-shell--mobile.page-shell--daily-record {
+  width: min(1180px, 100%);
+  height: auto;
+  min-height: 0;
+  display: block;
+  overflow: visible;
+  padding-top: 12px;
+  padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 18px) !important;
+}
+
+.page-shell--daily-record .daily-register-card {
+  min-height: 0;
+  overflow: visible;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.page-shell--daily-record .daily-register-form,
+.daily-register-form {
+  height: auto;
+  min-height: 0;
+  grid-template-columns: 1fr !important;
+  gap: 14px;
+  align-content: start;
+  overflow: visible;
+  padding-bottom: calc(var(--sticky-action-height) + 12px);
+}
+
+.daily-register-form > .daily-register-date-card,
+.daily-register-form > .daily-register-main-card,
+.daily-register-form > .form-optional-panel,
+.daily-register-form > .daily-register-error,
+.daily-register-form > .primary-action {
+  grid-column: 1 / -1;
+}
+
+.daily-register-date-card {
+  position: relative;
+  min-height: 140px;
+  grid-template-columns: 80px minmax(0, 1fr) auto;
+  gap: 24px;
+  padding: 24px;
+}
+
+.daily-register-date-card--with-back {
+  grid-template-columns: 44px 80px minmax(0, 1fr) auto;
+}
+
+.daily-register-back-button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #cfe0d2;
+  border-radius: 8px;
+  background: #eef8e9;
+  color: #24634f;
+}
+
+.daily-register-back-button:focus-visible {
+  outline: 3px solid rgb(38 123 27 / 18%);
+  outline-offset: 2px;
+}
+
+.daily-register-date-card .water-date-card__icon {
+  width: 80px;
+  height: 80px;
+}
+
+.daily-register-date-card .water-date-card__icon svg {
+  width: 40px;
+  height: 40px;
+}
+
+.daily-register-date-card .water-date-card__date,
+.daily-register-date-card .water-date-card__status {
+  gap: 5px;
+}
+
+.daily-register-date-card .water-date-card__date span,
+.daily-register-date-card .water-date-card__status span {
+  font-size: 1rem;
+}
+
+.daily-register-date-card .water-date-card__date strong {
+  font-size: 1.65rem;
+}
+
+.daily-register-date-card .water-date-card__date small {
+  color: #64706a;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.daily-register-date-card .water-date-card__status strong {
+  padding: 8px 14px;
+  font-size: 0.88rem;
+}
+
+.daily-register-main-card {
+  min-width: 0;
+  display: grid;
+  gap: 20px;
+  padding: 20px;
+}
+
+.daily-register-main-card__header,
+.daily-register-section-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.daily-register-main-card__icon {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #e8f8e3;
+  color: #267b1b;
+}
+
+.daily-register-main-card__header > strong {
+  min-width: 0;
+  color: #11181d;
+  font-size: 2rem;
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.daily-register-content-layout {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  align-items: stretch;
+}
+
+.daily-register-form--with-sacrifice .daily-register-content-layout {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.daily-register-form .daily-register-form__section {
+  min-width: 0;
+  display: grid;
+  grid-column: auto;
+  align-content: start;
+  gap: 16px;
+  border-left: 1px solid #e1e6e1;
+  padding: 4px 22px;
+}
+
+.daily-register-form .daily-register-form__section:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.daily-register-form .daily-register-form__section:last-child {
+  padding-right: 0;
+}
+
+.daily-register-section-title span {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #e8f8e3;
+  color: #267b1b;
+}
+
+.daily-register-section-title strong {
+  min-width: 0;
+  color: #11181d;
+  font-size: 1.2rem;
+  font-weight: 950;
+}
+
+.daily-register-form .daily-register-form__section > .form-grid {
+  grid-template-columns: 1fr !important;
+  gap: 12px;
+  padding-bottom: 0;
+}
+
+.daily-register-form .daily-register-form__section .field {
+  gap: 7px;
+}
+
+.daily-register-form .daily-register-form__section .field span {
+  color: #2f3a34;
+  font-size: 0.86rem;
+  font-weight: 750;
+  text-transform: none;
+}
+
+.daily-register-form .daily-register-form__section .field input,
+.daily-register-form .daily-register-form__section .field select {
+  min-height: 54px;
+  border: 1.5px solid #d0d5d2;
+  border-radius: 8px;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #11181d;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.daily-register-form .daily-register-form__section .field small {
+  color: #64706a;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.daily-register-form .count-button-grid {
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.daily-register-form .count-button {
+  gap: 9px;
+  border: 1.5px solid #d8ded7;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+  box-shadow: 0 7px 16px rgb(22 34 29 / 5%);
+}
+
+.daily-register-form .count-button > span {
+  color: #2f3a34;
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.daily-register-form .count-button > div {
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 8px;
+}
+
+.daily-register-form .count-button button,
+.daily-register-form .count-button input {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  border-radius: 8px;
+}
+
+.daily-register-form .count-button input {
+  width: 100%;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.daily-register-form .sacrifice-start-button,
+.daily-register-form .sacrifice-locked {
+  min-height: 116px;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.daily-register-form > .form-optional-panel {
+  border: 1px solid rgb(22 34 29 / 7%);
+  border-radius: 8px;
+  padding: 12px 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgb(22 34 29 / 10%);
+}
+
+.page-shell--daily-record .daily-register-form > .primary-action {
+  position: fixed;
+  right: max(calc(10px + var(--safe-right)), calc((100vw - 680px) / 2 + 10px));
+  bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 8px);
+  left: max(calc(10px + var(--safe-left)), calc((100vw - 680px) / 2 + 10px));
+  z-index: 44;
+  width: auto;
+  min-height: 64px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2b7d1f 0%, #17670f 100%);
+  box-shadow: 0 14px 28px rgb(38 123 27 / 26%);
+  font-size: 1.12rem;
+  font-weight: 950;
+}
+
+@media (max-width: 760px) {
+  .page-shell.page-shell--mobile.page-shell--daily-record {
+    padding-top: 10px;
+  }
+
+  .daily-register-date-card,
+  .daily-register-date-card--with-back {
+    min-height: 140px;
+    grid-template-columns: 42px 64px minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .daily-register-date-card:not(.daily-register-date-card--with-back) {
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+  }
+
+  .daily-register-date-card .water-date-card__icon {
+    width: 64px;
+    height: 64px;
+  }
+
+  .daily-register-date-card .water-date-card__icon svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  .daily-register-date-card--with-back .water-date-card__status {
+    grid-column: 3;
+    justify-items: start;
+  }
+
+  .daily-register-date-card .water-date-card__date strong {
+    font-size: 1.35rem;
+  }
+
+  .daily-register-main-card {
+    gap: 16px;
+    padding: 14px;
+  }
+
+  .daily-register-main-card__header {
+    gap: 12px;
+  }
+
+  .daily-register-main-card__icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .daily-register-main-card__header > strong {
+    font-size: 1.7rem;
+  }
+
+  .daily-register-content-layout,
+  .daily-register-form--with-sacrifice .daily-register-content-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-register-form .daily-register-form__section,
+  .daily-register-form .daily-register-form__section:first-child,
+  .daily-register-form .daily-register-form__section:last-child {
+    border-left: 0;
+    border-top: 1px solid #e1e6e1;
+    padding: 16px 0 0;
+  }
+
+  .daily-register-form .daily-register-form__section:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .daily-register-form .count-button-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 390px) {
+  .daily-register-form .count-button-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Entrada forms aligned with the operational record form system. */
+.page-shell.page-shell--mobile.page-shell--record-view:has(.entry-record-form) {
+  width: min(1180px, 100%);
+}
+
+.native-record-screen:has(.entry-record-form) .record-form-surface {
+  min-height: 0;
+  margin: 0;
+  padding: 0 0 calc(var(--bottom-nav-height) + var(--sticky-action-height) + var(--safe-bottom) + 18px);
+  background: #f3f4f1;
+}
+
+.native-record-screen .entry-record-form {
+  grid-template-columns: 1fr !important;
+  gap: 14px;
+  align-items: stretch;
+  padding-bottom: 0;
+}
+
+.entry-record-form > .entry-record-date-card,
+.entry-record-form > .entry-record-main-card,
+.entry-record-form > .primary-action {
+  grid-column: 1 / -1;
+}
+
+.entry-record-date-card {
+  min-height: 140px;
+  grid-template-columns: 44px 80px minmax(0, 1fr) auto;
+  gap: 20px;
+  padding: 24px;
+}
+
+.entry-record-back-button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #cfe0d2;
+  border-radius: 8px;
+  background: #eef8e9;
+  color: #24634f;
+}
+
+.entry-record-back-button:focus-visible {
+  outline: 3px solid rgb(38 123 27 / 18%);
+  outline-offset: 2px;
+}
+
+.entry-record-date-card .water-date-card__icon {
+  width: 80px;
+  height: 80px;
+}
+
+.entry-record-date-card .water-date-card__icon svg {
+  width: 40px;
+  height: 40px;
+}
+
+.entry-record-date-card .water-date-card__date,
+.entry-record-date-card .water-date-card__status {
+  gap: 6px;
+}
+
+.entry-record-date-card .water-date-card__date span,
+.entry-record-date-card .water-date-card__status span {
+  font-size: 1rem;
+}
+
+.entry-record-date-card .water-date-card__date strong {
+  font-size: 1.65rem;
+}
+
+.entry-record-date-card .water-date-card__status strong {
+  padding: 8px 14px;
+  font-size: 0.88rem;
+}
+
+.entry-record-main-card {
+  min-width: 0;
+  display: grid;
+  gap: 20px;
+  padding: 20px;
+}
+
+.entry-record-main-card__header {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.entry-record-main-card__icon {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #e8f8e3;
+  color: #267b1b;
+}
+
+.entry-record-main-card__icon svg {
+  width: 34px;
+  height: 34px;
+}
+
+.entry-record-main-card__header > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.entry-record-main-card__header strong {
+  min-width: 0;
+  color: #11181d;
+  font-size: 2rem;
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.entry-record-main-card__header small {
+  color: #64706a;
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.entry-record-content-layout,
+.entry-record-inputs,
+.entry-record-summary {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  align-content: stretch;
+}
+
+.entry-record-content-layout {
+  grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
+  gap: 22px;
+}
+
+.entry-record-inputs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: center;
+}
+
+.entry-material-form .entry-record-inputs {
+  grid-template-columns: 1fr;
+}
+
+.native-record-screen .entry-record-inputs .field {
+  display: grid;
+  gap: 8px;
+  border: 1.5px solid #d8ded7;
+  border-radius: 8px;
+  padding: 14px;
+  background: #ffffff;
+  box-shadow: 0 7px 16px rgb(22 34 29 / 5%);
+}
+
+.native-record-screen .entry-record-inputs .field span {
+  color: #2f3a34;
+  font-size: 0.86rem;
+  font-weight: 750;
+  text-transform: none;
+}
+
+.native-record-screen .entry-record-inputs .field input,
+.native-record-screen .entry-record-inputs .field select {
+  min-height: 54px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+
+.entry-record-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-left: 1px solid #e1e6e1;
+  padding-left: 22px;
+}
+
+.entry-record-summary > div {
+  min-width: 0;
+  min-height: 150px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  border: 1.5px solid #d8ded7;
+  border-radius: 8px;
+  padding: 18px;
+  background: #fbfdfb;
+  text-align: center;
+}
+
+.entry-record-summary span {
+  color: #64706a;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.entry-record-summary strong {
+  min-width: 0;
+  color: #267b1b;
+  font-size: 1.45rem;
+  font-weight: 950;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.entry-record-main-card > .form-optional-panel {
+  border: 1px solid rgb(22 34 29 / 7%);
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: #ffffff;
+  box-shadow: 0 7px 16px rgb(22 34 29 / 5%);
+}
+
+@media (max-width: 760px) {
+  .entry-record-date-card {
+    min-height: 140px;
+    grid-template-columns: 42px 64px minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .entry-record-date-card .water-date-card__icon {
+    width: 64px;
+    height: 64px;
+  }
+
+  .entry-record-date-card .water-date-card__icon svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  .entry-record-date-card .water-date-card__status {
+    grid-column: 3;
+    justify-items: start;
+  }
+
+  .entry-record-date-card .water-date-card__date strong {
+    font-size: 1.35rem;
+  }
+
+  .entry-record-main-card {
+    gap: 16px;
+    padding: 14px;
+  }
+
+  .entry-record-main-card__header {
+    gap: 12px;
+  }
+
+  .entry-record-main-card__icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .entry-record-main-card__header strong {
+    font-size: 1.65rem;
+  }
+
+  .entry-record-content-layout,
+  .entry-record-inputs,
+  .entry-record-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .entry-record-summary {
+    border-top: 1px solid #e1e6e1;
+    border-left: 0;
+    padding-top: 16px;
+    padding-left: 0;
+  }
+
+  .entry-record-summary > div {
+    min-height: 100px;
+  }
+}
+
+/* Entrada launcher: large centered options in a single column. */
+.page-shell.page-shell--mobile:has(> .entry-card-grid) {
+  width: min(920px, 100%);
+}
+
+.entry-card-grid {
+  width: min(680px, 100%);
+  margin-inline: auto;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.entry-option-card {
+  min-height: 150px;
+  grid-template-columns: 84px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: center;
+  align-items: center;
+  justify-items: start;
+  column-gap: 22px;
+  row-gap: 6px;
+  border: 1px solid rgb(22 34 29 / 10%);
+  border-radius: 8px;
+  padding: 24px 28px;
+  background: #ffffff;
+  box-shadow: 0 14px 30px rgb(20 33 29 / 11%);
+  text-align: left;
+}
+
+.entry-option-card::after {
+  display: none;
+}
+
+.entry-option-card .entry-option-card__icon {
+  grid-row: 1 / span 2;
+  width: 84px;
+  height: 84px;
+  border-radius: 8px;
+  background: #e8f8e3;
+  color: #267b1b;
+  box-shadow: none;
+}
+
+.entry-option-card .entry-option-card__icon svg {
+  width: 44px;
+  height: 44px;
+}
+
+.entry-option-card strong {
+  align-self: end;
+  font-size: 1.55rem;
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.entry-option-card small {
+  display: block;
+  align-self: start;
+  color: #64706a;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.entry-option-card:focus-visible {
+  border-color: #267b1b;
+  outline: 3px solid rgb(38 123 27 / 16%);
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .entry-card-grid {
+    gap: 14px;
+  }
+
+  .entry-option-card {
+    min-height: 126px;
+    grid-template-columns: 68px minmax(0, 1fr);
+    column-gap: 16px;
+    padding: 18px;
+  }
+
+  .entry-option-card .entry-option-card__icon {
+    width: 68px;
+    height: 68px;
+  }
+
+  .entry-option-card .entry-option-card__icon svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .entry-option-card strong {
+    font-size: 1.3rem;
+  }
+
+  .entry-option-card small {
+    font-size: 0.8rem;
+  }
 }

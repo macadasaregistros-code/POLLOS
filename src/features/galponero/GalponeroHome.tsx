@@ -234,18 +234,8 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   if (activeView === 'actividades' && activeDailyLote) {
     return (
       <main className="page-shell page-shell--mobile page-shell--detail page-shell--record-view page-shell--daily-record">
-        <header className="native-detail-header">
-          <button className="native-back-button" type="button" aria-label="Volver a hoy" onClick={() => setActiveDailyLoteId('')}>
-            <ArrowLeft size={22} />
-          </button>
-          <div>
-            <span>HOY</span>
-            <h1>Registro diario</h1>
-            <small>{activeDailyLote.CodigoLote}</small>
-          </div>
-        </header>
         <MobileCard className="native-view-card daily-register-card">
-          <RegistrarDiaForm lote={activeDailyLote} user={user} onSaved={handleDailySaved} />
+          <RegistrarDiaForm lote={activeDailyLote} user={user} onSaved={handleDailySaved} onBack={() => setActiveDailyLoteId('')} />
         </MobileCard>
       </main>
     );

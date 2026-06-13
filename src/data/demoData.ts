@@ -43,73 +43,43 @@ export interface DemoData {
   alertas: Alerta[];
 }
 
-const baseActivityRows: Array<[string, string, ActividadProgramada['TipoFrecuencia'], number, string, number, number]> = [
-  ['Sale todo el pollo.', 'Salida', 'UNICA', 42, '', 35, 45],
-  ['Recoger Equipo.', 'Retiro', 'UNICA', -14, '', -20, -10],
-  ['Barrer Pluma.', 'Retiro', 'UNICA', -13, '', -20, -9],
-  ['Sacar Caracha.', 'Retiro', 'UNICA', -12, '', -20, -8],
-  ['Amontonar pollinaza y registrar temperatura interna.', 'Retiro', 'DIARIA', -11, '10:00', -11, -4],
-  ['Retiro de Pollinaza Reusada en Exceso.', 'Retiro', 'UNICA', -3, '', -5, -1],
-  ['Fumiga Coquito 1.', 'Desinfección', 'UNICA', -4, '', -5, -3],
-  ['Fumiga Coquito 2.', 'Desinfección', 'UNICA', -2, '', -3, -1],
-  ['Lavar Equipo (Bebederos / Comederos).', 'Desinfección', 'UNICA', -2, '', -5, -1],
-  ['Barrer / Lavado Galpon.', 'Desinfección', 'UNICA', -2, '', -5, -1],
-  ['Barrer malla y limpiar techo.', 'Desinfección', 'UNICA', -2, '', -5, -1],
-  ['Reparaciones locativas.', 'Desinfección', 'UNICA', -2, '', -5, -1],
-  ['Lavar tanques de agua y purgar líneas.', 'Desinfección', 'UNICA', -1, '', -3, 1],
-  ['Calear.', 'Desinfección', 'UNICA', -2, '', -5, -1],
-  ['Fumiga Desinfectante.', 'Desinfección', 'UNICA', -1, '', -3, 1],
-  ['Cisco Nuevo (en la mitad sin cama usada).', 'Instalación', 'UNICA', -1, '', -3, 1],
-  ['Divisiones.', 'Instalación', 'UNICA', -1, '', -3, 1],
-  ['Encortinar.', 'Instalación', 'UNICA', -1, '', -3, 1],
-  ['Instalar Calentadoras.', 'Instalación', 'UNICA', -1, '', -3, 1],
-  ['Meter Bebederos de Volteo y Comederos Babies.', 'Instalación', 'UNICA', -1, '', -3, 1],
-  ['Precalentar 8h antes de la llegada.', 'Recibimiento', 'UNICA', 0, '20:00', -1, 1],
-  ['Purgar Lineas.', 'Recibimiento', 'UNICA', 0, '', -1, 1],
-  ['Neutrar el Agua de Bebida.', 'Recibimiento', 'UNICA', 0, '', -1, 1],
-  ['Verificar Temperatura.', 'Recibimiento', 'UNICA', 0, '', -1, 1],
-  ['Llegada del Pollito.', 'Recibimiento', 'UNICA', 1, '', 1, 1],
-  ['Ampliación día 3.', 'Manejo', 'SEGUN_DIA_LOTE', 3, '', 3, 3],
-  ['Ampliación día 8.', 'Manejo', 'SEGUN_DIA_LOTE', 8, '', 8, 8],
-  ['Bajar hembras.', 'Manejo', 'SEGUN_DIA_LOTE', 10, '', 8, 12],
-  ['Vacunación Gumboro.', 'Vacunas', 'SEGUN_DIA_LOTE', 8, '', 8, 8],
-  ['Vacunación Newcastle.', 'Vacunas', 'SEGUN_DIA_LOTE', 10, '', 10, 10],
-  ['Sacar bebederos babies día 11.', 'Manejo', 'SEGUN_DIA_LOTE', 11, '', 11, 11],
-  ['Ampliación y retirada calentadoras día 15.', 'Manejo', 'SEGUN_DIA_LOTE', 15, '', 15, 15],
-  ['Retirar/lavar cortinas cuando salen calentadoras.', 'Manejo', 'SEGUN_DIA_LOTE', 15, '', 15, 16],
-  ['Ampliación día 20.', 'Manejo', 'SEGUN_DIA_LOTE', 20, '', 20, 20],
-  ['Desencortinar día 20.', 'Manejo', 'SEGUN_DIA_LOTE', 20, '', 20, 20],
-  ['Alimentación mañana 70%.', 'Alimentación', 'DIARIA', 1, '07:00', 1, 42],
-  ['Alimentación tarde 30%.', 'Alimentación', 'DIARIA', 1, '16:00', 1, 42],
-  ['Acuades diario 9am.', 'Agua', 'DIARIA', 1, '09:00', 1, 42],
-  ['Fumigación diaria 4pm.', 'Rutina', 'DIARIA', 1, '16:00', 1, 42],
-  ['Medir cloro.', 'Agua', 'DIARIA', 1, '08:00', 1, 42],
-  ['Medir pH.', 'Agua', 'DIARIA', 1, '08:00', 1, 42],
-  ['Cambio diario de pediluvios con creolina.', 'Rutina', 'DIARIA', 1, '08:30', 1, 42],
-  ['Purgar línea diario.', 'Rutina', 'DIARIA', 1, '08:00', 1, 42],
-  ['Control de roedores.', 'Bioseguridad', 'SEMANAL', 7, '', 1, 42],
-  ['Control de mosca con cipermetrina.', 'Bioseguridad', 'SEMANAL', 7, '16:00', 1, 42],
-  ['Limpiar malla y telarañas.', 'Rutina', 'SEMANAL', 7, '', 1, 42],
-  ['Barrer bodegas.', 'Rutina', 'SEMANAL', 7, '', 1, 42],
-  ['Revolcar cama.', 'Rutina', 'DIARIA', 1, '10:00', 3, 42],
-  ['Lavar filtros.', 'Rutina', 'SEMANAL', 7, '', 1, 42],
-  ['Clorar tanque principal cada 3 días.', 'Agua', 'CADA_3_DIAS', 3, '', 1, 42],
-  ['Sulfatar tanque 24 horas antes de clorar.', 'Agua', 'CADA_3_DIAS', 2, '', 1, 42],
+const baseActivityRows: Array<[string, string, string, ActividadProgramada['TipoFrecuencia'], number, string, number, number]> = [
+  ['act_lote_ampliacion_dia_3', 'Ampliación día 3.', 'Manejo', 'SEGUN_DIA_LOTE', 3, '', 3, 3],
+  ['act_lote_ampliacion_dia_8', 'Ampliación día 8.', 'Manejo', 'SEGUN_DIA_LOTE', 8, '', 8, 8],
+  ['act_lote_sacar_bebederos_babies_dia_11', 'Sacar bebederos babies día 11.', 'Manejo', 'SEGUN_DIA_LOTE', 11, '', 11, 11],
+  ['act_lote_retirar_calentadoras_dia_15', 'Ampliación y retirada calentadoras día 15.', 'Manejo', 'SEGUN_DIA_LOTE', 15, '', 15, 15],
+  ['act_lote_ampliacion_dia_20', 'Ampliación día 20.', 'Manejo', 'SEGUN_DIA_LOTE', 20, '', 20, 20],
+  ['act_lote_desencortinar_dia_20', 'Desencortinar día 20.', 'Manejo', 'SEGUN_DIA_LOTE', 20, '', 20, 20],
+  ['act_lote_bajar_hembras_dia_21', 'Bajar hembras día 21.', 'Manejo', 'SEGUN_DIA_LOTE', 21, '', 21, 21],
+  ['act_rutina_clorar_tanque', 'Clorar tanque principal cada 3 días.', 'Agua', 'CADA_3_DIAS', 3, '', 3, 42],
+  ['act_rutina_sulfatar_tanque', 'Sulfatar tanque 24 horas antes de clorar.', 'Agua', 'CADA_3_DIAS', 2, '', 2, 41],
+  ['act_rutina_medir_cloro_ph', 'Medir cloro y pH en líneas y tanques.', 'Agua', 'DIARIA', 1, '08:00', 1, 42],
+  ['act_rutina_purgar_linea', 'Purgar línea.', 'Agua', 'DIARIA', 1, '08:00', 1, 42],
+  ['act_rutina_alimentacion_manana', 'Alimentación mañana 70% (5:00 - 5:30 am).', 'Alimentación', 'DIARIA', 1, '05:00', 1, 42],
+  ['act_rutina_alimentacion_tarde', 'Alimentación tarde 30% (3:00 - 4:00 pm).', 'Alimentación', 'DIARIA', 1, '15:00', 1, 42],
+  ['act_rutina_fumigacion_9am', 'Fumigación con desinfectante dentro del galpón 9am.', 'Bioseguridad', 'DIARIA', 1, '09:00', 1, 42],
+  ['act_rutina_fumigacion_4pm', 'Fumigación con desinfectante dentro del galpón 4pm.', 'Bioseguridad', 'DIARIA', 1, '16:00', 1, 42],
+  ['act_rutina_revolcar_cama', 'Revolcar cama.', 'Rutina', 'DIARIA', 1, '10:00', 1, 42],
+  ['act_rutina_control_pediluvios', 'Control de pediluvios con creolina.', 'Bioseguridad', 'DIARIA', 1, '08:30', 1, 42],
+  ['act_rutina_control_plagas', 'Control de plagas con Cicario / Cipermetrina para la mosca alrededor del galpón.', 'Plagas', 'DIARIA', 1, '17:00', 1, 42],
+  ['act_rutina_limpiar_mallas', 'Limpiar mallas y telarañas.', 'Rutina', 'SEMANAL', 7, '', 7, 42],
+  ['act_rutina_lavar_filtros', 'Lavar filtros.', 'Rutina', 'SEMANAL', 7, '', 7, 42],
 ];
 
-const baseActivities: Array<Omit<ActividadProgramada, 'ActividadProgramadaID'>> = baseActivityRows.map(
-  ([NombreActividad, Categoria, TipoFrecuencia, DiaLote, HoraSugerida, AplicaDesdeDia, AplicaHastaDia]) => ({
-  NombreActividad: String(NombreActividad),
-  Categoria: String(Categoria),
-  TipoFrecuencia: TipoFrecuencia as ActividadProgramada['TipoFrecuencia'],
-  DiaLote: Number(DiaLote),
-  HoraSugerida: String(HoraSugerida),
-  AplicaDesdeDia: Number(AplicaDesdeDia),
-  AplicaHastaDia: Number(AplicaHastaDia),
-  RequiereDato: /calentadoras|Cisco|temperatura|pollinaza/i.test(String(NombreActividad)),
-  RequiereFoto: false,
-  Activa: true,
-}),
+const baseActivities: ActividadProgramada[] = baseActivityRows.map(
+  ([ActividadProgramadaID, NombreActividad, Categoria, TipoFrecuencia, DiaLote, HoraSugerida, AplicaDesdeDia, AplicaHastaDia]) => ({
+    ActividadProgramadaID: String(ActividadProgramadaID),
+    NombreActividad: String(NombreActividad),
+    Categoria: String(Categoria),
+    TipoFrecuencia: TipoFrecuencia as ActividadProgramada['TipoFrecuencia'],
+    DiaLote: Number(DiaLote),
+    HoraSugerida: String(HoraSugerida),
+    AplicaDesdeDia: Number(AplicaDesdeDia),
+    AplicaHastaDia: Number(AplicaHastaDia),
+    RequiereDato: /calentadoras|Cisco|temperatura|pollinaza/i.test(String(NombreActividad)),
+    RequiereFoto: false,
+    Activa: true,
+  }),
 );
 
 export function createDemoData(): DemoData {
@@ -346,10 +316,7 @@ export function createDemoData(): DemoData {
     },
   ];
 
-  const actividadesProgramadas: ActividadProgramada[] = baseActivities.map((activity, index) => ({
-    ActividadProgramadaID: `act_base_${String(index + 1).padStart(2, '0')}`,
-    ...activity,
-  }));
+  const actividadesProgramadas: ActividadProgramada[] = baseActivities.map((activity) => ({ ...activity }));
 
   const actividadesLote: ActividadLote[] = actividadesProgramadas
     .filter((activity) => activity.Activa && activity.AplicaDesdeDia <= diaLote && activity.AplicaHastaDia >= Math.max(1, diaLote - 2))
@@ -358,7 +325,7 @@ export function createDemoData(): DemoData {
         activity.TipoFrecuencia === 'DIARIA'
           ? diaLote
           : activity.TipoFrecuencia === 'CADA_3_DIAS'
-            ? Math.max(1, diaLote - (diaLote % 3))
+            ? Math.max(activity.AplicaDesdeDia, diaLote - ((diaLote - activity.AplicaDesdeDia) % 3))
             : activity.TipoFrecuencia === 'MENSUAL'
               ? Math.max(1, diaLote - ((diaLote - Math.max(1, activity.AplicaDesdeDia)) % 30))
             : activity.DiaLote;

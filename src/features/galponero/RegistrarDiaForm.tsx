@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { CalendarDays, Save } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ClipboardCheck, HeartPulse, Save, Scissors, Wheat } from 'lucide-react';
 import { FormOptionalPanel } from '../../components/FormOptionalPanel';
 import { registrarDia } from '../../services/domainService';
 import { db } from '../../services/localDbService';
@@ -12,12 +12,13 @@ interface RegistrarDiaFormProps {
   lote: Lote;
   user: Usuario;
   onSaved: (message: string) => void;
+  onBack?: () => void;
 }
 
 const foodOrder = ['preiniciador', 'iniciador', 'engorde'] as const;
 const dailyShortMonths = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] as const;
 
-export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps) {
+export function RegistrarDiaForm({ lote, user, onSaved, onBack }: RegistrarDiaFormProps) {
   const tiposAlimento = useLiveQuery(() => db.tiposAlimento.toArray().then((items) => items.filter((item) => item.Activo)), []);
   const registrosLote = useLiveQuery(() => db.registroDiarioLote.where('LoteID').equals(lote.LoteID).toArray(), [lote.LoteID]);
   const salidasLote = useLiveQuery(() => db.salidasPollo.where('LoteID').equals(lote.LoteID).toArray(), [lote.LoteID]);
@@ -108,6 +109,7 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
           loteCode={lote.CodigoLote}
           diaLote={diaLote}
           status={todayRecord.EstadoSync === 'SINCRONIZADO' ? 'Guardado' : 'Por enviar'}
+          onBack={onBack}
         />
         <div className="daily-register-complete" role="status">
           <strong>Registro diario completado</strong>
@@ -120,64 +122,70 @@ export function RegistrarDiaForm({ lote, user, onSaved }: RegistrarDiaFormProps)
 
   return (
     <form className={`form-grid daily-register-form flow-form ${sacrificeCanStart ? 'daily-register-form--with-sacrifice' : ''}`} onSubmit={handleSubmit}>
-      <DailyRegisterDateCard date={today} loteCode={lote.CodigoLote} diaLote={diaLote} status="Pendiente" />
+      <DailyRegisterDateCard date={today} loteCode={lote.CodigoLote} diaLote={diaLote} status="Pendiente" onBack={onBack} />
 
-      <section className="form-section daily-register-form__section daily-register-form__section--feed">
-        <h3>Alimentación</h3>
-        <div className="form-grid">
-          <label className="field">
-            <span>Tipo alimento</span>
-            <select value={currentTipoId} onChange={(event) => setTipoAlimentoId(event.target.value)} required>
-              {tiposOrdenados.map((tipo) => (
-                <option key={tipo.TipoAlimentoID} value={tipo.TipoAlimentoID}>
-                  {tipo.Nombre}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Bultos hoy</span>
-            <input
-              inputMode="decimal"
-              type="number"
-              min="0"
-              step="0.25"
-              value={bultos}
-              onChange={(event) => setBultos(event.target.value)}
-            />
-            <small>{kgConsumidos.toFixed(1)} kg calculados</small>
-          </label>
+      <section className="water-form-card daily-register-main-card">
+        <header className="daily-register-main-card__header">
+          <span className="daily-register-main-card__icon" aria-hidden="true">
+            <ClipboardCheck size={42} />
+          </span>
+          <strong>REGISTRO DIARIO</strong>
+        </header>
+
+        <div className="daily-register-content-layout">
+          <section className="daily-register-form__section daily-register-form__section--feed">
+            <DailySectionTitle icon={<Wheat size={28} />} title="Alimentación" />
+            <div className="form-grid">
+              <label className="field">
+                <span>Tipo alimento</span>
+                <select value={currentTipoId} onChange={(event) => setTipoAlimentoId(event.target.value)} required>
+                  {tiposOrdenados.map((tipo) => (
+                    <option key={tipo.TipoAlimentoID} value={tipo.TipoAlimentoID}>
+                      {tipo.Nombre}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Bultos hoy</span>
+                <input
+                  inputMode="decimal"
+                  type="number"
+                  min="0"
+                  step="0.25"
+                  value={bultos}
+                  onChange={(event) => setBultos(event.target.value)}
+                />
+                <small>{kgConsumidos.toFixed(1)} kg calculados</small>
+              </label>
+            </div>
+          </section>
+
+          <section className="daily-register-form__section daily-register-form__section--mortality">
+            <DailySectionTitle icon={<HeartPulse size={28} />} title="Mortalidad" />
+            <div className="count-button-grid">
+              <CountButton label="Machos" value={muertosM} onChange={setMuertosM} />
+              <CountButton label="Hembras" value={muertosH} onChange={setMuertosH} />
+            </div>
+          </section>
+
+          {sacrificeCanStart && (
+            <section className="daily-register-form__section daily-register-form__section--sacrifice">
+              <DailySectionTitle icon={<Scissors size={28} />} title="Sacrificio" />
+              {sacrificioActivo ? (
+                <div className="count-button-grid">
+                  <CountButton label="Machos" value={sacrificadosM} onChange={setSacrificadosM} />
+                  <CountButton label="Hembras" value={sacrificadosH} onChange={setSacrificadosH} />
+                </div>
+              ) : (
+                <button className="sacrifice-start-button" type="button" onClick={handleActivateSacrifice}>
+                  Activar sacrificio para este lote
+                </button>
+              )}
+            </section>
+          )}
         </div>
       </section>
-
-      <section className="form-section daily-register-form__section daily-register-form__section--mortality">
-        <h3>Mortalidad</h3>
-        <div className="count-button-grid">
-          <CountButton label="Machos" value={muertosM} onChange={setMuertosM} />
-          <CountButton label="Hembras" value={muertosH} onChange={setMuertosH} />
-        </div>
-      </section>
-
-      {sacrificeCanStart && (
-      <section className="form-section daily-register-form__section daily-register-form__section--sacrifice">
-        <h3>Sacrificio</h3>
-        {sacrificioActivo ? (
-          <div className="count-button-grid">
-            <CountButton label="Machos" value={sacrificadosM} onChange={setSacrificadosM} />
-            <CountButton label="Hembras" value={sacrificadosH} onChange={setSacrificadosH} />
-          </div>
-        ) : sacrificeCanStart ? (
-          <button className="sacrifice-start-button" type="button" onClick={handleActivateSacrifice}>
-            Activar sacrificio para este lote
-          </button>
-        ) : (
-          <div className="sacrifice-locked">
-            <strong>Día {diaLote}</strong>
-            <span>El sacrificio se puede activar desde el día 36 del lote.</span>
-          </div>
-        )}
-      </section>
-      )}
 
       <FormOptionalPanel label="Observacion" value={observacion}>
       <label className="field field--full field--nested">
@@ -217,9 +225,35 @@ function CountButton({ label, value, onChange }: { label: string; value: string;
   );
 }
 
-function DailyRegisterDateCard({ date, loteCode, diaLote, status }: { date: string; loteCode: string; diaLote: number; status: string }) {
+function DailySectionTitle({ icon, title }: { icon: ReactNode; title: string }) {
   return (
-    <section className="water-date-card daily-register-date-card" aria-label="Fecha y estado del registro">
+    <header className="daily-register-section-title">
+      <span aria-hidden="true">{icon}</span>
+      <strong>{title}</strong>
+    </header>
+  );
+}
+
+function DailyRegisterDateCard({
+  date,
+  loteCode,
+  diaLote,
+  status,
+  onBack,
+}: {
+  date: string;
+  loteCode: string;
+  diaLote: number;
+  status: string;
+  onBack?: () => void;
+}) {
+  return (
+    <section className={`water-date-card daily-register-date-card ${onBack ? 'daily-register-date-card--with-back' : ''}`} aria-label="Fecha y estado del registro">
+      {onBack && (
+        <button className="daily-register-back-button" type="button" aria-label="Volver a hoy" onClick={onBack}>
+          <ArrowLeft size={24} />
+        </button>
+      )}
       <span className="water-date-card__icon">
         <CalendarDays size={30} />
       </span>
