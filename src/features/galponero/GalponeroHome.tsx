@@ -146,6 +146,7 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   }
 
   function handleActivityRecordChange(kind: ActivityRecordKind | '') {
+    if (kind) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     setActiveActivityRecord(kind);
     if (!kind) setActiveRecordContext(undefined);
   }
@@ -177,6 +178,7 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
       return;
     }
     if (task.action.type === 'record') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       setActiveRecordContext(task.action.context);
       setActiveActivityRecord(task.action.kind);
       return;

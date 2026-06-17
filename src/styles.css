@@ -11400,6 +11400,385 @@ body:has(.page-shell--daily-record) {
   }
 }
 
+/* Daily register fixed-action clearance. */
+.page-shell--daily-record {
+  --daily-register-action-height: 64px;
+}
+
+.page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) > .form-optional-panel.is-open {
+  bottom: calc(var(--bottom-nav-height) + var(--daily-register-action-height) + var(--safe-bottom) + 16px);
+}
+
+.daily-register-date-card,
+.daily-register-date-card--with-back {
+  min-height: 104px;
+  grid-template-columns: 42px 56px minmax(0, 1fr) auto;
+  gap: 14px;
+  padding: 16px;
+}
+
+.daily-register-date-card:not(.daily-register-date-card--with-back) {
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+}
+
+.daily-register-back-button {
+  width: 42px;
+  height: 42px;
+}
+
+.daily-register-date-card .water-date-card__icon {
+  width: 56px;
+  height: 56px;
+}
+
+.daily-register-date-card .water-date-card__icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.daily-register-date-card .water-date-card__date strong {
+  font-size: 1.34rem;
+}
+
+.daily-register-date-card .water-date-card__date span,
+.daily-register-date-card .water-date-card__status span {
+  font-size: 0.82rem;
+}
+
+.daily-register-date-card .water-date-card__status strong {
+  padding: 6px 11px;
+  font-size: 0.78rem;
+}
+
+.daily-register-main-card {
+  gap: 14px;
+  padding: 16px;
+}
+
+.daily-register-main-card__header {
+  gap: 12px;
+}
+
+.daily-register-main-card__icon {
+  width: 44px;
+  height: 44px;
+}
+
+.daily-register-main-card__icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.daily-register-main-card__header > strong {
+  font-size: 1.55rem;
+}
+
+.daily-register-form .daily-register-form__section {
+  gap: 10px;
+  padding: 2px 16px;
+}
+
+.daily-register-section-title {
+  gap: 10px;
+}
+
+.daily-register-section-title span {
+  width: 38px;
+  height: 38px;
+}
+
+.daily-register-section-title span svg {
+  width: 22px;
+  height: 22px;
+}
+
+.daily-register-section-title strong {
+  font-size: 1rem;
+}
+
+.daily-register-form .daily-register-form__section > .form-grid {
+  gap: 9px;
+}
+
+.daily-register-form .daily-register-form__section .field {
+  gap: 5px;
+}
+
+.daily-register-form .daily-register-form__section .field span {
+  font-size: 0.76rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.daily-register-form .daily-register-form__section .field input,
+.daily-register-form .daily-register-form__section .field select {
+  min-height: 46px;
+  padding: 0 12px;
+}
+
+.daily-register-form .count-button-grid {
+  gap: 9px;
+}
+
+.daily-register-form:not(.daily-register-form--with-sacrifice) .daily-register-form__section--mortality .count-button-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.daily-register-form .count-button {
+  gap: 7px;
+  padding: 9px;
+}
+
+.daily-register-form .count-button > div {
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+}
+
+.daily-register-form .count-button button,
+.daily-register-form .count-button input {
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+}
+
+.daily-register-form .count-button input {
+  width: 100%;
+}
+
+.daily-register-form .sacrifice-start-button,
+.daily-register-form .sacrifice-locked {
+  min-height: 86px;
+  padding: 12px;
+}
+
+.daily-register-form > .form-optional-panel {
+  padding: 10px 14px;
+}
+
+.page-shell--daily-record .daily-register-form > .primary-action {
+  min-height: var(--daily-register-action-height);
+}
+
+/* Daily mobile rescue: keep the fixed save button from covering active inputs. */
+@media (max-width: 760px) {
+  html:has(.page-shell--daily-record),
+  body:has(.page-shell--daily-record) {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .app:has(.page-shell--daily-record) {
+    height: 100svh;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .page-shell.page-shell--mobile.page-shell--daily-record {
+    --daily-register-action-height: 56px;
+    width: min(680px, 100%);
+    height: 100%;
+    min-height: 0;
+    display: block;
+    overflow: hidden;
+    padding-top: 8px;
+    padding-bottom: calc(var(--bottom-nav-height) + var(--daily-register-action-height) + var(--safe-bottom) + 18px) !important;
+  }
+
+  .page-shell--daily-record .daily-register-card,
+  .page-shell--daily-record .daily-register-form {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .page-shell--daily-record .daily-register-form,
+  .daily-register-form {
+    gap: 8px;
+    padding-bottom: 0;
+  }
+
+  .daily-register-date-card,
+  .daily-register-date-card--with-back {
+    min-height: 70px;
+    grid-template-columns: 34px 42px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .daily-register-date-card:not(.daily-register-date-card--with-back) {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+  }
+
+  .daily-register-back-button {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+  }
+
+  .daily-register-date-card .water-date-card__icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .daily-register-date-card .water-date-card__icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .daily-register-date-card .water-date-card__date,
+  .daily-register-date-card .water-date-card__status {
+    gap: 2px;
+  }
+
+  .daily-register-date-card .water-date-card__date span,
+  .daily-register-date-card .water-date-card__status span {
+    font-size: 0.68rem;
+  }
+
+  .daily-register-date-card .water-date-card__date strong {
+    font-size: 1.04rem;
+  }
+
+  .daily-register-date-card .water-date-card__date small {
+    font-size: 0.62rem;
+  }
+
+  .daily-register-date-card .water-date-card__status strong {
+    padding: 4px 8px;
+    font-size: 0.68rem;
+  }
+
+  .daily-register-main-card {
+    gap: 8px;
+    padding: 8px;
+    overflow: hidden;
+  }
+
+  .daily-register-main-card__header {
+    display: none;
+  }
+
+  .daily-register-content-layout,
+  .daily-register-form--with-sacrifice .daily-register-content-layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .daily-register-form--with-sacrifice .daily-register-content-layout {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .daily-register-form .daily-register-form__section,
+  .daily-register-form .daily-register-form__section:first-child,
+  .daily-register-form .daily-register-form__section:last-child {
+    gap: 7px;
+    border: 1px solid #e1e6e1;
+    border-radius: 8px;
+    padding: 8px;
+  }
+
+  .daily-register-section-title {
+    gap: 7px;
+  }
+
+  .daily-register-section-title span {
+    width: 30px;
+    height: 30px;
+  }
+
+  .daily-register-section-title span svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .daily-register-section-title strong {
+    font-size: 0.9rem;
+  }
+
+  .daily-register-form .daily-register-form__section > .form-grid {
+    gap: 7px;
+  }
+
+  .daily-register-form .daily-register-form__section .field {
+    gap: 4px;
+  }
+
+  .daily-register-form .daily-register-form__section .field span {
+    font-size: 0.7rem;
+    font-weight: 850;
+    text-transform: uppercase;
+  }
+
+  .daily-register-form .daily-register-form__section .field input,
+  .daily-register-form .daily-register-form__section .field select {
+    min-height: 38px;
+    padding: 0 10px;
+    font-size: 0.9rem;
+  }
+
+  .daily-register-form .daily-register-form__section .field small {
+    font-size: 0.66rem;
+  }
+
+  .daily-register-form .count-button-grid {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .daily-register-form .count-button {
+    gap: 5px;
+    padding: 7px;
+  }
+
+  .daily-register-form .count-button > span {
+    font-size: 0.72rem;
+  }
+
+  .daily-register-form .count-button > div {
+    grid-template-columns: 30px minmax(0, 1fr) 30px;
+    gap: 4px;
+  }
+
+  .daily-register-form .count-button button,
+  .daily-register-form .count-button input {
+    width: 30px;
+    height: 30px;
+    min-height: 30px;
+  }
+
+  .daily-register-form .count-button input {
+    width: 100%;
+    font-size: 0.86rem;
+  }
+
+  .daily-register-form .sacrifice-start-button,
+  .daily-register-form .sacrifice-locked {
+    min-height: 66px;
+    padding: 8px;
+    font-size: 0.76rem;
+  }
+
+  .daily-register-form > .form-optional-panel {
+    padding: 6px 10px;
+  }
+
+  .daily-register-form .form-optional-panel__toggle {
+    min-height: 34px;
+  }
+
+  .daily-register-form .form-optional-panel__label strong {
+    font-size: 0.88rem;
+  }
+
+  .page-shell--daily-record .daily-register-form > .primary-action {
+    min-height: var(--daily-register-action-height);
+    right: max(calc(10px + var(--safe-right)), calc((100vw - 680px) / 2 + 10px));
+    bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 8px);
+    left: max(calc(10px + var(--safe-left)), calc((100vw - 680px) / 2 + 10px));
+  }
+}
+
 /* Entrada forms aligned with the operational record form system. */
 .page-shell.page-shell--mobile.page-shell--record-view:has(.entry-record-form) {
   width: min(1180px, 100%);
@@ -11787,7 +12166,6 @@ body:has(.page-shell--daily-record) {
 /* Compact single-screen pest control record. */
 html:has(.native-record-screen--pest),
 body:has(.native-record-screen--pest) {
-  overflow: hidden;
   overscroll-behavior: none;
 }
 
@@ -11797,6 +12175,8 @@ body:has(.native-record-screen--pest) {
   overflow: hidden;
   padding-top: 8px;
   padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 4px) !important;
+  isolation: isolate;
+  background: #f3f4f1;
 }
 
 .page-shell--record-view:has(.native-record-screen--pest) .native-record-screen--pest {
@@ -11806,6 +12186,7 @@ body:has(.native-record-screen--pest) {
   grid-template-rows: auto minmax(0, 1fr);
   gap: 8px;
   overflow: hidden;
+  isolation: isolate;
 }
 
 .native-record-screen--pest .native-record-hero {
@@ -11863,6 +12244,7 @@ body:has(.native-record-screen--pest) {
   margin-inline: 0;
   padding: 0 0 calc(var(--sticky-action-height) + 8px);
   overflow: hidden;
+  isolation: isolate;
 }
 
 .native-record-screen.native-record-screen--pest .flow-form.pest-control-form {
@@ -11997,10 +12379,22 @@ body:has(.native-record-screen--pest) {
   height: 100%;
   max-width: 100%;
   justify-self: center;
+  contain: paint;
+  backface-visibility: hidden;
 }
 
 .native-record-screen--pest .rodent-station-marker {
   width: clamp(28px, 7.4vw, 38px);
+  filter: none;
+  transition:
+    transform 150ms ease,
+    color 150ms ease;
+}
+
+.native-record-screen--pest .rodent-station-marker:hover,
+.native-record-screen--pest .rodent-station-marker:focus-visible,
+.native-record-screen--pest .rodent-station-marker.is-selected {
+  filter: none;
 }
 
 .native-record-screen--pest .rodent-station-marker__number {

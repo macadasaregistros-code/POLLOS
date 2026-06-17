@@ -158,8 +158,8 @@ const dogRecordStatus = 'EN PROCESO';
 const trainingRecordStatus = 'EN PROCESO';
 const vaccinationViaAplicacion = 'Agua de bebida';
 const vaccinationProductCatalog = [
-  { nombreProducto: 'Newcastle', enfermedad: 'Newcastle', cepa: 'Según producto' },
-  { nombreProducto: 'Gumboro', enfermedad: 'Gumboro', cepa: 'Según producto' },
+  { nombreProducto: 'Newcastle', enfermedad: 'Newcastle', cepa: '' },
+  { nombreProducto: 'Gumboro', enfermedad: 'Gumboro', cepa: '' },
 ] as const;
 const veterinaryDoctors = ['Esteban Salazar', 'Leidy Murillo'] as const;
 type VeterinaryDoctor = (typeof veterinaryDoctors)[number];
@@ -713,7 +713,7 @@ function VaccinationRecordForm({ user, context, onSaved }: { user: Usuario; cont
   );
   const loteTotals = useMemo(() => sumLoteTotals(registrosLote), [registrosLote]);
   const defaultEnfermedad = selected?.Enfermedad || selectedProductInfo?.enfermedad || '';
-  const defaultCepa = selected?.Cepa || selectedProductInfo?.cepa || (selected ? 'Segun producto' : '');
+  const defaultCepa = selected?.Cepa || selectedProductInfo?.cepa || '';
   const edadAvesDias = lote ? getDiaLote(lote.FechaLlegada, fechaRegistro) : selected?.EdadDias || selected?.DiaProgramado || 0;
   const numeroAnimalesVacunados = lote ? avesVivasTotal(lote, loteTotals) : selected?.NumeroAves || 0;
   const vaccinationLoteOptions = contextVacuna && lote ? [lote] : loteOptions;
