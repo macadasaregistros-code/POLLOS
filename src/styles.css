@@ -11781,6 +11781,40 @@ body:has(.page-shell--daily-record) {
   }
 }
 
+/* Avoid compressing daily capture into three horizontal blocks. */
+.daily-register-form--with-sacrifice .daily-register-content-layout {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.daily-register-form--with-sacrifice .daily-register-form__section--feed {
+  grid-column: 1 / -1;
+}
+
+.daily-register-form--with-sacrifice .daily-register-form__section--mortality,
+.daily-register-form--with-sacrifice .daily-register-form__section--sacrifice {
+  grid-column: auto;
+}
+
+@media (max-width: 760px) {
+  .daily-register-content-layout,
+  .daily-register-form--with-sacrifice .daily-register-content-layout {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .daily-register-form .daily-register-form__section,
+  .daily-register-form--with-sacrifice .daily-register-form__section--feed,
+  .daily-register-form--with-sacrifice .daily-register-form__section--mortality,
+  .daily-register-form--with-sacrifice .daily-register-form__section--sacrifice {
+    grid-column: 1 / -1;
+  }
+
+  .daily-register-form .count-button-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* Entrada forms aligned with the operational record form system. */
 .page-shell.page-shell--mobile.page-shell--record-view:has(.entry-record-form) {
   width: min(1180px, 100%);
