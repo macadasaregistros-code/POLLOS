@@ -670,6 +670,8 @@ function VaccinationRecordForm({ user, context, onSaved }: { user: Usuario; cont
   const [fechaRegistro] = useState(() => todayISO());
   const [nombreProducto, setNombreProducto] = useState('');
   const [loteId, setLoteId] = useState('');
+  const [enfermedad, setEnfermedad] = useState('');
+  const [cepa, setCepa] = useState('');
   const [loteProducto, setLoteProducto] = useState('');
   const [vencimiento, setVencimiento] = useState('');
   const [medicoVeterinario, setMedicoVeterinario] = useState<VeterinaryDoctor | ''>('');
@@ -710,10 +712,11 @@ function VaccinationRecordForm({ user, context, onSaved }: { user: Usuario; cont
     [lote?.LoteID, registrosDiarios],
   );
   const loteTotals = useMemo(() => sumLoteTotals(registrosLote), [registrosLote]);
-  const enfermedad = selected?.Enfermedad || selectedProductInfo?.enfermedad || '';
-  const cepa = selected?.Cepa || selectedProductInfo?.cepa || (selected ? 'Segun producto' : '');
+  const defaultEnfermedad = selected?.Enfermedad || selectedProductInfo?.enfermedad || '';
+  const defaultCepa = selected?.Cepa || selectedProductInfo?.cepa || (selected ? 'Segun producto' : '');
   const edadAvesDias = lote ? getDiaLote(lote.FechaLlegada, fechaRegistro) : selected?.EdadDias || selected?.DiaProgramado || 0;
   const numeroAnimalesVacunados = lote ? avesVivasTotal(lote, loteTotals) : selected?.NumeroAves || 0;
+  const vaccinationLoteOptions = contextVacuna && lote ? [lote] : loteOptions;
 
   useEffect(() => {
     if (contextVacuna) {
@@ -730,6 +733,11 @@ function VaccinationRecordForm({ user, context, onSaved }: { user: Usuario; cont
     setLoteId(productVacunas[0]?.LoteID ?? '');
   }, [contextVacuna, loteId, nombreProducto, productVacunas]);
 
+  useEffect(() => {
+    setEnfermedad(defaultEnfermedad);
+    setCepa(defaultCepa);
+  }, [defaultCepa, defaultEnfermedad, selected?.VacunaLoteID]);
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!fechaRegistro) {
@@ -744,8 +752,16 @@ function VaccinationRecordForm({ user, context, onSaved }: { user: Usuario; cont
       setError('No hay una vacuna programada pendiente para ese producto y lote.');
       return;
     }
-    if (!enfermedad || !cepa) {
-      setError('La informacion automatica del producto esta incompleta.');
+    if (!loteId) {
+      setError('Selecciona el lote de aves.');
+      return;
+    }
+    if (!enfermedad.trim()) {
+      setError('Ingresa la enfermedad.');
+      return;
+    }
+    if (!cepa.trim()) {
+      setError('Ingresa la cepa.');
       return;
     }
     if (!loteProducto.trim()) {
@@ -760,15 +776,23 @@ function VaccinationRecordForm({ user, context, onSaved }: { user: Usuario; cont
       setError('Selecciona el medico veterinario.');
       return;
     }
+    if (!edadAvesDias || !numeroAnimalesVacunados) {
+      setError('La informacion del lote es obligatoria antes de guardar.');
+      return;
+    }
+    if (!foto) {
+      setError('Toma la foto del producto.');
+      return;
+    }
 
     await aplicarVacuna(selected.VacunaLoteID, user, {
-      Producto: nombreProducto,
+      Producto: nombreProducto.trim(),
       Laboratorio: '',
       LoteProducto: loteProducto.trim(),
       FechaVencimientoProducto: vencimiento,
       ViaAdministracion: vaccinationViaAplicacion,
-      Cepa: cepa,
-      Enfermedad: enfermedad,
+      Cepa: cepa.trim(),
+      Enfermedad: enfermedad.trim(),
       NumeroAves: numeroAnimalesVacunados,
       EdadDias: edadAvesDias,
       Responsable: medicoVeterinario,
@@ -811,122 +835,125 @@ function VaccinationRecordForm({ user, context, onSaved }: { user: Usuario; cont
 
         <div className="vaccination-content-layout">
           <section className="vaccination-content-column">
-        <VaccinationStepTitle number={1} title="Nombre del Producto" />
-        <div className="vaccination-option-grid" role="radiogroup" aria-label="Nombre del Producto">
-          {vaccinationProductCatalog.map((product) => (
-            <VaccinationOptionTile
-              key={product.nombreProducto}
-              label={product.nombreProducto}
-              selected={nombreProducto === product.nombreProducto}
-              onSelect={() => {
-                setNombreProducto(product.nombreProducto);
-                setError('');
-              }}
-            />
-          ))}
-        </div>
-        <p className="vaccination-helper-text">Seleccione el producto</p>
-
-        <div className="water-form-divider" />
-
-        <VaccinationStepTitle number={2} title="Información del producto" detail="(automática)" />
-        <div className="vaccination-field-grid">
-          <VaccinationReadOnlyField label="Enfermedad" value={enfermedad || 'Seleccione producto'} helper="Se selecciona automáticamente" />
-          <VaccinationReadOnlyField label="Cepa" value={cepa || 'Seleccione producto'} helper="Se selecciona automáticamente" />
-        </div>
-
-        <div className="water-form-divider" />
-
-        <VaccinationStepTitle number={3} title="Información manual" />
-        <div className="vaccination-field-grid vaccination-field-grid--manual">
-          <label className="vaccination-field">
-            <span>Número de lote producto</span>
-            <input
-              value={loteProducto}
-              placeholder="Ingrese el lote"
-              required
-              onChange={(event) => {
-                setLoteProducto(event.target.value);
-                setError('');
-              }}
-            />
-          </label>
-          <label className="vaccination-field">
-            <span>Fecha de vencimiento</span>
-            <input
-              type="date"
-              value={vencimiento}
-              required
-              aria-label="Seleccionar fecha"
-              onChange={(event) => {
-                setVencimiento(event.target.value);
-                setError('');
-              }}
-            />
-          </label>
-          <VaccinationReadOnlyField label="Vía de Aplicación" value={vaccinationViaAplicacion} />
-        </div>
-
-        {nombreProducto && loteOptions.length > 1 && (
-          <label className="vaccination-lote-selector">
-            <span>Lote de aves</span>
-            <select
-              value={loteId}
-              required
-              onChange={(event) => {
-                setLoteId(event.target.value);
-                setError('');
-              }}
-            >
-              {loteOptions.map((loteOption) => (
-                <option key={loteOption.LoteID} value={loteOption.LoteID}>
-                  {loteOption.CodigoLote}
-                </option>
+            <VaccinationStepTitle number={1} title="VACUNACION" />
+            <div className="vaccination-option-grid" role="radiogroup" aria-label="Nombre del Producto">
+              {vaccinationProductCatalog.map((product) => (
+                <VaccinationOptionTile
+                  key={product.nombreProducto}
+                  label={product.nombreProducto}
+                  selected={nombreProducto === product.nombreProducto}
+                  onSelect={() => {
+                    setNombreProducto(product.nombreProducto);
+                    setError('');
+                  }}
+                />
               ))}
-            </select>
-          </label>
-        )}
+            </div>
+            <p className="vaccination-helper-text">Seleccione la vacunacion</p>
 
-        {nombreProducto && productVacunas.length === 0 && (
-          <p className="vaccination-helper-text vaccination-helper-text--warning">
-            No hay vacuna programada pendiente para este producto.
-          </p>
-        )}
+            <div className="water-form-divider" />
 
+            <VaccinationStepTitle number={2} title="Informacion del producto" />
+            <div className="vaccination-field-grid">
+              <label className="vaccination-field">
+                <span>Enfermedad</span>
+                <input
+                  value={enfermedad}
+                  placeholder="Ingrese la enfermedad"
+                  required
+                  onChange={(event) => {
+                    setEnfermedad(event.target.value);
+                    setError('');
+                  }}
+                />
+              </label>
+              <label className="vaccination-field">
+                <span>Cepa</span>
+                <input
+                  value={cepa}
+                  placeholder="Ingrese la cepa"
+                  required
+                  onChange={(event) => {
+                    setCepa(event.target.value);
+                    setError('');
+                  }}
+                />
+              </label>
+            </div>
+
+            <div className="vaccination-field-grid vaccination-field-grid--manual">
+              <label className="vaccination-field">
+                <span>Numero de lote producto</span>
+                <input
+                  value={loteProducto}
+                  placeholder="Ingrese el lote"
+                  required
+                  onChange={(event) => {
+                    setLoteProducto(event.target.value);
+                    setError('');
+                  }}
+                />
+              </label>
+              <label className="vaccination-field">
+                <span>Fecha de vencimiento</span>
+                <input
+                  type="date"
+                  value={vencimiento}
+                  required
+                  aria-label="Seleccionar fecha"
+                  onChange={(event) => {
+                    setVencimiento(event.target.value);
+                    setError('');
+                  }}
+                />
+              </label>
+              <VaccinationReadOnlyField label="Via de Aplicacion" value={vaccinationViaAplicacion} />
+            </div>
+
+            {nombreProducto && productVacunas.length === 0 && !contextVacuna && (
+              <p className="vaccination-helper-text vaccination-helper-text--warning">
+                No hay vacuna programada pendiente para este producto.
+              </p>
+            )}
           </section>
 
           <section className="vaccination-content-column vaccination-content-column--support">
-        <VaccinationStepTitle number={4} title="Información calculada" />
-        <div className="vaccination-field-grid">
-          <VaccinationReadOnlyField label="Edad de las aves" value={edadAvesDias ? `${edadAvesDias} días` : 'Sin lote'} helper="Calculada por la app" />
-          <VaccinationReadOnlyField
-            label="Número de animales vacunados"
-            value={numeroAnimalesVacunados ? fmtNumber(numeroAnimalesVacunados) : 'Sin lote'}
-            helper="Calculado según el lote"
-          />
-        </div>
+            <VaccinationStepTitle number={3} title="Informacion del lote" />
+            <div className="vaccination-field-grid vaccination-lote-info-grid">
+              <VaccinationLoteSelect
+                value={lote?.LoteID ?? loteId}
+                options={vaccinationLoteOptions}
+                fallbackLabel={lote?.CodigoLote ?? 'Seleccione vacunacion'}
+                onChange={(value) => {
+                  setLoteId(value);
+                  setError('');
+                }}
+              />
+              <VaccinationReadOnlyField label="Edad de las aves" value={edadAvesDias ? `${edadAvesDias} dias` : 'Sin lote'} />
+              <VaccinationReadOnlyField label="Numero de aves" value={numeroAnimalesVacunados ? fmtNumber(numeroAnimalesVacunados) : 'Sin lote'} />
+            </div>
 
-        <div className="water-form-divider" />
+            <div className="water-form-divider" />
 
-        <VaccinationStepTitle number={5} title="Médico Veterinario" />
-        <div className="vaccination-option-grid" role="radiogroup" aria-label="Médico Veterinario">
-          {veterinaryDoctors.map((doctor) => (
-            <VaccinationOptionTile
-              key={doctor}
-              label={doctor}
-              selected={medicoVeterinario === doctor}
-              onSelect={() => {
-                setMedicoVeterinario(doctor);
-                setError('');
-              }}
-            />
-          ))}
-        </div>
+            <VaccinationStepTitle number={4} title="Medico Veterinario" />
+            <div className="vaccination-option-grid" role="radiogroup" aria-label="Medico Veterinario">
+              {veterinaryDoctors.map((doctor) => (
+                <VaccinationOptionTile
+                  key={doctor}
+                  label={doctor}
+                  selected={medicoVeterinario === doctor}
+                  onSelect={() => {
+                    setMedicoVeterinario(doctor);
+                    setError('');
+                  }}
+                />
+              ))}
+            </div>
 
-        <div className="water-form-divider" />
+            <div className="water-form-divider" />
 
-        <VaccinationStepTitle number={6} title="FOTO" />
-        <VaccinationPhotoField value={foto} onChange={setFoto} />
+            <VaccinationStepTitle number={5} title="FOTO" />
+            <VaccinationPhotoField value={foto} onChange={setFoto} />
           </section>
         </div>
       </section>
@@ -994,6 +1021,35 @@ function VaccinationReadOnlyField({ label, value, helper }: { label: string; val
   );
 }
 
+function VaccinationLoteSelect({
+  value,
+  options,
+  fallbackLabel,
+  onChange,
+}: {
+  value: string;
+  options: Lote[];
+  fallbackLabel: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="vaccination-lote-selector">
+      <span>Lote</span>
+      {options.length > 0 ? (
+        <select value={value} required onChange={(event) => onChange(event.target.value)}>
+          {options.map((loteOption) => (
+            <option key={loteOption.LoteID} value={loteOption.LoteID}>
+              {loteOption.CodigoLote}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <strong>{fallbackLabel}</strong>
+      )}
+    </label>
+  );
+}
+
 function matchesVaccinationProduct(vacuna: { NombreVacuna: string; Producto: string }, productName: string): boolean {
   const normalizedProduct = normalizeVaccinationName(productName);
   return [vacuna.NombreVacuna, vacuna.Producto].some((value) => normalizeVaccinationName(value).includes(normalizedProduct));
@@ -1018,10 +1074,6 @@ function WaterTreatmentForm({ user, context, onSaved }: { user: Usuario; context
   const cloroCorrecto = cloroResidualSeleccionado === chlorineIdealValue;
 
   useEffect(() => {
-    if (!phCorrecto && cloroAdicionado) setCloroAdicionado('');
-  }, [cloroAdicionado, phCorrecto]);
-
-  useEffect(() => {
     if (context?.loteId) selection.setLoteId(context.loteId);
     if (context?.galponId) selection.setGalponId(context.galponId);
   }, [context?.galponId, context?.loteId, selection.setGalponId, selection.setLoteId]);
@@ -1038,10 +1090,6 @@ function WaterTreatmentForm({ user, context, onSaved }: { user: Usuario; context
     }
     if (!phSeleccionado) {
       setError('Selecciona un valor de pH.');
-      return;
-    }
-    if (!phCorrecto) {
-      setError('El pH debe estar en rango ideal para adicionar cloro y guardar.');
       return;
     }
     if (!cloroAdicionado.trim()) {
@@ -1132,21 +1180,20 @@ function WaterTreatmentForm({ user, context, onSaved }: { user: Usuario; context
               </span>
               <em>(gramos)</em>
             </div>
-            <label className={`water-amount-input ${!phCorrecto ? 'is-disabled' : ''}`}>
+            <label className="water-amount-input">
               <input
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 placeholder="0"
                 value={cloroAdicionado}
-                disabled={!phCorrecto}
                 onChange={(event) => setCloroAdicionado(toWholeGramInput(event.target.value))}
               />
               <span>g</span>
             </label>
             <p className="water-helper-text">
               <Info size={18} />
-              <span>Ingrese la cantidad si el pH es correcto para asegurar la desinfeccion optima.</span>
+              <span>Ingrese la cantidad adicionada; el pH queda registrado como verificacion del lote.</span>
             </p>
           </section>
 
@@ -1496,7 +1543,6 @@ function MedicationForm({ user, onSaved }: { user: Usuario; onSaved: (message: s
   const loteTotals = useMemo(() => sumLoteTotals(registrosLote), [registrosLote]);
   const edadAvesDias = selection.selectedLote ? getDiaLote(selection.selectedLote.FechaLlegada, fechaRegistro) : 0;
   const numeroAnimalesTratados = selection.selectedLote ? avesVivasTotal(selection.selectedLote, loteTotals) : 0;
-  const shouldShowLoteSelector = selection.lotes.length > 1 || selection.assignmentsForLote.length > 1;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -1526,6 +1572,14 @@ function MedicationForm({ user, onSaved }: { user: Usuario; onSaved: (message: s
     }
     if (!medicoVeterinario) {
       setError('Selecciona el médico veterinario.');
+      return;
+    }
+    if (!edadAvesDias || !numeroAnimalesTratados) {
+      setError('La informacion del lote es obligatoria antes de guardar.');
+      return;
+    }
+    if (!foto) {
+      setError('Toma la foto del producto.');
       return;
     }
 
@@ -1586,106 +1640,100 @@ function MedicationForm({ user, onSaved }: { user: Usuario; onSaved: (message: s
 
         <div className="medication-content-layout">
           <section className="medication-content-column">
-        <label className="vaccination-field medication-field medication-field--full">
-          <span>Nombre del Producto</span>
-          <input
-            value={nombreProducto}
-            placeholder="Ingrese el nombre del producto"
-            required
-            onChange={(event) => {
-              setNombreProducto(event.target.value);
-              setError('');
-            }}
-          />
-        </label>
+            <VaccinationStepTitle number={1} title="MEDICAMENTO" />
+            <label className="vaccination-field medication-field medication-field--full">
+              <span>Nombre del Producto</span>
+              <input
+                value={nombreProducto}
+                placeholder="Ingrese el nombre del producto"
+                required
+                onChange={(event) => {
+                  setNombreProducto(event.target.value);
+                  setError('');
+                }}
+              />
+            </label>
 
-        <div className="vaccination-field-grid medication-field-grid">
-          <label className="vaccination-field medication-field">
-            <span>Número de lote producto</span>
-            <input
-              value={numeroLoteProducto}
-              placeholder="Ingrese el lote"
-              required
-              onChange={(event) => {
-                setNumeroLoteProducto(event.target.value);
-                setError('');
-              }}
-            />
-          </label>
-          <label className="vaccination-field medication-field">
-            <span>Fecha de vencimiento</span>
-            <input
-              type="date"
-              value={fechaVencimiento}
-              required
-              aria-label="Seleccionar fecha"
-              onChange={(event) => {
-                setFechaVencimiento(event.target.value);
-                setError('');
-              }}
-            />
-          </label>
-        </div>
+            <div className="water-form-divider" />
 
-        <label className="vaccination-field medication-field medication-field--full">
-          <span>Vía de Aplicación</span>
-          <input
-            value={viaAplicacion}
-            placeholder="Ingrese la vía de aplicación"
-            required
-            onChange={(event) => {
-              setViaAplicacion(event.target.value);
-              setError('');
-            }}
-          />
-        </label>
+            <VaccinationStepTitle number={2} title="Informacion del producto" />
+            <div className="vaccination-field-grid medication-field-grid">
+              <label className="vaccination-field medication-field">
+                <span>Numero de lote producto</span>
+                <input
+                  value={numeroLoteProducto}
+                  placeholder="Ingrese el lote"
+                  required
+                  onChange={(event) => {
+                    setNumeroLoteProducto(event.target.value);
+                    setError('');
+                  }}
+                />
+              </label>
+              <label className="vaccination-field medication-field">
+                <span>Fecha de vencimiento</span>
+                <input
+                  type="date"
+                  value={fechaVencimiento}
+                  required
+                  aria-label="Seleccionar fecha"
+                  onChange={(event) => {
+                    setFechaVencimiento(event.target.value);
+                    setError('');
+                  }}
+                />
+              </label>
+            </div>
 
-        {shouldShowLoteSelector && <MedicationLoteFields selection={selection} onChange={() => setError('')} />}
-
-        {!selection.selectedLote && (
-          <p className="vaccination-helper-text vaccination-helper-text--warning">
-            No hay lote y galpón activos para calcular este registro.
-          </p>
-        )}
-
-        <div className="water-form-divider" />
-
-        <header className="medication-section-title">
-          <Info size={20} />
-          <strong>Información calculada</strong>
-        </header>
-        <div className="vaccination-field-grid medication-field-grid">
-          <VaccinationReadOnlyField label="Edad de las aves" value={selection.selectedLote ? `${edadAvesDias} días` : 'Sin lote'} helper="Calculada por la app" />
-          <VaccinationReadOnlyField
-            label="Número de animales tratados"
-            value={selection.selectedLote ? fmtNumber(numeroAnimalesTratados) : 'Sin lote'}
-            helper="Calculado según el lote"
-          />
-        </div>
-
+            <label className="vaccination-field medication-field medication-field--full">
+              <span>Via de Aplicacion</span>
+              <input
+                value={viaAplicacion}
+                placeholder="Ingrese la via de aplicacion"
+                required
+                onChange={(event) => {
+                  setViaAplicacion(event.target.value);
+                  setError('');
+                }}
+              />
+            </label>
           </section>
 
           <section className="medication-content-column medication-content-column--support">
-        <header className="medication-section-title medication-section-title--plain">
-          <strong>Médico Veterinario</strong>
-        </header>
-        <div className="vaccination-option-grid medication-option-grid" role="radiogroup" aria-label="Médico Veterinario">
-          {veterinaryDoctors.map((doctor) => (
-            <VaccinationOptionTile
-              key={doctor}
-              label={doctor}
-              selected={medicoVeterinario === doctor}
-              onSelect={() => {
-                setMedicoVeterinario(doctor);
-                setError('');
-              }}
-            />
-          ))}
-        </div>
+            <VaccinationStepTitle number={3} title="Informacion del lote" />
+            <div className="vaccination-field-grid medication-field-grid medication-lote-info-grid">
+              <MedicationLoteFields selection={selection} onChange={() => setError('')} />
+              <VaccinationReadOnlyField label="Edad de las aves" value={selection.selectedLote ? `${edadAvesDias} dias` : 'Sin lote'} />
+              <VaccinationReadOnlyField label="Numero de aves" value={selection.selectedLote ? fmtNumber(numeroAnimalesTratados) : 'Sin lote'} />
+            </div>
 
-        <div className="water-form-divider" />
+            {!selection.selectedLote && (
+              <p className="vaccination-helper-text vaccination-helper-text--warning">
+                No hay lote y galpon activos para calcular este registro.
+              </p>
+            )}
 
-        <VaccinationPhotoField value={foto} onChange={setFoto} />
+            <div className="water-form-divider" />
+
+            <VaccinationStepTitle number={4} title="Medico Veterinario" />
+            <div className="vaccination-option-grid medication-option-grid" role="radiogroup" aria-label="Medico Veterinario">
+              {veterinaryDoctors.map((doctor) => (
+                <VaccinationOptionTile
+                  key={doctor}
+                  label={doctor}
+                  selected={medicoVeterinario === doctor}
+                  onSelect={() => {
+                    setMedicoVeterinario(doctor);
+                    setError('');
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="water-form-divider" />
+
+            <VaccinationStepTitle number={5} title="FOTO" />
+            <VaccinationPhotoField value={foto} onChange={setFoto} />
           </section>
         </div>
       </section>
@@ -1701,14 +1749,13 @@ function MedicationForm({ user, onSaved }: { user: Usuario; onSaved: (message: s
 }
 
 function MedicationLoteFields({ selection, onChange }: { selection: ReturnType<typeof useLoteGalponSelection>; onChange: () => void }) {
-  const hasMultipleLotes = selection.lotes.length > 1;
   const hasMultipleGalpones = selection.assignmentsForLote.length > 1;
 
   return (
-    <div className="vaccination-field-grid medication-field-grid medication-lote-grid">
-      {hasMultipleLotes && (
-        <label className="vaccination-lote-selector">
-          <span>Lote de aves</span>
+    <>
+      <label className="vaccination-lote-selector">
+        <span>Lote</span>
+        {selection.lotes.length > 0 ? (
           <select
             value={selection.loteId}
             required
@@ -1723,11 +1770,13 @@ function MedicationLoteFields({ selection, onChange }: { selection: ReturnType<t
               </option>
             ))}
           </select>
-        </label>
-      )}
+        ) : (
+          <strong>Sin lote activo</strong>
+        )}
+      </label>
       {hasMultipleGalpones && (
         <label className="vaccination-lote-selector">
-          <span>Galpón</span>
+          <span>Galpon</span>
           <select
             value={selection.galponId}
             required
@@ -1747,7 +1796,7 @@ function MedicationLoteFields({ selection, onChange }: { selection: ReturnType<t
           </select>
         </label>
       )}
-    </div>
+    </>
   );
 }
 
@@ -2184,26 +2233,29 @@ function TrainingForm({ user, onSaved }: { user: Usuario; onSaved: (message: str
           />
         </label>
 
-        <label className="training-field training-field--full">
-          <span>Capacitador</span>
-          <input
-            value={capacitador}
-            placeholder="Ingrese el nombre del capacitador"
-            required
-            onChange={(event) => {
-              setCapacitador(event.target.value);
-              setError('');
-            }}
-          />
-        </label>
+        <div className="training-trainer-row">
+          <label className="training-field training-trainer-name">
+            <span>Capacitador</span>
+            <input
+              value={capacitador}
+              placeholder="Ingrese el nombre del capacitador"
+              required
+              onChange={(event) => {
+                setCapacitador(event.target.value);
+                setError('');
+              }}
+            />
+          </label>
 
-        <TrainingSignatureField
-          label="Firma del Capacitador"
-          value={firmaCapacitador}
-          title="Firmar aquí"
-          helper="El capacitador debe firmar en el área inferior"
-          onOpen={() => setSignatureTarget({ type: 'trainer' })}
-        />
+          <TrainingSignatureField
+            compact
+            label="Firma del Capacitador"
+            value={firmaCapacitador}
+            title="Firmar aquí"
+            helper="Firma del capacitador"
+            onOpen={() => setSignatureTarget({ type: 'trainer' })}
+          />
+        </div>
 
           </section>
 

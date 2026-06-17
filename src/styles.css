@@ -8578,6 +8578,11 @@ body {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.vaccination-lote-info-grid,
+.medication-lote-info-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .vaccination-field,
 .vaccination-lote-selector {
   display: grid;
@@ -8612,6 +8617,13 @@ body {
   font-size: 1rem;
   font-weight: 800;
   outline: none;
+}
+
+.vaccination-lote-selector strong {
+  color: #11181d;
+  font-size: 1.02rem;
+  font-weight: 900;
+  line-height: 1.2;
 }
 
 .vaccination-field input::placeholder {
@@ -10083,7 +10095,7 @@ body:has(.native-record-screen--water) {
   min-height: 0;
   align-content: space-between;
   gap: 10px;
-  padding: 12px;
+  padding: 12px 12px 6px;
   overflow: hidden;
 }
 
@@ -10242,7 +10254,7 @@ body:has(.native-record-screen--water) {
 
   .native-record-screen--water .water-form-card {
     gap: 6px;
-    padding: 8px;
+    padding: 8px 8px 5px;
   }
 
   .native-record-screen--water .water-test-option {
@@ -10311,7 +10323,16 @@ body:has(.native-record-screen--water) {
 }
 
 .native-record-screen--water .water-measure-block {
-  align-content: center;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  align-content: stretch;
+}
+
+.native-record-screen--water .water-option-grid {
+  min-height: 0;
+}
+
+.native-record-screen--water .water-test-option {
+  height: 100%;
 }
 
 @media (min-width: 820px) {
@@ -10408,17 +10429,18 @@ body:has(.native-record-screen--water) {
   }
 
   .native-record-screen--water .water-form-card {
-    grid-template-rows: auto auto;
-    align-content: start;
-    overflow: auto;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: stretch;
+    overflow: hidden;
   }
 
   .native-record-screen--water .water-measure-grid {
-    height: auto;
+    height: 100%;
+    grid-template-rows: repeat(3, minmax(max-content, 1fr));
   }
 
   .native-record-screen--water .water-measure-block {
-    align-content: start;
+    align-content: stretch;
   }
 
   .pest-title-row {
@@ -10876,6 +10898,121 @@ body:has(.page-shell--daily-record) {
   .training-assistants-section {
     margin-top: 0;
     align-content: start;
+  }
+}
+
+.training-trainer-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(230px, 0.92fr);
+  gap: 14px;
+  align-items: end;
+}
+
+.training-trainer-row .training-signature-field--compact,
+.training-trainer-row .training-signature-field--compact .training-signature-field__surface {
+  height: auto;
+}
+
+.training-trainer-row .training-signature-field--compact .training-signature-field__label {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  color: #11181d;
+  font-size: 1.08rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.training-trainer-row .training-signature-field--compact .training-signature-field__surface {
+  min-height: 58px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 2px 10px;
+  padding: 7px 12px;
+}
+
+.training-trainer-row .training-signature-field--compact .training-signature-field__icon,
+.training-trainer-row .training-signature-field--compact .training-signature-field__surface img {
+  width: 44px;
+  height: 44px;
+}
+
+@media (max-width: 680px) {
+  .training-trainer-row,
+  .training-assistants-headings,
+  .training-assistant-row {
+    grid-template-columns: minmax(0, 1fr) minmax(160px, 0.85fr) 48px;
+    gap: 10px;
+  }
+
+  .training-trainer-row {
+    grid-template-columns: minmax(0, 1fr) minmax(160px, 0.85fr);
+  }
+
+  .training-assistants-headings {
+    display: grid;
+  }
+
+  .training-assistant-name,
+  .training-signature-field--compact {
+    grid-column: auto;
+  }
+
+  .training-assistant-name > span,
+  .training-signature-field--compact .training-signature-field__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .training-signature-field--compact .training-signature-field__surface {
+    min-height: 76px;
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 520px) {
+  .training-trainer-row,
+  .training-assistant-row {
+    grid-template-columns: minmax(0, 1fr) 48px;
+  }
+
+  .training-trainer-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .training-assistants-headings {
+    display: none;
+  }
+
+  .training-assistant-name,
+  .training-signature-field--compact {
+    grid-column: 1 / -1;
+  }
+
+  .training-assistant-name > span,
+  .training-signature-field--compact .training-signature-field__label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    color: #11181d;
+    font-size: 0.94rem;
+    font-weight: 850;
+  }
+
+  .training-remove-assistant {
+    grid-column: 1 / -1;
+    justify-self: end;
+    height: 46px;
   }
 }
 
@@ -11644,5 +11781,389 @@ body:has(.page-shell--daily-record) {
 
   .entry-option-card small {
     font-size: 0.8rem;
+  }
+}
+
+/* Compact single-screen pest control record. */
+html:has(.native-record-screen--pest),
+body:has(.native-record-screen--pest) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.page-shell--record-view:has(.native-record-screen--pest) {
+  height: calc(100svh - 55px);
+  min-height: 0;
+  overflow: hidden;
+  padding-top: 8px;
+  padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 4px) !important;
+}
+
+.page-shell--record-view:has(.native-record-screen--pest) .native-record-screen--pest {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  overflow: hidden;
+}
+
+.native-record-screen--pest .native-record-hero {
+  min-height: 58px;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid rgb(22 34 29 / 7%);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #f7fbf6 100%);
+  color: #11181d;
+  box-shadow: 0 10px 26px rgb(22 34 29 / 10%);
+}
+
+.native-record-screen--pest .native-record-hero::after {
+  display: none;
+}
+
+.native-record-screen--pest .native-record-hero__copy {
+  gap: 1px;
+}
+
+.native-record-screen--pest .native-record-hero__copy span {
+  width: fit-content;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #e7f0ea;
+  color: #24634f;
+  font-size: 0.58rem;
+  letter-spacing: 0;
+}
+
+.native-record-screen--pest .native-record-hero__copy h2 {
+  color: #11181d;
+  font-size: clamp(1.12rem, 4.6vw, 1.34rem);
+  font-weight: 950;
+  line-height: 1.02;
+}
+
+.native-record-screen--pest .native-record-hero__back,
+.native-record-screen--pest .native-record-hero__visual span {
+  width: 38px;
+  height: 38px;
+  border-color: #cfe0d2;
+  border-radius: 8px;
+  background: #eef8e9;
+  color: #24634f;
+  box-shadow: none;
+}
+
+.native-record-screen.native-record-screen--pest .record-form-surface {
+  min-height: 0;
+  height: 100%;
+  margin-top: 0;
+  margin-inline: 0;
+  padding: 0 0 calc(var(--sticky-action-height) + 8px);
+  overflow: hidden;
+}
+
+.native-record-screen.native-record-screen--pest .flow-form.pest-control-form {
+  height: 100%;
+  min-height: 0;
+  grid-template-columns: 1fr !important;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.native-record-screen--pest .record-date-card {
+  min-height: 58px;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 8px 10px;
+}
+
+.native-record-screen--pest .record-date-card .water-date-card__icon {
+  width: 44px;
+  height: 44px;
+}
+
+.native-record-screen--pest .record-date-card .water-date-card__icon svg {
+  width: 25px;
+  height: 25px;
+}
+
+.native-record-screen--pest .record-date-card .water-date-card__date,
+.native-record-screen--pest .record-date-card .water-date-card__status {
+  gap: 1px;
+}
+
+.native-record-screen--pest .record-date-card .water-date-card__date span,
+.native-record-screen--pest .record-date-card .water-date-card__status span {
+  font-size: 0.7rem;
+}
+
+.native-record-screen--pest .record-date-card .water-date-card__date strong {
+  font-size: 1rem;
+}
+
+.native-record-screen--pest .record-date-card .water-date-card__status strong {
+  padding: 5px 8px;
+  font-size: 0.66rem;
+}
+
+.native-record-screen--pest .pest-section-card {
+  min-height: 0;
+  gap: 8px;
+  padding: 10px;
+  overflow: hidden;
+}
+
+.native-record-screen--pest .pest-section-card--rodents {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.native-record-screen--pest .pest-title-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.native-record-screen--pest .pest-title-row .record-form-card-title,
+.native-record-screen--pest .pest-title-row .water-section-title {
+  padding: 0;
+}
+
+.native-record-screen--pest .record-form-card-title {
+  gap: 6px;
+}
+
+.native-record-screen--pest .record-form-card-title__icon {
+  width: 32px;
+  height: 32px;
+}
+
+.native-record-screen--pest .record-form-card-title__icon svg {
+  width: 29px;
+  height: 29px;
+}
+
+.native-record-screen--pest .record-form-card-title strong {
+  font-size: clamp(1rem, 4vw, 1.22rem);
+  line-height: 1.02;
+}
+
+.native-record-screen--pest .water-section-title {
+  justify-content: end;
+  gap: 6px;
+}
+
+.native-record-screen--pest .water-section-title > span,
+.native-record-screen--pest .water-input-heading > span {
+  gap: 6px;
+}
+
+.native-record-screen--pest .water-section-title svg,
+.native-record-screen--pest .water-input-heading svg,
+.native-record-screen--pest .pest-map-heading svg,
+.native-record-screen--pest .pest-dosage-heading svg {
+  width: 18px;
+  height: 18px;
+}
+
+.native-record-screen--pest .water-section-title strong,
+.native-record-screen--pest .water-input-heading strong,
+.native-record-screen--pest .pest-map-heading strong,
+.native-record-screen--pest .pest-dosage-heading strong {
+  font-size: 0.86rem;
+  line-height: 1.05;
+}
+
+.native-record-screen--pest .pest-map-heading,
+.native-record-screen--pest .pest-dosage-heading {
+  gap: 6px;
+}
+
+.native-record-screen--pest .rodent-station-panel {
+  min-height: 0;
+  height: 100%;
+  grid-template-rows: minmax(0, 1fr) auto;
+  justify-items: center;
+  gap: 6px;
+}
+
+.native-record-screen--pest .rodent-station-map {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  justify-self: center;
+}
+
+.native-record-screen--pest .rodent-station-marker {
+  width: clamp(28px, 7.4vw, 38px);
+}
+
+.native-record-screen--pest .rodent-station-marker__number {
+  min-width: 16px;
+  font-size: clamp(0.56rem, 2vw, 0.72rem);
+}
+
+.native-record-screen--pest .rodent-station-summary {
+  width: 100%;
+  min-height: 34px;
+  gap: 8px;
+  padding: 6px 8px;
+}
+
+.native-record-screen--pest .rodent-station-summary strong,
+.native-record-screen--pest .rodent-station-summary span {
+  font-size: 0.76rem !important;
+  line-height: 1.1;
+}
+
+.native-record-screen--pest .pest-section-card--flies {
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
+}
+
+.native-record-screen--pest .pest-dosage-grid {
+  gap: 6px;
+}
+
+.native-record-screen--pest .pest-dosage-option {
+  min-height: 58px;
+  padding: 6px;
+}
+
+.native-record-screen--pest .pest-dosage-option strong {
+  font-size: 0.76rem;
+}
+
+.native-record-screen--pest .pest-dosage-option__check {
+  top: -8px;
+  right: -5px;
+  width: 22px;
+  height: 22px;
+}
+
+.native-record-screen--pest .pest-save-button {
+  min-height: 50px;
+  border-radius: 10px;
+  font-size: 1.04rem;
+}
+
+@media (min-width: 820px) {
+  .native-record-screen--pest .pest-control-form {
+    grid-template-columns: minmax(0, 1.2fr) minmax(310px, 0.8fr) !important;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .native-record-screen--pest .pest-control-form > .record-date-card,
+  .native-record-screen--pest .pest-control-form > .water-form-error,
+  .native-record-screen--pest .pest-control-form > .primary-action {
+    grid-column: 1 / -1;
+  }
+
+  .native-record-screen--pest .pest-section-card--rodents {
+    grid-column: 1;
+    grid-template-columns: minmax(136px, 0.42fr) minmax(0, 1.58fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .native-record-screen--pest .pest-title-row {
+    grid-column: 1;
+    grid-row: 1;
+    grid-template-columns: 1fr;
+    align-content: start;
+  }
+
+  .native-record-screen--pest .pest-section-card--rodents .pest-map-heading {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: end;
+  }
+
+  .native-record-screen--pest .pest-section-card--rodents .rodent-station-panel {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .native-record-screen--pest .rodent-station-map {
+    width: auto;
+    height: 100%;
+    max-width: min(100%, 520px);
+  }
+
+  .native-record-screen--pest .pest-section-card--flies {
+    grid-column: 2;
+  }
+
+  .native-record-screen--pest .pest-section-card--flies .pest-dosage-option {
+    min-height: clamp(74px, 14svh, 110px);
+  }
+}
+
+@media (max-height: 760px) {
+  .page-shell--record-view:has(.native-record-screen--pest) {
+    padding-top: 6px;
+  }
+
+  .page-shell--record-view:has(.native-record-screen--pest) .native-record-screen--pest {
+    gap: 6px;
+  }
+
+  .native-record-screen--pest .native-record-hero {
+    min-height: 52px;
+    padding: 6px;
+  }
+
+  .native-record-screen--pest .native-record-hero__copy span {
+    display: none;
+  }
+
+  .native-record-screen--pest .pest-control-form {
+    gap: 6px;
+  }
+
+  .native-record-screen--pest .record-date-card {
+    min-height: 46px;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    gap: 7px;
+    padding: 6px 8px;
+  }
+
+  .native-record-screen--pest .record-date-card .water-date-card__icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .native-record-screen--pest .record-date-card .water-date-card__date span,
+  .native-record-screen--pest .record-date-card .water-date-card__status span {
+    font-size: 0.62rem;
+  }
+
+  .native-record-screen--pest .record-date-card .water-date-card__date strong {
+    font-size: 0.88rem;
+  }
+
+  .native-record-screen--pest .pest-section-card {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .native-record-screen--pest .rodent-station-map {
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+  }
+
+  .native-record-screen--pest .rodent-station-summary {
+    min-height: 30px;
+    padding: 5px 7px;
+  }
+
+  .native-record-screen--pest .pest-dosage-option {
+    min-height: 50px;
   }
 }
