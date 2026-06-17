@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Activity, BarChart3, CalendarClock, ClipboardList, Home, Map, Package, RefreshCcw, Shield, Truck, UserRound } from 'lucide-react';
-import { RoleGuard } from './components/RoleGuard';
 import { SyncStatusBadge } from './components/SyncStatusBadge';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { getCurrentUser, getOrCreateSupabaseUser, switchRole } from './services/authService';
@@ -192,16 +191,25 @@ function AuthenticatedApp({
   const [toast, setToast] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [bootstrappedRemote, setBootstrappedRemote] = useState(false);
+  const [activeRoleView, setActiveRoleView] = useState<Role>(() => user.Rol);
   const [activeView, setActiveView] = useState<MainView>(() => getDefaultViewForRole(user.Rol));
   const online = useOnlineStatus();
   const pendingCount = useLiveQuery(() => db.syncQueue.where('EstadoSync').equals('PENDIENTE').count(), []);
   const failedCount = useLiveQuery(() => db.syncQueue.where('EstadoSync').equals('ERROR').count(), []);
+  const visibleRole = user.Rol === 'ADMIN' ? activeRoleView : user.Rol;
+  const canSwitchRoleView = user.Rol === 'ADMIN' || allowRoleSwitch;
 
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(''), 3200);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    if (user.Rol === 'ADMIN') return;
+    setActiveRoleView('GALPONERO');
+    setActiveView((currentView) => (galponeroNavItems.some((item) => item.view === currentView) ? currentView : 'actividades'));
+  }, [user.Rol]);
 
   useEffect(() => {
     if (online && user && (pendingCount ?? 0) + (failedCount ?? 0) > 0) {
@@ -219,9 +227,18 @@ function AuthenticatedApp({
   }, [bootstrappedRemote, online, user]);
 
   async function handleRoleChange(role: Role) {
+    if (user.Rol === 'ADMIN') {
+      setActiveRoleView(role);
+      handleViewChange(getDefaultViewForRole(role));
+      return;
+    }
+
+    if (!allowRoleSwitch) return;
+
     const nextUser = await switchRole(role);
     setUser(nextUser);
-    handleViewChange(getDefaultViewForRole(role));
+    setActiveRoleView(nextUser.Rol);
+    handleViewChange(getDefaultViewForRole(nextUser.Rol));
     setBootstrappedRemote(false);
   }
 
@@ -254,13 +271,13 @@ function AuthenticatedApp({
       <header className="top-bar">
         <div className="top-bar__brand">
           <strong>POLLOS</strong>
-          {allowRoleSwitch && (
-            <div className="role-switch" aria-label="Selector de rol">
-              <button className={user.Rol === 'GALPONERO' ? 'is-active' : ''} type="button" onClick={() => handleRoleChange('GALPONERO')}>
+          {canSwitchRoleView && (
+            <div className="role-switch" aria-label={user.Rol === 'ADMIN' ? 'Selector de vista' : 'Selector de rol'}>
+              <button className={visibleRole === 'GALPONERO' ? 'is-active' : ''} type="button" onClick={() => handleRoleChange('GALPONERO')}>
                 <UserRound size={18} />
                 Galponero
               </button>
-              <button className={user.Rol === 'ADMIN' ? 'is-active' : ''} type="button" onClick={() => handleRoleChange('ADMIN')}>
+              <button className={visibleRole === 'ADMIN' ? 'is-active' : ''} type="button" onClick={() => handleRoleChange('ADMIN')}>
                 <Shield size={18} />
                 Admin
               </button>
@@ -278,18 +295,18 @@ function AuthenticatedApp({
         </div>
       </header>
 
-      <RoleGuard user={user} allow={['GALPONERO']}>
+      {visibleRole === 'GALPONERO' && (
         <Suspense fallback={<div className="boot-screen">Cargando operacion...</div>}>
           <GalponeroHome user={user} activeView={activeView} onViewChange={handleViewChange} onToast={setToast} />
         </Suspense>
-      </RoleGuard>
-      <RoleGuard user={user} allow={['ADMIN']}>
+      )}
+      {visibleRole === 'ADMIN' && (
         <Suspense fallback={<div className="boot-screen">Cargando administracion...</div>}>
           <AdminDashboard user={user} activeView={activeView} onToast={setToast} />
         </Suspense>
-      </RoleGuard>
+      )}
 
-      <MainNavigation role={user.Rol} activeView={activeView} onViewChange={handleViewChange} />
+      <MainNavigation role={visibleRole} activeView={activeView} onViewChange={handleViewChange} />
 
       {toast && <div className="toast">{toast}</div>}
     </div>

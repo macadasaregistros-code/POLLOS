@@ -50,7 +50,8 @@ import { getDiaLote, todayISO } from '../../lib/date';
 import { fileToDataUrl } from '../../lib/photo';
 import { fmtNumber } from '../../lib/format';
 import { avesVivasTotal, sumLoteTotals } from '../../services/calculationsService';
-import type { CompostajeCajon, ControlAgua, Lote, TipoAlimento, TipoMaterialInventario, Usuario } from '../../types/entities';
+import type { CompostajeCajon, ControlAgua, Lote, TipoMaterialInventario, Usuario } from '../../types/entities';
+import { FoodTypeSelector, getFeedTypeOptions } from './FeedTypeSelector';
 
 export type ActivityRecordKind = 'vacunacion' | 'agua' | 'plagas' | 'medicamento' | 'compostaje' | 'perros' | 'capacitacion';
 export type EntryKind = 'alimento' | 'cisco' | 'gas';
@@ -150,7 +151,6 @@ const entryOptions: Array<RecordOption<EntryKind>> = [
   },
 ];
 
-const foodOrder = ['preiniciador', 'iniciador', 'engorde'] as const;
 const waterRecordStatus = 'EN PROCESO';
 const vaccinationRecordStatus = 'EN PROCESO';
 const medicationRecordStatus = 'EN PROCESO';
@@ -484,13 +484,12 @@ function FoodEntryForm({
   const [tipoId, setTipoId] = useState('');
   const [bultos, setBultos] = useState('0');
   const [observaciones, setObservaciones] = useState('');
-  const tiposOrdenados = useMemo(() => orderFoodTypes(tipos ?? []), [tipos]);
-  const selected = tiposOrdenados.find((tipo) => tipo.TipoAlimentoID === tipoId);
-  const totalKg = Number(bultos || 0) * (selected?.KgPorBulto ?? 0);
+  const tipoOptions = useMemo(() => getFeedTypeOptions(tipos ?? []), [tipos]);
+  const selected = tipoOptions.find((foodType) => foodType.tipo.TipoAlimentoID === tipoId)?.tipo;
 
   useEffect(() => {
-    if (!tipoId && tiposOrdenados[0]) setTipoId(tiposOrdenados[0].TipoAlimentoID);
-  }, [tipoId, tiposOrdenados]);
+    if (!tipoId && tipoOptions[0]) setTipoId(tipoOptions[0].tipo.TipoAlimentoID);
+  }, [tipoId, tipoOptions]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -516,29 +515,14 @@ function FoodEntryForm({
       <EntryRecordDateCard onBack={onBack} />
       <section className="water-form-card entry-record-main-card">
         <EntryRecordCardHeader option={option} />
-        <div className="entry-record-content-layout">
-          <section className="entry-record-inputs">
-            <label className="field">
-              <span>Tipo de alimento</span>
-              <select value={tipoId} onChange={(event) => setTipoId(event.target.value)} required>
-                {tiposOrdenados.map((tipo) => (
-                  <option key={tipo.TipoAlimentoID} value={tipo.TipoAlimentoID}>
-                    {tipo.Nombre}
-                  </option>
-                ))}
-              </select>
-            </label>
+        <div className="entry-record-content-layout entry-food-content-layout">
+          <section className="entry-record-inputs entry-food-inputs">
+            <FoodTypeSelector options={tipoOptions} selectedTipoId={tipoId} onSelect={setTipoId} />
             <label className="field">
               <span>Bultos recibidos</span>
               <input type="number" min="0" step="0.25" inputMode="decimal" value={bultos} onChange={(event) => setBultos(event.target.value)} />
             </label>
           </section>
-          <EntryRecordSummary
-            items={[
-              { label: 'Kg por bulto', value: `${selected?.KgPorBulto ?? 0} kg` },
-              { label: 'Total recibido', value: `${totalKg.toFixed(1)} kg` },
-            ]}
-          />
         </div>
         <ObservationField value={observaciones} onChange={setObservaciones} />
       </section>
@@ -2615,19 +2599,3 @@ function ObservationField({ value, onChange }: { value: string; onChange: (value
   );
 }
 
-function normalizeFoodName(name: string): string {
-  return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-}
-
-function getFoodOrderIndex(tipo: TipoAlimento): number {
-  const normalized = normalizeFoodName(tipo.Nombre);
-  const index = foodOrder.findIndex((name) => normalized.includes(name));
-  return index >= 0 ? index : Number.POSITIVE_INFINITY;
-}
-
-function orderFoodTypes(tipos: TipoAlimento[]): TipoAlimento[] {
-  const ordered = tipos
-    .filter((tipo) => getFoodOrderIndex(tipo) !== Number.POSITIVE_INFINITY)
-    .sort((left, right) => getFoodOrderIndex(left) - getFoodOrderIndex(right));
-  return ordered.length > 0 ? ordered : tipos;
-}

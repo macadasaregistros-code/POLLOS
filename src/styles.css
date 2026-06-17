@@ -11550,7 +11550,8 @@ body:has(.page-shell--daily-record) {
   padding: 12px;
 }
 
-.daily-register-form > .form-optional-panel {
+.daily-register-card .daily-register-form > .form-optional-panel,
+.mobile-card .daily-register-form > .form-optional-panel {
   padding: 6px 14px;
 }
 
@@ -11759,7 +11760,8 @@ body:has(.page-shell--daily-record) {
     font-size: 0.76rem;
   }
 
-  .daily-register-form > .form-optional-panel {
+  .daily-register-card .daily-register-form > .form-optional-panel,
+  .mobile-card .daily-register-form > .form-optional-panel {
     padding: 6px 10px;
   }
 
@@ -11929,6 +11931,114 @@ body:has(.page-shell--daily-record) {
   grid-template-columns: 1fr;
 }
 
+.entry-food-form .entry-food-content-layout {
+  grid-template-columns: 1fr;
+}
+
+.entry-food-form .entry-food-inputs {
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.32fr);
+  align-items: stretch;
+}
+
+.entry-food-form .food-type-selector {
+  grid-column: 1;
+}
+
+.food-type-selector {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.food-type-selector > span {
+  color: #2f3a34;
+  font-size: 0.86rem;
+  font-weight: 750;
+  line-height: 1.15;
+}
+
+.food-type-selector__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.food-type-option {
+  position: relative;
+  min-width: 0;
+  min-height: 178px;
+  display: grid;
+  grid-template-rows: minmax(122px, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  justify-items: center;
+  overflow: hidden;
+  border: 1.5px solid #d8ded7;
+  border-radius: 8px;
+  padding: 10px 8px 12px;
+  background: #ffffff;
+  color: #11181d;
+  box-shadow: 0 7px 16px rgb(22 34 29 / 5%);
+  text-align: center;
+  touch-action: manipulation;
+}
+
+.food-type-option:active {
+  transform: scale(0.98);
+}
+
+.food-type-option:focus-visible {
+  outline: 3px solid rgb(38 123 27 / 18%);
+  outline-offset: 2px;
+}
+
+.food-type-option__image {
+  min-width: 0;
+  width: 100%;
+  height: 122px;
+  display: grid;
+  place-items: end center;
+}
+
+.food-type-option__image img {
+  max-width: 100%;
+  max-height: 128px;
+  object-fit: contain;
+  user-select: none;
+}
+
+.food-type-option strong {
+  min-width: 0;
+  color: #11181d;
+  font-size: 0.93rem;
+  font-weight: 900;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.food-type-option__check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #267b1b;
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgb(38 123 27 / 28%);
+}
+
+.food-type-option.is-selected {
+  border-color: #267b1b;
+  border-width: 2px;
+  background: linear-gradient(135deg, #fbfff9 0%, #f0faec 100%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 64%),
+    0 0 0 2px rgb(38 123 27 / 10%);
+}
+
 .native-record-screen .entry-record-inputs .field {
   display: grid;
   gap: 8px;
@@ -12048,6 +12158,36 @@ body:has(.page-shell--daily-record) {
   .entry-record-inputs,
   .entry-record-summary {
     grid-template-columns: 1fr;
+  }
+
+  .food-type-selector__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .food-type-option {
+    min-height: 142px;
+    grid-template-rows: minmax(92px, 1fr) auto;
+    padding: 8px 5px 10px;
+  }
+
+  .food-type-option__image {
+    height: 92px;
+  }
+
+  .food-type-option__image img {
+    max-height: 100px;
+  }
+
+  .food-type-option strong {
+    font-size: 0.78rem;
+  }
+
+  .food-type-option__check {
+    top: 6px;
+    right: 6px;
+    width: 26px;
+    height: 26px;
   }
 
   .entry-record-summary {
