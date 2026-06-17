@@ -11402,7 +11402,7 @@ body:has(.page-shell--daily-record) {
 
 /* Daily register fixed-action clearance. */
 .page-shell--daily-record {
-  --daily-register-action-height: 64px;
+  --daily-register-action-height: 56px;
 }
 
 .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) > .form-optional-panel.is-open {
@@ -11551,7 +11551,7 @@ body:has(.page-shell--daily-record) {
 }
 
 .daily-register-form > .form-optional-panel {
-  padding: 10px 14px;
+  padding: 6px 14px;
 }
 
 .page-shell--daily-record .daily-register-form > .primary-action {
