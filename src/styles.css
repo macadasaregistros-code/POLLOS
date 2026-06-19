@@ -11815,6 +11815,77 @@ body:has(.page-shell--daily-record) {
   }
 }
 
+.daily-register-food-selector {
+  gap: 0;
+}
+
+.daily-register-food-selector > span {
+  height: 0;
+  overflow: hidden;
+  font-size: 0;
+  line-height: 0;
+}
+
+.daily-register-food-selector .food-type-selector__grid {
+  gap: 8px;
+}
+
+.daily-register-food-selector .food-type-option {
+  min-height: 108px;
+  grid-template-rows: minmax(72px, 1fr) auto;
+  gap: 6px;
+  padding: 7px 6px 8px;
+}
+
+.daily-register-food-selector .food-type-option__image {
+  height: 72px;
+}
+
+.daily-register-food-selector .food-type-option__image img {
+  max-height: 78px;
+}
+
+.daily-register-food-selector .food-type-option strong {
+  font-size: 0.74rem;
+}
+
+.daily-register-food-selector .food-type-option__check {
+  top: 5px;
+  right: 5px;
+  width: 24px;
+  height: 24px;
+}
+
+@media (max-width: 760px), (max-height: 700px) {
+  .daily-register-food-selector .food-type-selector__grid {
+    gap: 6px;
+  }
+
+  .daily-register-food-selector .food-type-option {
+    min-height: 76px;
+    grid-template-rows: minmax(48px, 1fr) auto;
+    gap: 4px;
+    padding: 5px 4px 6px;
+  }
+
+  .daily-register-food-selector .food-type-option__image {
+    height: 48px;
+  }
+
+  .daily-register-food-selector .food-type-option__image img {
+    max-height: 54px;
+  }
+
+  .daily-register-food-selector .food-type-option strong {
+    font-size: 0.58rem;
+  }
+
+  .daily-register-food-selector .food-type-option__check {
+    width: 20px;
+    height: 20px;
+  }
+}
+
 /* Keep daily observations inline so the panel never covers mortality or the save action. */
 .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) > .form-optional-panel.is-open {
   position: static;
@@ -13083,5 +13154,87 @@ body:has(.native-record-screen--pest) {
     height: 34px;
     min-height: 34px;
     font-size: 0.94rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .page-shell--daily-record .daily-register-form .daily-register-form__section,
+  .page-shell--daily-record .daily-register-form .daily-register-form__section:first-child,
+  .page-shell--daily-record .daily-register-form .daily-register-form__section:last-child {
+    gap: 6px;
+    padding: 7px;
+  }
+
+  .page-shell--daily-record .daily-register-food-selector .food-type-selector__grid {
+    gap: 5px;
+  }
+
+  .page-shell--daily-record .daily-register-food-selector .food-type-option {
+    min-height: 62px;
+    grid-template-rows: minmax(38px, 1fr) auto;
+    gap: 2px;
+    padding: 4px 3px 5px;
+  }
+
+  .page-shell--daily-record .daily-register-food-selector .food-type-option__image {
+    height: 38px;
+  }
+
+  .page-shell--daily-record .daily-register-food-selector .food-type-option__image img {
+    max-height: 44px;
+  }
+
+  .page-shell--daily-record .daily-register-food-selector .food-type-option strong {
+    font-size: 0.54rem;
+  }
+
+  .page-shell--daily-record .daily-register-food-selector .food-type-option__check {
+    width: 18px;
+    height: 18px;
+  }
+
+  .page-shell--daily-record .daily-register-form .daily-register-form__section--feed .field {
+    gap: 3px;
+  }
+
+  .page-shell--daily-record .daily-register-form .daily-register-form__section--feed .field input {
+    min-height: 38px;
+    padding: 6px 10px;
+    font-size: 0.96rem;
+  }
+
+  .page-shell--daily-record .daily-register-form .daily-register-form__section--feed .field small {
+    display: none;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button-grid {
+    gap: 6px;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button {
+    gap: 4px;
+    padding: 5px;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button > span {
+    font-size: 0.72rem;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button > div {
+    grid-template-columns: 30px minmax(0, 1fr) 30px;
+    gap: 4px;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button button,
+  .page-shell--daily-record .daily-register-form .count-button input {
+    width: 30px;
+    height: 30px;
+    min-height: 30px;
+    font-size: 0.92rem;
+  }
+
+  .page-shell--daily-record .daily-register-form > .form-optional-panel.is-open textarea {
+    height: 64px;
+    min-height: 64px;
   }
 }

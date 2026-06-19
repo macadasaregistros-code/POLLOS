@@ -6,7 +6,8 @@ import { FormOptionalPanel } from '../../components/FormOptionalPanel';
 import { registrarDia } from '../../services/domainService';
 import { db } from '../../services/localDbService';
 import { getDiaLote, todayISO } from '../../lib/date';
-import type { Lote, TipoAlimento, Usuario } from '../../types/entities';
+import type { Lote, Usuario } from '../../types/entities';
+import { FoodTypeSelector, getFeedTypeOptions } from './FeedTypeSelector';
 
 interface RegistrarDiaFormProps {
   lote: Lote;
@@ -15,7 +16,6 @@ interface RegistrarDiaFormProps {
   onBack?: () => void;
 }
 
-const foodOrder = ['preiniciador', 'iniciador', 'engorde'] as const;
 const dailyShortMonths = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] as const;
 
 export function RegistrarDiaForm({ lote, user, onSaved, onBack }: RegistrarDiaFormProps) {
@@ -35,11 +35,11 @@ export function RegistrarDiaForm({ lote, user, onSaved, onBack }: RegistrarDiaFo
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const tiposOrdenados = useMemo(() => orderFoodTypes(tiposAlimento ?? []), [tiposAlimento]);
-  const defaultTipo = tiposOrdenados[0]?.TipoAlimentoID ?? '';
-  const latestTipoAlimentoId = useMemo(() => getLatestTipoAlimentoId(registrosLote ?? [], tiposOrdenados), [registrosLote, tiposOrdenados]);
+  const tipoOptions = useMemo(() => getFeedTypeOptions(tiposAlimento ?? []), [tiposAlimento]);
+  const defaultTipo = tipoOptions[0]?.tipo.TipoAlimentoID ?? '';
+  const latestTipoAlimentoId = useMemo(() => getLatestTipoAlimentoId(registrosLote ?? [], tipoOptions), [registrosLote, tipoOptions]);
   const currentTipoId = tipoAlimentoId || latestTipoAlimentoId || defaultTipo;
-  const selectedTipo = tiposOrdenados.find((tipo) => tipo.TipoAlimentoID === currentTipoId);
+  const selectedTipo = tipoOptions.find((option) => option.tipo.TipoAlimentoID === currentTipoId)?.tipo;
   const todayRecord = (registrosLote ?? []).find((registro) => registro.Fecha === today);
   const sacrificeStorageKey = `pollos.sacrificioActivo.${lote.LoteID}`;
   const sacrificeCanStart = diaLote > 35;
@@ -136,16 +136,7 @@ export function RegistrarDiaForm({ lote, user, onSaved, onBack }: RegistrarDiaFo
           <section className="daily-register-form__section daily-register-form__section--feed">
             <DailySectionTitle icon={<Wheat size={28} />} title="Alimentación" />
             <div className="form-grid">
-              <label className="field">
-                <span>Tipo alimento</span>
-                <select value={currentTipoId} onChange={(event) => setTipoAlimentoId(event.target.value)} required>
-                  {tiposOrdenados.map((tipo) => (
-                    <option key={tipo.TipoAlimentoID} value={tipo.TipoAlimentoID}>
-                      {tipo.Nombre}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <FoodTypeSelector options={tipoOptions} selectedTipoId={currentTipoId} onSelect={setTipoAlimentoId} className="daily-register-food-selector" />
               <label className="field">
                 <span>Bultos hoy</span>
                 <input
@@ -270,33 +261,16 @@ function DailyRegisterDateCard({
   );
 }
 
-function normalizeFoodName(name: string): string {
-  return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-}
-
 function formatDailyDate(dateISO: string): string {
   const [year, month, day] = dateISO.split('-').map(Number);
   return `${day} ${dailyShortMonths[month - 1] ?? ''} ${year}`;
 }
 
-function getFoodOrderIndex(tipo: TipoAlimento): number {
-  const normalized = normalizeFoodName(tipo.Nombre);
-  const index = foodOrder.findIndex((name) => normalized.includes(name));
-  return index >= 0 ? index : Number.POSITIVE_INFINITY;
-}
-
-function orderFoodTypes(tipos: TipoAlimento[]): TipoAlimento[] {
-  const ordered = tipos
-    .filter((tipo) => getFoodOrderIndex(tipo) !== Number.POSITIVE_INFINITY)
-    .sort((left, right) => getFoodOrderIndex(left) - getFoodOrderIndex(right));
-  return ordered.length > 0 ? ordered : tipos;
-}
-
 function getLatestTipoAlimentoId(
   registros: Array<{ Fecha: string; FechaHoraRegistro: string; TipoAlimentoID: string }>,
-  tipos: TipoAlimento[],
+  tipoOptions: ReturnType<typeof getFeedTypeOptions>,
 ): string {
-  const validIds = new Set(tipos.map((tipo) => tipo.TipoAlimentoID));
+  const validIds = new Set(tipoOptions.map((option) => option.tipo.TipoAlimentoID));
   return (
     registros
       .filter((registro) => validIds.has(registro.TipoAlimentoID))
