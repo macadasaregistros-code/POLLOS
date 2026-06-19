@@ -3,6 +3,7 @@ import type { FormEvent, ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ArrowLeft, CalendarDays, ClipboardCheck, HeartPulse, Save, Scissors, Wheat } from 'lucide-react';
 import { FormOptionalPanel } from '../../components/FormOptionalPanel';
+import { getNextRequiredDailyRegisterDate } from '../../services/dailyRegisterService';
 import { registrarDia } from '../../services/domainService';
 import { db } from '../../services/localDbService';
 import { getDiaLote, todayISO } from '../../lib/date';
@@ -23,7 +24,16 @@ export function RegistrarDiaForm({ lote, user, onSaved, onBack }: RegistrarDiaFo
   const registrosLote = useLiveQuery(() => db.registroDiarioLote.where('LoteID').equals(lote.LoteID).toArray(), [lote.LoteID]);
   const salidasLote = useLiveQuery(() => db.salidasPollo.where('LoteID').equals(lote.LoteID).toArray(), [lote.LoteID]);
   const today = todayISO();
-  const diaLote = getDiaLote(lote.FechaLlegada, today);
+  const registros = registrosLote ?? [];
+  const loteNotStarted = lote.FechaLlegada > today;
+  const nextRequiredDate = useMemo(
+    () => (loteNotStarted ? undefined : getNextRequiredDailyRegisterDate(lote.FechaLlegada, registros, today)),
+    [lote.FechaLlegada, loteNotStarted, registros, today],
+  );
+  const targetDate = loteNotStarted ? lote.FechaLlegada : nextRequiredDate ?? today;
+  const diaLote = getDiaLote(lote.FechaLlegada, targetDate);
+  const isOffToday = targetDate !== today;
+  const isLateRecord = targetDate < today;
   const [tipoAlimentoId, setTipoAlimentoId] = useState('');
   const [bultos, setBultos] = useState('0');
   const [muertosM, setMuertosM] = useState('0');
@@ -37,10 +47,11 @@ export function RegistrarDiaForm({ lote, user, onSaved, onBack }: RegistrarDiaFo
 
   const tipoOptions = useMemo(() => getFeedTypeOptions(tiposAlimento ?? []), [tiposAlimento]);
   const defaultTipo = tipoOptions[0]?.tipo.TipoAlimentoID ?? '';
-  const latestTipoAlimentoId = useMemo(() => getLatestTipoAlimentoId(registrosLote ?? [], tipoOptions), [registrosLote, tipoOptions]);
+  const latestTipoAlimentoId = useMemo(() => getLatestTipoAlimentoId(registros, tipoOptions, targetDate), [registros, targetDate, tipoOptions]);
   const currentTipoId = tipoAlimentoId || latestTipoAlimentoId || defaultTipo;
   const selectedTipo = tipoOptions.find((option) => option.tipo.TipoAlimentoID === currentTipoId)?.tipo;
   const todayRecord = (registrosLote ?? []).find((registro) => registro.Fecha === today);
+  const targetRecord = registros.find((registro) => registro.Fecha === targetDate);
   const sacrificeStorageKey = `pollos.sacrificioActivo.${lote.LoteID}`;
   const sacrificeCanStart = diaLote > 35;
   const sacrificeAlreadyStarted = useMemo(
@@ -53,7 +64,7 @@ export function RegistrarDiaForm({ lote, user, onSaved, onBack }: RegistrarDiaFo
 
   useEffect(() => {
     setTipoAlimentoId(latestTipoAlimentoId || defaultTipo);
-  }, [defaultTipo, latestTipoAlimentoId, lote.LoteID]);
+  }, [defaultTipo, latestTipoAlimentoId, lote.LoteID, targetDate]);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(sacrificeStorageKey) === '1';
@@ -68,14 +79,14 @@ export function RegistrarDiaForm({ lote, user, onSaved, onBack }: RegistrarDiaFo
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!currentTipoId || todayRecord || saving) return;
+    if (!currentTipoId || targetRecord || saving || loteNotStarted) return;
     setError('');
     setSaving(true);
     try {
       await registrarDia(
         {
           LoteID: lote.LoteID,
-          Fecha: today,
+          Fecha: targetDate,
           TipoAlimentoID: currentTipoId,
           BultosConsumidos: Number(bultos || 0),
           MuertosMachos: Number(muertosM || 0),
@@ -101,7 +112,26 @@ export function RegistrarDiaForm({ lote, user, onSaved, onBack }: RegistrarDiaFo
     }
   }
 
-  if (todayRecord) {
+  if (loteNotStarted) {
+    return (
+      <div className="daily-register-complete-layout daily-register-complete-layout--alert">
+        <DailyRegisterDateCard
+          date={targetDate}
+          loteCode={lote.CodigoLote}
+          diaLote={diaLote}
+          status="Aun no inicia"
+          onBack={onBack}
+          tone="alert"
+        />
+        <div className="daily-register-complete daily-register-complete--alert" role="status">
+          <strong>Lote pendiente por iniciar</strong>
+          <span>La fecha de inicio del lote es posterior a hoy. No se debe registrar antes de esa fecha.</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!nextRequiredDate && todayRecord) {
     return (
       <div className="daily-register-complete-layout">
         <DailyRegisterDateCard
@@ -121,8 +151,21 @@ export function RegistrarDiaForm({ lote, user, onSaved, onBack }: RegistrarDiaFo
   }
 
   return (
-    <form className={`form-grid daily-register-form flow-form ${sacrificeCanStart ? 'daily-register-form--with-sacrifice' : ''}`} onSubmit={handleSubmit}>
-      <DailyRegisterDateCard date={today} loteCode={lote.CodigoLote} diaLote={diaLote} status="Pendiente" onBack={onBack} />
+    <form className={`form-grid daily-register-form flow-form ${sacrificeCanStart ? 'daily-register-form--with-sacrifice' : ''} ${isOffToday ? 'daily-register-form--alert' : ''}`} onSubmit={handleSubmit}>
+      <DailyRegisterDateCard
+        date={targetDate}
+        loteCode={lote.CodigoLote}
+        diaLote={diaLote}
+        status={isLateRecord ? 'ATRASADO' : 'Pendiente'}
+        onBack={onBack}
+        tone={isOffToday ? 'alert' : 'normal'}
+      />
+      {isOffToday && (
+        <div className="daily-register-date-alert" role="alert">
+          <strong>{isLateRecord ? 'Registro atrasado' : 'Fecha fuera de hoy'}</strong>
+          <span>{isLateRecord ? `Debes completar ${formatDailyDate(targetDate)} antes de registrar hoy.` : 'Esta fecha no corresponde a hoy.'}</span>
+        </div>
+      )}
 
       <section className="water-form-card daily-register-main-card">
         <header className="daily-register-main-card__header">
@@ -185,7 +228,7 @@ export function RegistrarDiaForm({ lote, user, onSaved, onBack }: RegistrarDiaFo
       </label>
       </FormOptionalPanel>
       {error && <p className="water-form-error daily-register-error" role="alert">{error}</p>}
-      <button className="primary-action" disabled={saving || !currentTipoId}>
+      <button className="primary-action" disabled={saving || !currentTipoId || loteNotStarted}>
         <Save size={21} />
         <span>{saving ? 'Guardando...' : 'Guardar registro diario'}</span>
       </button>
@@ -231,15 +274,17 @@ function DailyRegisterDateCard({
   diaLote,
   status,
   onBack,
+  tone = 'normal',
 }: {
   date: string;
   loteCode: string;
   diaLote: number;
   status: string;
   onBack?: () => void;
+  tone?: 'normal' | 'alert';
 }) {
   return (
-    <section className={`water-date-card daily-register-date-card ${onBack ? 'daily-register-date-card--with-back' : ''}`} aria-label="Fecha y estado del registro">
+    <section className={`water-date-card daily-register-date-card ${onBack ? 'daily-register-date-card--with-back' : ''} ${tone === 'alert' ? 'daily-register-date-card--alert' : ''}`} aria-label="Fecha y estado del registro">
       {onBack && (
         <button className="daily-register-back-button" type="button" aria-label="Volver a hoy" onClick={onBack}>
           <ArrowLeft size={24} />
@@ -269,11 +314,12 @@ function formatDailyDate(dateISO: string): string {
 function getLatestTipoAlimentoId(
   registros: Array<{ Fecha: string; FechaHoraRegistro: string; TipoAlimentoID: string }>,
   tipoOptions: ReturnType<typeof getFeedTypeOptions>,
+  beforeDate: string,
 ): string {
   const validIds = new Set(tipoOptions.map((option) => option.tipo.TipoAlimentoID));
   return (
     registros
-      .filter((registro) => validIds.has(registro.TipoAlimentoID))
+      .filter((registro) => registro.Fecha < beforeDate && validIds.has(registro.TipoAlimentoID))
       .sort((left, right) => right.Fecha.localeCompare(left.Fecha) || right.FechaHoraRegistro.localeCompare(left.FechaHoraRegistro))[0]
       ?.TipoAlimentoID ?? ''
   );

@@ -19,6 +19,7 @@ const RESET_ATTEMPTED_KEY = 'pollos.resetAttempted';
 
 const adminNavItems: Array<{ view: MainView; label: string; icon: typeof Home }> = [
   { view: 'inicio', label: 'Inicio', icon: Home },
+  { view: 'actividades', label: 'Hechas', icon: Activity },
   { view: 'galpones', label: 'Galpones', icon: Map },
   { view: 'lotes', label: 'Lotes', icon: ClipboardList },
   { view: 'programacion', label: 'Programacion', icon: CalendarClock },

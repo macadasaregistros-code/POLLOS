@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { BarChart3, CalendarClock, ClipboardList, Home, Map as MapIcon, Package } from 'lucide-react';
+import { Activity, BarChart3, CalendarClock, ClipboardList, Home, Map as MapIcon, Package } from 'lucide-react';
 import { AlertBadge } from '../../components/AlertBadge';
 import { buildGalponDashboardModel, GalponMap, GalponPremiumDashboardCard, getMaxGalponCapacity } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
@@ -13,7 +13,7 @@ import { generarReporteLotePDF } from '../../services/reportsService';
 import { db } from '../../services/localDbService';
 import { addDays, todayISO } from '../../lib/date';
 import { fmtCurrency, fmtKg, fmtNumber, fmtPercent } from '../../lib/format';
-import type { Lote, LoteResumen, Usuario } from '../../types/entities';
+import type { ActividadLote, EstadoSync, Galpon, Lote, LoteResumen, Usuario } from '../../types/entities';
 import type { MainView } from '../../types/navigation';
 import { AdminAdvancedModules } from './AdminAdvancedModules';
 import { CrearLoteForm } from './CrearLoteForm';
@@ -37,6 +37,7 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
   const vacunas = useLiveQuery(() => db.vacunasLote.toArray(), []);
   const syncQueue = useLiveQuery(() => db.syncQueue.toArray(), []);
   const alertas = useLiveQuery(() => db.alertas.toArray(), []);
+  const usuarios = useLiveQuery(() => db.usuarios.toArray(), []);
   const inventario = useLiveQuery(() => db.inventarioAlimento.toArray(), []);
   const inventarioMaterial = useLiveQuery(() => db.inventarioMaterial.toArray(), []);
   const movimientosMaterial = useLiveQuery(() => db.movimientosInventarioMaterial.toArray(), []);
@@ -175,6 +176,19 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
         </>
       )}
 
+      {activeView === 'actividades' && (
+        <>
+          <AdminTitle eyebrow="OPERACION" title="Actividades" icon={<Activity size={34} />} />
+          <ActivityHistoryView
+            actividades={actividades ?? []}
+            lotes={lotes ?? []}
+            galpones={galpones ?? []}
+            usuarios={usuarios ?? []}
+            today={today}
+          />
+        </>
+      )}
+
       {activeView === 'galpones' && (
         <>
           <AdminTitle eyebrow="MAPA" title="Galpones" icon={<MapIcon size={34} />} />
@@ -306,6 +320,179 @@ function AdminTitle({ eyebrow, title, icon }: { eyebrow: string; title: string; 
       {icon}
     </section>
   );
+}
+
+interface ActivityHistoryItem {
+  id: string;
+  date: string;
+  time: string;
+  timestamp: number;
+  name: string;
+  category: string;
+  lote: string;
+  diaLote: number;
+  galpon: string;
+  user: string;
+  sync: EstadoSync;
+  note: string;
+}
+
+function ActivityHistoryView({
+  actividades,
+  lotes,
+  galpones,
+  usuarios,
+  today,
+}: {
+  actividades: ActividadLote[];
+  lotes: Lote[];
+  galpones: Galpon[];
+  usuarios: Usuario[];
+  today: string;
+}) {
+  const history = useMemo(() => buildActivityHistory({ actividades, lotes, galpones, usuarios }), [actividades, galpones, lotes, usuarios]);
+  const groups = useMemo(() => groupActivityHistoryByDate(history), [history]);
+  const last7Start = addDays(today, -6);
+  const todayCount = history.filter((item) => item.date === today).length;
+  const last7Count = history.filter((item) => item.date >= last7Start).length;
+  const loteCount = new Set(history.map((item) => item.lote)).size;
+  const localCount = history.filter((item) => item.sync === 'PENDIENTE' || item.sync === 'ERROR' || item.sync === 'REQUIERE_REVISION').length;
+
+  return (
+    <section className="activity-history-view">
+      <section className="stats-grid stats-grid--wide activity-history-stats">
+        <StatCard label="Hechas hoy" value={fmtNumber(todayCount)} tone={todayCount > 0 ? 'good' : 'neutral'} />
+        <StatCard label="Ultimos 7 dias" value={fmtNumber(last7Count)} />
+        <StatCard label="Lotes con actividad" value={fmtNumber(loteCount)} />
+        <StatCard label="Guardadas local" value={fmtNumber(localCount)} tone={localCount > 0 ? 'warn' : 'good'} />
+      </section>
+
+      <MobileCard title="Actividades realizadas" subtitle="Ordenadas por fecha descendente">
+        {groups.length ? (
+          <div className="activity-history-list">
+            {groups.map((group) => (
+              <section className="activity-date-group" key={group.date}>
+                <header>
+                  <div>
+                    <strong>{formatActivityDate(group.date, today)}</strong>
+                    <span>{group.date}</span>
+                  </div>
+                  <b>{fmtNumber(group.items.length)}</b>
+                </header>
+                <div className="activity-history-table">
+                  <div className="activity-history-table__header" aria-hidden="true">
+                    <span>Hora</span>
+                    <span>Actividad</span>
+                    <span>Lote</span>
+                    <span>Galpon</span>
+                    <span>Responsable</span>
+                    <span>Sync</span>
+                  </div>
+                  {group.items.map((item) => (
+                    <article className="activity-history-row" key={item.id}>
+                      <span className="activity-history-row__time">{item.time}</span>
+                      <div className="activity-history-row__activity">
+                        <strong>{item.name}</strong>
+                        <span>{item.category}</span>
+                      </div>
+                      <span className="activity-history-row__lote">{item.lote} - Dia {item.diaLote}</span>
+                      <span className="activity-history-row__galpon">{item.galpon}</span>
+                      <span className="activity-history-row__user">{item.user}</span>
+                      <span className={`activity-history-sync activity-history-sync--${item.sync.toLowerCase()}`}>{getSyncLabel(item.sync)}</span>
+                      {item.note && <small className="activity-history-row__note">{item.note}</small>}
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <p className="empty-state">Todavia no hay actividades marcadas como realizadas.</p>
+        )}
+      </MobileCard>
+    </section>
+  );
+}
+
+function buildActivityHistory({
+  actividades,
+  lotes,
+  galpones,
+  usuarios,
+}: {
+  actividades: ActividadLote[];
+  lotes: Lote[];
+  galpones: Galpon[];
+  usuarios: Usuario[];
+}): ActivityHistoryItem[] {
+  const lotesById = new Map(lotes.map((lote) => [lote.LoteID, lote]));
+  const galponesById = new Map(galpones.map((galpon) => [galpon.GalponID, galpon]));
+  const usuariosById = new Map(usuarios.map((usuario) => [usuario.UsuarioID, usuario]));
+
+  return actividades
+    .filter((actividad) => actividad.Estado === 'REALIZADA')
+    .map((actividad) => {
+      const realizedAt = actividad.FechaRealizada || `${actividad.FechaProgramada}T00:00:00`;
+      const date = actividad.FechaRealizada ? actividad.FechaRealizada.slice(0, 10) : actividad.FechaProgramada;
+      const lote = lotesById.get(actividad.LoteID);
+      const galpon = galponesById.get(actividad.GalponID);
+      const usuario = usuariosById.get(actividad.RealizadaPor);
+      return {
+        id: actividad.ActividadLoteID,
+        date,
+        time: formatActivityTime(actividad.FechaRealizada),
+        timestamp: getTimestamp(realizedAt),
+        name: actividad.NombreActividad,
+        category: actividad.Categoria || 'Actividad',
+        lote: lote ? `Lote ${lote.CodigoLote}` : 'Lote sin dato',
+        diaLote: actividad.DiaLote,
+        galpon: galpon ? `Galpon ${galpon.NombreGalpon}` : 'Galpon sin dato',
+        user: usuario?.Nombre || actividad.RealizadaPor || 'Sin responsable',
+        sync: actividad.EstadoSync,
+        note: actividad.Observacion.trim(),
+      };
+    })
+    .sort((left, right) => right.timestamp - left.timestamp || left.name.localeCompare(right.name));
+}
+
+function groupActivityHistoryByDate(history: ActivityHistoryItem[]): Array<{ date: string; items: ActivityHistoryItem[] }> {
+  const groups = new Map<string, ActivityHistoryItem[]>();
+  for (const item of history) {
+    const current = groups.get(item.date) ?? [];
+    current.push(item);
+    groups.set(item.date, current);
+  }
+  return Array.from(groups, ([date, items]) => ({ date, items }));
+}
+
+function getTimestamp(dateTimeISO: string): number {
+  const timestamp = new Date(dateTimeISO).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function formatActivityTime(dateTimeISO: string): string {
+  if (!dateTimeISO) return 'Sin hora';
+  const date = new Date(dateTimeISO);
+  if (!Number.isFinite(date.getTime())) return 'Sin hora';
+  return new Intl.DateTimeFormat('es-CO', { hour: '2-digit', minute: '2-digit' }).format(date);
+}
+
+function formatActivityDate(dateISO: string, today: string): string {
+  const date = new Date(`${dateISO}T12:00:00`);
+  const formatted = Number.isFinite(date.getTime())
+    ? new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: '2-digit', month: 'short' }).format(date)
+    : dateISO;
+  return dateISO === today ? `Hoy - ${formatted}` : formatted;
+}
+
+function getSyncLabel(sync: EstadoSync): string {
+  const labels: Record<EstadoSync, string> = {
+    PENDIENTE: 'Local',
+    SINCRONIZADO: 'Enviado',
+    ERROR: 'Error',
+    REQUIERE_REVISION: 'Revision',
+  };
+  return labels[sync];
 }
 
 function SelectedLoteStats({ selectedSummary, salidas }: { selectedSummary: LoteResumen; salidas: Array<{ EstadoAdministrativo: string }> }) {

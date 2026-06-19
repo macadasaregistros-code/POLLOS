@@ -1,6 +1,7 @@
 import { avesVivasHembras, avesVivasMachos, calculatePesajeStats, sumLoteTotals } from './calculationsService';
 import { db } from './localDbService';
 import { enqueueSync } from './syncService';
+import { getMissingDailyRegisterDates } from './dailyRegisterService';
 import { addDays, getDiaLote, getSemanaLote, nowISO, todayISO } from '../lib/date';
 import { createId } from '../lib/id';
 import type {
@@ -358,8 +359,13 @@ export async function registrarDia(input: RegistroDiaInput, user: Usuario): Prom
   if (lote.EstadoLote !== 'ACTIVO') throw new Error('Este lote ya no está activo.');
   if (input.Fecha < lote.FechaLlegada || input.Fecha > todayISO()) throw new Error('La fecha del registro diario no es válida.');
 
-  const existingRecord = await db.registroDiarioLote.where('LoteID').equals(input.LoteID).and((record) => record.Fecha === input.Fecha).first();
-  if (existingRecord) throw new Error('El registro diario de este lote ya fue guardado hoy.');
+  const previousRecords = await db.registroDiarioLote.where('LoteID').equals(input.LoteID).toArray();
+  const existingRecord = previousRecords.find((record) => record.Fecha === input.Fecha);
+  if (existingRecord) throw new Error('El registro diario de este lote ya fue guardado para esa fecha.');
+  const missingBeforeDate = getMissingDailyRegisterDates(lote.FechaLlegada, addDays(input.Fecha, -1), previousRecords);
+  if (missingBeforeDate.length > 0) {
+    throw new Error(`Primero registra ${missingBeforeDate[0]}. No puede quedar ninguna fecha sin registro.`);
+  }
 
   const tipoAlimento = await db.tiposAlimento.get(input.TipoAlimentoID);
   if (!tipoAlimento?.Activo) throw new Error('Selecciona un tipo de alimento activo.');
@@ -375,7 +381,6 @@ export async function registrarDia(input: RegistroDiaInput, user: Usuario): Prom
   if (values.some((value) => !Number.isFinite(value) || value < 0)) throw new Error('Los valores del registro no pueden ser negativos.');
   if (values.slice(1).some((value) => !Number.isInteger(value))) throw new Error('Las cantidades de aves deben ser números enteros.');
 
-  const previousRecords = await db.registroDiarioLote.where('LoteID').equals(input.LoteID).toArray();
   const previousTotals = sumLoteTotals(previousRecords);
   const machosDisponibles = avesVivasMachos(lote, previousTotals);
   const hembrasDisponibles = avesVivasHembras(lote, previousTotals);
@@ -462,7 +467,7 @@ export async function registrarDia(input: RegistroDiaInput, user: Usuario): Prom
     ],
     async () => {
       const duplicate = await db.registroDiarioLote.where('LoteID').equals(input.LoteID).and((record) => record.Fecha === input.Fecha).first();
-      if (duplicate) throw new Error('El registro diario de este lote ya fue guardado hoy.');
+      if (duplicate) throw new Error('El registro diario de este lote ya fue guardado para esa fecha.');
 
       await db.registroDiarioLote.add(registro);
       await db.consumosAlimentoLote.add(consumo);

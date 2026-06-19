@@ -359,6 +359,172 @@
   color: var(--muted);
 }
 
+.activity-history-view {
+  display: grid;
+  gap: 12px;
+}
+
+.activity-history-stats {
+  margin-bottom: 0;
+}
+
+.activity-history-stats.stats-grid--wide {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.activity-history-list {
+  display: grid;
+  gap: 14px;
+}
+
+.activity-date-group {
+  display: grid;
+  gap: 8px;
+}
+
+.activity-date-group > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 2px;
+}
+
+.activity-date-group > header div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.activity-date-group > header strong {
+  color: var(--brand-strong);
+  font-size: 0.98rem;
+  text-transform: capitalize;
+}
+
+.activity-date-group > header span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.activity-date-group > header b {
+  min-width: 34px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #edf4ef;
+  color: var(--brand-strong);
+  font-size: 0.82rem;
+}
+
+.activity-history-table {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid rgb(20 33 29 / 10%);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.activity-history-table__header,
+.activity-history-row {
+  display: grid;
+  grid-template-columns: 72px minmax(190px, 1.35fr) minmax(110px, 0.75fr) minmax(105px, 0.7fr) minmax(120px, 0.8fr) 84px;
+  gap: 9px;
+  align-items: center;
+}
+
+.activity-history-table__header {
+  padding: 7px 10px;
+  background: #f0f5f1;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.activity-history-row {
+  min-height: 52px;
+  padding: 9px 10px;
+  border-top: 1px solid rgb(20 33 29 / 8%);
+}
+
+.activity-history-row:first-of-type {
+  border-top: 0;
+}
+
+.activity-history-row__time {
+  color: var(--brand-strong);
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.activity-history-row__activity {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.activity-history-row__activity strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-history-row__activity span,
+.activity-history-row__lote,
+.activity-history-row__galpon,
+.activity-history-row__user,
+.activity-history-row__note {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.activity-history-sync {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 999px;
+  padding: 5px 8px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.activity-history-sync--sincronizado {
+  background: #e7f5ec;
+  color: #17613d;
+}
+
+.activity-history-sync--pendiente {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.activity-history-sync--error,
+.activity-history-sync--requiere_revision {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.activity-history-row__note {
+  grid-column: 2 / -1;
+  padding-top: 2px;
+  font-weight: 700;
+}
+
 .programming-activity-card__meta {
   display: flex;
   flex-wrap: wrap;
@@ -4428,6 +4594,54 @@ th {
   .list-row > button,
   .list-row > span:last-child {
     justify-self: start;
+  }
+
+  .activity-history-table {
+    gap: 8px;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .activity-history-table__header {
+    display: none;
+  }
+
+  .activity-history-row {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px 10px;
+    padding: 11px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  .activity-history-row:first-of-type {
+    border-top: 1px solid var(--border);
+  }
+
+  .activity-history-row__time {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .activity-history-sync {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .activity-history-row__activity,
+  .activity-history-row__lote,
+  .activity-history-row__galpon,
+  .activity-history-row__user,
+  .activity-history-row__note {
+    grid-column: 1 / -1;
+  }
+
+  .activity-history-row__activity strong {
+    white-space: normal;
   }
 
   .checklist-item__actions {
@@ -13170,22 +13384,22 @@ body:has(.native-record-screen--pest) {
   }
 
   .page-shell--daily-record .daily-register-food-selector .food-type-option {
-    min-height: 62px;
-    grid-template-rows: minmax(38px, 1fr) auto;
-    gap: 2px;
-    padding: 4px 3px 5px;
+    min-height: 72px;
+    grid-template-rows: minmax(46px, 1fr) auto;
+    gap: 3px;
+    padding: 5px 4px 6px;
   }
 
   .page-shell--daily-record .daily-register-food-selector .food-type-option__image {
-    height: 38px;
+    height: 46px;
   }
 
   .page-shell--daily-record .daily-register-food-selector .food-type-option__image img {
-    max-height: 44px;
+    max-height: 52px;
   }
 
   .page-shell--daily-record .daily-register-food-selector .food-type-option strong {
-    font-size: 0.54rem;
+    font-size: 0.6rem;
   }
 
   .page-shell--daily-record .daily-register-food-selector .food-type-option__check {
@@ -13208,16 +13422,16 @@ body:has(.native-record-screen--pest) {
   }
 
   .page-shell--daily-record .daily-register-form .count-button-grid {
-    gap: 6px;
+    gap: 5px;
   }
 
   .page-shell--daily-record .daily-register-form .count-button {
-    gap: 4px;
-    padding: 5px;
+    gap: 3px;
+    padding: 4px;
   }
 
   .page-shell--daily-record .daily-register-form .count-button > span {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
   }
 
   .page-shell--daily-record .daily-register-form .count-button > div {
@@ -13227,10 +13441,10 @@ body:has(.native-record-screen--pest) {
 
   .page-shell--daily-record .daily-register-form .count-button button,
   .page-shell--daily-record .daily-register-form .count-button input {
-    width: 30px;
-    height: 30px;
-    min-height: 30px;
-    font-size: 0.92rem;
+    width: 28px;
+    height: 28px;
+    min-height: 28px;
+    font-size: 0.9rem;
   }
 
   .page-shell--daily-record .daily-register-form > .form-optional-panel.is-open textarea {

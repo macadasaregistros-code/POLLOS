@@ -11,7 +11,7 @@ import {
   Map as MapIcon,
   Truck,
 } from 'lucide-react';
-import { buildGalponDashboardModel, GalponMap, GalponPremiumDashboardCard, getMaxGalponCapacity } from '../../components/GalponMap';
+import { GalponMap } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
 import { buildAgenda } from '../../services/agendaService';
 import type { AgendaModel, AgendaRecordContext, AgendaTask } from '../../services/agendaService';
@@ -27,8 +27,8 @@ import {
   writePrepProgressRecords,
 } from '../../services/preparationService';
 import { todayISO } from '../../lib/date';
-import { fmtNumber, fmtPercent } from '../../lib/format';
-import type { Galpon, Lote, LoteResumen, Usuario } from '../../types/entities';
+import { fmtNumber } from '../../lib/format';
+import type { Galpon, Lote, Usuario } from '../../types/entities';
 import type { MainView } from '../../types/navigation';
 import { RegistrarDiaForm } from './RegistrarDiaForm';
 import { GalponeroActivityRecords, GalponeroEntradaView, type ActivityRecordKind, type EntryKind } from './GalponeroRecords';
@@ -101,18 +101,12 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   }, [actividades, consumos, galpones, loteGalpones, lotes, pesajes, registros, syncQueue, today, vacunas]);
 
   const selectedGalpon = useMemo(() => (galpones ?? []).find((galpon) => galpon.GalponID === selectedGalponId), [galpones, selectedGalponId]);
-  const selectedDashboard = useMemo(() => {
+  const selectedAssignment = useMemo(() => {
     if (!selectedGalpon) return undefined;
-    return buildGalponDashboardModel({
-      galpon: selectedGalpon,
-      loteGalpones: loteGalpones ?? [],
-      lotesById: new Map((lotes ?? []).map((lote) => [lote.LoteID, lote])),
-      summariesByLoteId: new Map(summaries.map((summary) => [summary.LoteID, summary])),
-      maxCapacity: getMaxGalponCapacity(galpones ?? []),
-    });
-  }, [galpones, loteGalpones, lotes, selectedGalpon, summaries]);
-  const selectedLote = selectedDashboard?.lote;
-  const selectedSummary = selectedDashboard?.summary;
+    const lotesById = new Map((lotes ?? []).map((lote) => [lote.LoteID, lote]));
+    return (loteGalpones ?? []).find((assignment) => assignment.GalponID === selectedGalpon.GalponID && assignment.Estado === 'ACTIVO' && lotesById.has(assignment.LoteID));
+  }, [loteGalpones, lotes, selectedGalpon]);
+  const selectedLote = useMemo(() => (lotes ?? []).find((lote) => lote.LoteID === selectedAssignment?.LoteID), [lotes, selectedAssignment?.LoteID]);
   const activeDailyLote = useMemo(() => (lotes ?? []).find((lote) => lote.LoteID === activeDailyLoteId), [activeDailyLoteId, lotes]);
   const agenda = useMemo<AgendaModel>(() => {
     if (!lotes || !registros || !loteGalpones || !galpones || !actividades || !vacunas || !perros) return { hoy: [], proximas: [], pendientes: [] };
@@ -210,20 +204,10 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
           onBack={() => setSelectedGalponId('')}
         />
 
-        {selectedDashboard && (
-          <section className="galpon-premium-detail">
-            <GalponPremiumDashboardCard
-              data={selectedDashboard.data}
-              empty={selectedDashboard.empty}
-              vacating={selectedDashboard.vacating}
-              emptyState={selectedDashboard.emptyState}
-              capacityRatio={selectedDashboard.capacityRatio}
-            />
-          </section>
-        )}
-
-        {selectedLote && selectedSummary ? (
-          <OccupiedGalponPanel lote={selectedLote} summary={selectedSummary} user={user} onSaved={handleGalponDailySaved} />
+        {selectedLote ? (
+          <MobileCard className="native-view-card daily-register-card daily-register-card--galpon">
+            <RegistrarDiaForm lote={selectedLote} user={user} onSaved={handleGalponDailySaved} />
+          </MobileCard>
         ) : (
           <MobileCard className="native-view-card">
             <GalponPreparationPanel galpon={selectedGalpon} onSaved={onToast} />
@@ -361,41 +345,6 @@ function GalponDetailHeader({ galpon, lote, mode, onBack }: { galpon: Galpon; lo
         <small>{lote ? lote.CodigoLote : 'Sin lote activo'}</small>
       </div>
     </header>
-  );
-}
-
-function OccupiedGalponPanel({
-  lote,
-  summary,
-  user,
-  onSaved,
-}: {
-  lote: Lote;
-  summary: LoteResumen;
-  user: Usuario;
-  onSaved: (message: string) => void;
-}) {
-  return (
-    <div className="galpon-entry">
-      <div className="galpon-entry__summary" aria-label="Resumen del galpon">
-        <span>
-          <strong>{fmtNumber(summary.DiaLote)}</strong>
-          Dia lote
-        </span>
-        <span>
-          <strong>{fmtNumber(summary.AvesVivasTotal)}</strong>
-          Aves vivas
-        </span>
-        <span>
-          <strong>{fmtPercent(summary.MortalidadAcumulada)}</strong>
-          Mortalidad
-        </span>
-      </div>
-
-      <MobileCard className="native-view-card daily-register-card">
-        <RegistrarDiaForm lote={lote} user={user} onSaved={onSaved} />
-      </MobileCard>
-    </div>
   );
 }
 
