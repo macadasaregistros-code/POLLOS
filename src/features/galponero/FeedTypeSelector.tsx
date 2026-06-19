@@ -3,6 +3,12 @@ import type { TipoAlimento } from '../../types/entities';
 
 type FeedTypeStage = 'preiniciador' | 'iniciacion' | 'engorde';
 
+const feedTypeIds: Record<FeedTypeStage, string> = {
+  preiniciador: 'alimento_preiniciador',
+  iniciacion: 'alimento_iniciador',
+  engorde: 'alimento_engorde',
+};
+
 const feedTypeCards: Array<{
   stage: FeedTypeStage;
   label: string;
@@ -37,12 +43,16 @@ export interface FeedTypeOption {
   imageAlt: string;
 }
 
-function normalizeFoodName(name: string): string {
-  return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+function normalizeFoodText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
 }
 
 function getFoodTypeStage(tipo: TipoAlimento): FeedTypeStage | '' {
-  const normalized = normalizeFoodName(tipo.Nombre);
+  const normalized = normalizeFoodText(`${tipo.TipoAlimentoID} ${tipo.Nombre}`);
   if (normalized.includes('preiniciador')) return 'preiniciador';
   if (normalized.includes('iniciacion') || normalized.includes('iniciador')) return 'iniciacion';
   if (normalized.includes('engorde')) return 'engorde';
@@ -50,9 +60,12 @@ function getFoodTypeStage(tipo: TipoAlimento): FeedTypeStage | '' {
 }
 
 export function getFeedTypeOptions(tipos: TipoAlimento[]): FeedTypeOption[] {
+  const activeTypes = tipos.filter((tipo) => tipo.Activo);
   return feedTypeCards
     .map((card) => {
-      const tipo = tipos.find((item) => getFoodTypeStage(item) === card.stage);
+      const tipo =
+        activeTypes.find((item) => item.TipoAlimentoID === feedTypeIds[card.stage]) ??
+        activeTypes.find((item) => getFoodTypeStage(item) === card.stage);
       return tipo ? { ...card, tipo } : null;
     })
     .filter((option): option is FeedTypeOption => Boolean(option));

@@ -11815,6 +11815,224 @@ body:has(.page-shell--daily-record) {
   }
 }
 
+/* Keep daily observations inline so the panel never covers mortality or the save action. */
+.page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) > .form-optional-panel.is-open {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) > .primary-action {
+  position: fixed;
+  right: max(calc(10px + var(--safe-right)), calc((100vw - 680px) / 2 + 10px));
+  bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 8px);
+  left: max(calc(10px + var(--safe-left)), calc((100vw - 680px) / 2 + 10px));
+  z-index: 44;
+  width: auto;
+}
+
+@media (max-width: 760px) {
+  .page-shell--daily-record .daily-register-form > .form-optional-panel.is-open {
+    padding: 6px 9px;
+  }
+
+  .page-shell--daily-record .daily-register-form > .form-optional-panel.is-open .form-optional-panel__body {
+    gap: 6px;
+    padding-top: 6px;
+  }
+
+  .page-shell--daily-record .daily-register-form > .form-optional-panel.is-open textarea {
+    min-height: 68px;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) {
+    gap: 6px;
+    grid-auto-rows: max-content;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .daily-register-main-card {
+    height: auto;
+    gap: 6px;
+    padding: 8px;
+    overflow: visible;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .daily-register-content-layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .daily-register-form__section,
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .daily-register-form__section:first-child,
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .daily-register-form__section:last-child {
+    grid-column: auto;
+    gap: 6px;
+    padding: 7px;
+  }
+
+  .page-shell--daily-record .daily-register-form--with-sacrifice:has(> .form-optional-panel.is-open) .daily-register-form__section--feed {
+    grid-column: 1 / -1;
+  }
+
+  .page-shell--daily-record .daily-register-form--with-sacrifice:has(> .form-optional-panel.is-open) .daily-register-form__section--mortality,
+  .page-shell--daily-record .daily-register-form--with-sacrifice:has(> .form-optional-panel.is-open) .daily-register-form__section--sacrifice {
+    grid-column: auto;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .daily-register-section-title {
+    gap: 6px;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .daily-register-section-title span {
+    width: 28px;
+    height: 28px;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .daily-register-section-title span svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .daily-register-section-title strong {
+    font-size: 0.82rem;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .daily-register-form__section > .form-grid {
+    gap: 6px;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .daily-register-form__section .field {
+    gap: 3px;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .daily-register-form__section .field input,
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .daily-register-form__section .field select {
+    min-height: 34px;
+    padding: 0 8px;
+    font-size: 0.84rem;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .daily-register-form__section .field small {
+    display: none;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .count-button-grid {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .count-button {
+    gap: 4px;
+    padding: 5px;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .count-button > span {
+    font-size: 0.68rem;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .count-button > div {
+    grid-template-columns: 28px minmax(0, 1fr) 28px;
+    gap: 3px;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .count-button button,
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) .count-button input {
+    width: 28px;
+    height: 28px;
+    min-height: 28px;
+  }
+
+  .page-shell--daily-record .daily-register-form > .form-optional-panel.is-open textarea {
+    min-height: 58px;
+  }
+}
+
+@media (min-width: 761px) {
+  .page-shell.page-shell--daily-record {
+    width: min(1120px, 100%);
+  }
+
+  .page-shell--daily-record .daily-register-form > .primary-action,
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) > .primary-action {
+    right: max(calc(10px + var(--safe-right)), calc((100vw - 1120px) / 2 + 10px));
+    left: max(calc(10px + var(--safe-left)), calc((100vw - 1120px) / 2 + 10px));
+  }
+
+  .page-shell--daily-record .daily-register-date-card {
+    min-height: 86px;
+    padding: 12px 14px;
+  }
+
+  .page-shell--daily-record .daily-register-main-card {
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .page-shell--daily-record .daily-register-main-card__header {
+    display: none;
+  }
+
+  .page-shell--daily-record .daily-register-form .daily-register-form__section {
+    gap: 10px;
+    padding: 4px 18px;
+  }
+
+  .page-shell--daily-record .daily-register-form .daily-register-form__section > .form-grid {
+    gap: 8px;
+  }
+
+  .page-shell--daily-record .daily-register-form .daily-register-form__section .field input,
+  .page-shell--daily-record .daily-register-form .daily-register-form__section .field select {
+    min-height: 44px;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button-grid {
+    gap: 8px;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button button,
+  .page-shell--daily-record .daily-register-form .count-button input {
+    width: 38px;
+    height: 38px;
+    min-height: 38px;
+  }
+
+  .page-shell--daily-record .daily-register-form > .form-optional-panel {
+    padding: 7px 12px;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.46fr) !important;
+    align-items: start;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) > .daily-register-date-card,
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) > .daily-register-error,
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) > .primary-action {
+    grid-column: 1 / -1;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) > .daily-register-main-card {
+    grid-column: 1;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) > .form-optional-panel.is-open {
+    grid-column: 2;
+    align-self: stretch;
+  }
+
+  .page-shell--daily-record .daily-register-form:has(> .form-optional-panel.is-open) > .form-optional-panel.is-open textarea {
+    min-height: 118px;
+  }
+}
+
 /* Entrada forms aligned with the operational record form system. */
 .page-shell.page-shell--mobile.page-shell--record-view:has(.entry-record-form) {
   width: min(1180px, 100%);
@@ -12737,5 +12955,133 @@ body:has(.native-record-screen--pest) {
 
   .native-record-screen--pest .pest-dosage-option {
     min-height: 50px;
+  }
+}
+
+/* Field readability: make fillable controls stand out without changing capture flows. */
+.native-record-screen .flow-form:not(.water-treatment-form) .field span,
+.mobile-card .flow-form .field span,
+.daily-register-form .field span,
+.native-record-screen .entry-record-inputs .field span {
+  color: #1f5f36;
+  font-size: 0.86rem;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.native-record-screen .flow-form:not(.water-treatment-form) .field input,
+.native-record-screen .flow-form:not(.water-treatment-form) .field select,
+.native-record-screen .flow-form:not(.water-treatment-form) .field textarea,
+.mobile-card .flow-form .field input,
+.mobile-card .flow-form .field select,
+.mobile-card .flow-form .field textarea,
+.daily-register-form .field input,
+.daily-register-form .field select,
+.daily-register-form .field textarea,
+.native-record-screen .entry-record-inputs .field input,
+.native-record-screen .entry-record-inputs .field select {
+  min-height: 54px;
+  border: 1.8px solid #8bbf8d;
+  border-radius: 9px;
+  padding: 10px 14px;
+  background: #fbfff4;
+  color: #0f1b14;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 72%),
+    0 5px 12px rgb(38 123 27 / 8%);
+  font-size: 1.08rem;
+  font-weight: 850;
+}
+
+.native-record-screen .flow-form:not(.water-treatment-form) .field textarea,
+.mobile-card .flow-form .field textarea,
+.daily-register-form .field textarea {
+  min-height: 82px;
+}
+
+.native-record-screen .flow-form:not(.water-treatment-form) .field:focus-within,
+.mobile-card .flow-form .field:focus-within,
+.daily-register-form .field:focus-within,
+.native-record-screen .entry-record-inputs .field:focus-within {
+  border-color: #71aa73;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 2px rgb(38 123 27 / 12%),
+    0 12px 24px rgb(22 34 29 / 10%);
+}
+
+.native-record-screen .flow-form:not(.water-treatment-form) .field input:focus,
+.native-record-screen .flow-form:not(.water-treatment-form) .field select:focus,
+.native-record-screen .flow-form:not(.water-treatment-form) .field textarea:focus,
+.mobile-card .flow-form .field input:focus,
+.mobile-card .flow-form .field select:focus,
+.mobile-card .flow-form .field textarea:focus,
+.daily-register-form .field input:focus,
+.daily-register-form .field select:focus,
+.daily-register-form .field textarea:focus,
+.native-record-screen .entry-record-inputs .field input:focus,
+.native-record-screen .entry-record-inputs .field select:focus {
+  border-color: #267b1b;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgb(38 123 27 / 16%);
+  outline: none;
+}
+
+.daily-register-form .count-button {
+  border-color: #9bc69a;
+  background: #fbfff4;
+}
+
+.daily-register-form .count-button > span {
+  color: #1f5f36;
+  font-size: 0.92rem;
+}
+
+.daily-register-form .count-button button,
+.daily-register-form .count-button input {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  border-color: #8bbf8d;
+  background: #ffffff;
+  color: #0f1b14;
+  font-size: 1.06rem;
+  font-weight: 950;
+}
+
+@media (max-width: 760px) {
+  .native-record-screen .flow-form:not(.water-treatment-form) .field input,
+  .native-record-screen .flow-form:not(.water-treatment-form) .field select,
+  .native-record-screen .flow-form:not(.water-treatment-form) .field textarea,
+  .mobile-card .flow-form .field input,
+  .mobile-card .flow-form .field select,
+  .mobile-card .flow-form .field textarea,
+  .daily-register-form .field input,
+  .daily-register-form .field select,
+  .daily-register-form .field textarea,
+  .native-record-screen .entry-record-inputs .field input,
+  .native-record-screen .entry-record-inputs .field select {
+    min-height: 50px;
+    font-size: 1.03rem;
+  }
+
+  .daily-register-form .count-button input {
+    font-size: 1rem;
+  }
+}
+
+@media (max-height: 700px) {
+  .page-shell--daily-record .daily-register-form .field input,
+  .page-shell--daily-record .daily-register-form .field select {
+    min-height: 44px;
+    padding: 7px 11px;
+    font-size: 0.98rem;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button input {
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+    font-size: 0.94rem;
   }
 }

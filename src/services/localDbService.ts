@@ -452,6 +452,54 @@ const REMOTE_DEFAULT_GALPONES: Galpon[] = DEFAULT_GALPONES.map((galpon) => ({
   Observaciones: '',
 }));
 
+const CANONICAL_FEED_TYPES: TipoAlimento[] = [
+  {
+    TipoAlimentoID: 'alimento_preiniciador',
+    Nombre: 'preIniciador',
+    EtapaRecomendadaDesdeDia: 1,
+    EtapaRecomendadaHastaDia: 10,
+    KgPorBulto: 40,
+    Activo: true,
+  },
+  {
+    TipoAlimentoID: 'alimento_iniciador',
+    Nombre: 'Iniciacion',
+    EtapaRecomendadaDesdeDia: 11,
+    EtapaRecomendadaHastaDia: 21,
+    KgPorBulto: 40,
+    Activo: true,
+  },
+  {
+    TipoAlimentoID: 'alimento_engorde',
+    Nombre: 'Engorde',
+    EtapaRecomendadaDesdeDia: 22,
+    EtapaRecomendadaHastaDia: 42,
+    KgPorBulto: 40,
+    Activo: true,
+  },
+];
+
+function mergeCanonicalFeedType(canonical: TipoAlimento, existing?: TipoAlimento): TipoAlimento {
+  return {
+    ...canonical,
+    ...existing,
+    Nombre: existing?.Nombre || canonical.Nombre,
+    EtapaRecomendadaDesdeDia: existing?.EtapaRecomendadaDesdeDia || canonical.EtapaRecomendadaDesdeDia,
+    EtapaRecomendadaHastaDia: existing?.EtapaRecomendadaHastaDia || canonical.EtapaRecomendadaHastaDia,
+    KgPorBulto: existing?.KgPorBulto || canonical.KgPorBulto,
+    Activo: true,
+  };
+}
+
+export async function ensureCanonicalFeedTypes(): Promise<void> {
+  await db.transaction('rw', db.tiposAlimento, async () => {
+    for (const canonical of CANONICAL_FEED_TYPES) {
+      const existing = await db.tiposAlimento.get(canonical.TipoAlimentoID);
+      await db.tiposAlimento.put(mergeCanonicalFeedType(canonical, existing));
+    }
+  });
+}
+
 async function deleteDemoRows(table: Table<object, string>): Promise<void> {
   const keys = await table.toCollection().primaryKeys();
   const demoKeys = keys.filter(isDemoPrimaryKey) as string[];
@@ -511,6 +559,7 @@ export async function seedDemoDataIfNeeded(): Promise<void> {
     ));
   }
 
+  await runDbStage('Asegurar tipos de alimento', ensureCanonicalFeedTypes);
   await runDbStage('Asegurar galpones demo', ensureDefaultGalponLayout);
 }
 
@@ -539,7 +588,7 @@ export async function prepareRemoteLocalData(): Promise<void> {
 
   const reference = createDemoData();
   await runDbStage('Preparar catalogos locales remotos', async () => {
-    await db.transaction('rw', [db.galpones, db.actividadesProgramadas, db.planVacunalBase, db.curvasEstandar], async () => {
+    await db.transaction('rw', [db.galpones, db.tiposAlimento, db.actividadesProgramadas, db.planVacunalBase, db.curvasEstandar], async () => {
       for (const galpon of REMOTE_DEFAULT_GALPONES) {
         const existing = await db.galpones.get(galpon.GalponID);
         await db.galpones.put({
@@ -548,6 +597,10 @@ export async function prepareRemoteLocalData(): Promise<void> {
           Observaciones: existing && !existing.Observaciones.toLowerCase().includes('demo') ? existing.Observaciones : galpon.Observaciones,
           Activo: existing?.Activo ?? true,
         });
+      }
+      for (const canonical of CANONICAL_FEED_TYPES) {
+        const existing = await db.tiposAlimento.get(canonical.TipoAlimentoID);
+        await db.tiposAlimento.put(mergeCanonicalFeedType(canonical, existing));
       }
       if ((await db.actividadesProgramadas.count()) === 0) await db.actividadesProgramadas.bulkPut(reference.actividadesProgramadas);
       if ((await db.planVacunalBase.count()) === 0) await db.planVacunalBase.bulkPut(reference.planVacunalBase);

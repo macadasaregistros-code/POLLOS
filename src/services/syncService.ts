@@ -1,6 +1,6 @@
 import { createId } from '../lib/id';
 import { nowISO } from '../lib/date';
-import { db, getLocalTableBySheetName, getTableForSync } from './localDbService';
+import { db, ensureCanonicalFeedTypes, getLocalTableBySheetName, getTableForSync } from './localDbService';
 import * as sheetsApiService from './sheetsApiService';
 import * as supabaseApiService from './supabaseApiService';
 import type { EstadoSync, SyncEntityTable, SyncOperation, SyncQueueItem, Usuario } from '../types/entities';
@@ -120,6 +120,7 @@ export async function bootstrapFromRemote(user: Usuario): Promise<{ updatedTable
     updatedTables += 1;
     updatedRows += rows.length;
   }
+  await ensureCanonicalFeedTypes();
 
   return { updatedTables, updatedRows, skipped: false };
 }
