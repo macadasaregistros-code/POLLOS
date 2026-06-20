@@ -291,6 +291,6 @@ function normalize(value: string): string {
 }
 
 function sortTasks(tasks: AgendaTask[]): AgendaTask[] {
-  const toneOrder: Record<AgendaTask['tone'], number> = { daily: 0, routine: 1, vaccine: 2, dog: 3, prep: 4, activity: 5 };
-  return tasks.slice().sort((left, right) => left.date.localeCompare(right.date) || toneOrder[left.tone] - toneOrder[right.tone] || left.title.localeCompare(right.title));
+  const toneOrder: Record<AgendaTask['tone'], number> = { daily: 0, activity: 1, routine: 2, prep: 3, dog: 4, vaccine: 5 };
+  return tasks.slice().sort((left, right) => toneOrder[left.tone] - toneOrder[right.tone] || left.date.localeCompare(right.date) || left.title.localeCompare(right.title));
 }

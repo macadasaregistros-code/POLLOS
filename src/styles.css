@@ -163,23 +163,27 @@
 }
 
 .agenda-task--vaccine {
-  border-left: 4px solid #2f80ed;
+  border-left: 6px solid #c99a2e;
 }
 
 .agenda-task--dog {
-  border-left: 4px solid #8a5a2b;
+  border-left: 6px solid #c99a2e;
 }
 
 .agenda-task--daily {
-  border-left: 4px solid var(--brand);
+  border-left: 6px solid #2f9d58;
 }
 
 .agenda-task--routine {
-  border-left: 4px solid #7c6f2d;
+  border-left: 6px solid #e67e22;
 }
 
 .agenda-task--prep {
-  border-left: 4px solid #d46a31;
+  border-left: 6px solid #2f80ed;
+}
+
+.agenda-task--activity {
+  border-left: 6px solid #7e57c2;
 }
 
 .manual-record-panel {
