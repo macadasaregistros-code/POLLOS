@@ -120,6 +120,8 @@
 }
 
 .agenda-task {
+  --agenda-accent: 20 102 94;
+
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -128,7 +130,12 @@
   padding: 12px;
   border: 1px solid rgb(20 33 29 / 10%);
   border-radius: 8px;
-  background: #ffffff;
+  background:
+    linear-gradient(90deg, rgb(var(--agenda-accent) / 0.14) 0, rgb(var(--agenda-accent) / 0.06) 42px, #ffffff 136px),
+    #ffffff;
+  box-shadow:
+    inset 10px 0 18px rgb(var(--agenda-accent) / 0.07),
+    0 1px 3px rgb(20 33 29 / 6%);
 }
 
 .agenda-task > div {
@@ -163,27 +170,33 @@
 }
 
 .agenda-task--vaccine {
-  border-left: 6px solid #c99a2e;
+  --agenda-accent: 201 154 46;
+  border-left: 6px solid rgb(var(--agenda-accent));
 }
 
 .agenda-task--dog {
-  border-left: 6px solid #c99a2e;
+  --agenda-accent: 201 154 46;
+  border-left: 6px solid rgb(var(--agenda-accent));
 }
 
 .agenda-task--daily {
-  border-left: 6px solid #2f9d58;
+  --agenda-accent: 47 157 88;
+  border-left: 6px solid rgb(var(--agenda-accent));
 }
 
 .agenda-task--routine {
-  border-left: 6px solid #e67e22;
+  --agenda-accent: 230 126 34;
+  border-left: 6px solid rgb(var(--agenda-accent));
 }
 
 .agenda-task--prep {
-  border-left: 6px solid #2f80ed;
+  --agenda-accent: 47 128 237;
+  border-left: 6px solid rgb(var(--agenda-accent));
 }
 
 .agenda-task--activity {
-  border-left: 6px solid #7e57c2;
+  --agenda-accent: 126 87 194;
+  border-left: 6px solid rgb(var(--agenda-accent));
 }
 
 .manual-record-panel {
