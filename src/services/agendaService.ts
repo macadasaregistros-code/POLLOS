@@ -87,14 +87,32 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
       (actividad.Estado === 'PENDIENTE' || actividad.Estado === 'VENCIDA') &&
       !isVaccineActivity(actividad),
   );
-  const routineActivities = dueActivities.filter(isRoutineActivity);
-  const loteActivities = dueActivities.filter((actividad) => !isRoutineActivity(actividad) && activeLoteIds.has(actividad.LoteID));
-  const pestActivities = loteActivities.filter(isPestActivity);
-  const waterActivities = loteActivities.filter((actividad) => !isPestActivity(actividad) && isWaterActivity(actividad));
-  const specializedActivityIds = new Set([...pestActivities, ...waterActivities].map((actividad) => actividad.ActividadLoteID));
-  const regularActivities = loteActivities.filter((actividad) => !specializedActivityIds.has(actividad.ActividadLoteID));
+  const routineActivities = dueActivities.filter(isAgendaRoutineActivity);
+  const waterRoutineActivities = routineActivities.filter(isWaterActivity);
+  const pestRoutineActivities = routineActivities.filter((actividad) => !isWaterActivity(actividad) && isPestActivity(actividad));
+  const routineRecordActivityIds = new Set([...waterRoutineActivities, ...pestRoutineActivities].map((actividad) => actividad.ActividadLoteID));
+  const routineCheckActivities = routineActivities.filter((actividad) => !routineRecordActivityIds.has(actividad.ActividadLoteID));
+  const loteActivities = dueActivities.filter((actividad) => !isAgendaRoutineActivity(actividad) && activeLoteIds.has(actividad.LoteID));
 
-  for (const activities of groupBy(routineActivities, getRoutineGroupKey).values()) {
+  for (const activities of groupBy(waterRoutineActivities, getRoutineRecordGroupKey).values()) {
+    addDueActivityTask(
+      buildRoutineRecordTask('agua', 'Tratamiento de agua', activities),
+      input.today,
+      hoy,
+      pendientes,
+    );
+  }
+
+  for (const activities of groupBy(pestRoutineActivities, getRoutineRecordGroupKey).values()) {
+    addDueActivityTask(
+      buildRoutineRecordTask('plagas', 'Control de plagas', activities),
+      input.today,
+      hoy,
+      pendientes,
+    );
+  }
+
+  for (const activities of groupBy(routineCheckActivities, getRoutineGroupKey).values()) {
     addDueActivityTask(
       buildRoutineTask(activities),
       input.today,
@@ -103,25 +121,7 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
     );
   }
 
-  for (const actividad of pestActivities) {
-    addDueActivityTask(
-      buildRecordTask('plagas', 'Control de plagas', actividad, 'activity', lotesById, galponNamesById),
-      input.today,
-      hoy,
-      pendientes,
-    );
-  }
-
-  for (const actividad of waterActivities) {
-    addDueActivityTask(
-      buildRecordTask('agua', 'Tratamiento de agua', actividad, 'activity', lotesById, galponNamesById),
-      input.today,
-      hoy,
-      pendientes,
-    );
-  }
-
-  for (const actividad of regularActivities) {
+  for (const actividad of loteActivities) {
     addDueActivityTask(
       buildCompletionTask(actividad, actividad.NombreActividad, 'activity', lotesById, galponNamesById),
       input.today,
@@ -132,6 +132,10 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
 
   function getRoutineGroupKey(actividad: ActividadLote): string {
     return `${actividad.FechaProgramada}|${normalizeKey(getRoutineAgendaName(actividad))}`;
+  }
+
+  function getRoutineRecordGroupKey(actividad: ActividadLote): string {
+    return actividad.FechaProgramada;
   }
 
   for (const vacuna of input.vacunas.filter(isPendingVaccine)) {
@@ -206,6 +210,28 @@ function buildRoutineTask(activities: ActividadLote[]): AgendaTask {
   };
 }
 
+function buildRoutineRecordTask(kind: Extract<AgendaRecordKind, 'agua' | 'plagas'>, title: string, activities: ActividadLote[]): AgendaTask {
+  const first = activities[0];
+  const loteIds = getUniqueNonEmptyValues(activities.map((actividad) => actividad.LoteID));
+  const galponIds = getUniqueNonEmptyValues(activities.map((actividad) => actividad.GalponID));
+  const context: AgendaRecordContext = {
+    activityIds: activities.map((actividad) => actividad.ActividadLoteID),
+  };
+
+  if (loteIds.length === 1) context.loteId = loteIds[0];
+  if (galponIds.length === 1) context.galponId = galponIds[0];
+
+  return {
+    id: `${kind}:${first.FechaProgramada}`,
+    title,
+    detail: 'Rutina general de granja',
+    meta: 'Registrar evidencia',
+    tone: 'routine',
+    date: first.FechaProgramada,
+    action: { type: 'record', kind, context },
+  };
+}
+
 function buildCompletionTask(
   actividad: ActividadLote,
   title: string,
@@ -221,33 +247,6 @@ function buildCompletionTask(
     tone,
     date: actividad.FechaProgramada,
     action: { type: 'completeActivities', activityIds: [actividad.ActividadLoteID] },
-  };
-}
-
-function buildRecordTask(
-  kind: AgendaRecordKind,
-  title: string,
-  actividad: ActividadLote,
-  tone: AgendaTask['tone'],
-  lotesById: Map<string, Lote>,
-  galponNamesById: Map<string, string>,
-): AgendaTask {
-  return {
-    id: `${kind}:${actividad.ActividadLoteID}`,
-    title: `${getLoteLabel(actividad.LoteID, lotesById)}: ${title}`,
-    detail: getActivityDetail(actividad, lotesById, galponNamesById),
-    meta: 'Registrar evidencia',
-    tone,
-    date: actividad.FechaProgramada,
-    action: {
-      type: 'record',
-      kind,
-      context: {
-        activityIds: [actividad.ActividadLoteID],
-        loteId: actividad.LoteID,
-        galponId: actividad.GalponID,
-      },
-    },
   };
 }
 
@@ -290,6 +289,10 @@ function isVaccineActivity(actividad: ActividadLote): boolean {
   return text.includes('vacuna') || text.includes('vacunacion');
 }
 
+function isAgendaRoutineActivity(actividad: ActividadLote): boolean {
+  return isRoutineActivity(actividad) || isWaterActivity(actividad) || isPestActivity(actividad);
+}
+
 function isPestActivity(actividad: ActividadLote): boolean {
   const text = normalize(`${actividad.Categoria} ${actividad.NombreActividad}`);
   return ['plaga', 'roedor', 'mosca', 'cipermetrina'].some((word) => text.includes(word));
@@ -318,6 +321,10 @@ function groupBy<T>(items: T[], getKey: (item: T) => string): Map<string, T[]> {
     groups.set(key, [...(groups.get(key) ?? []), item]);
     return groups;
   }, new Map<string, T[]>());
+}
+
+function getUniqueNonEmptyValues(values: string[]): string[] {
+  return [...new Set(values.filter(Boolean))];
 }
 
 function sortTasks(tasks: AgendaTask[]): AgendaTask[] {
