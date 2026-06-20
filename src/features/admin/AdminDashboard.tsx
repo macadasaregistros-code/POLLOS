@@ -8,12 +8,13 @@ import { buildGalponDashboardModel, GalponMap, GalponPremiumDashboardCard, getMa
 import { MobileCard } from '../../components/MobileCard';
 import { StatCard } from '../../components/StatCard';
 import { buildLoteResumen, gananciaDiaria, prediccionSalidaDias } from '../../services/calculationsService';
+import { getMissingDailyRegisterDates } from '../../services/dailyRegisterService';
 import { generarAlertasBasicas } from '../../services/alertsService';
 import { generarReporteLotePDF } from '../../services/reportsService';
 import { db } from '../../services/localDbService';
-import { addDays, todayISO } from '../../lib/date';
+import { addDays, diffDays, todayISO } from '../../lib/date';
 import { fmtCurrency, fmtKg, fmtNumber, fmtPercent } from '../../lib/format';
-import type { ActividadLote, EstadoSync, Galpon, Lote, LoteResumen, Usuario } from '../../types/entities';
+import type { ActividadLote, EstadoSync, Galpon, Lote, LoteResumen, RegistroDiarioLote, TipoAlimento, Usuario } from '../../types/entities';
 import type { MainView } from '../../types/navigation';
 import { AdminAdvancedModules } from './AdminAdvancedModules';
 import { CrearLoteForm } from './CrearLoteForm';
@@ -225,25 +226,34 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
               <CrearLoteForm user={user} onSaved={onToast} />
             </MobileCard>
             <MobileCard title="Lotes">
-              <LotesTable summaries={summaries} lotes={lotes ?? []} onSelect={setSelectedLoteId} onGeneratePdf={handleGeneratePdf} />
+              <LotesTable
+                summaries={summaries}
+                lotes={lotes ?? []}
+                selectedLoteId={selectedLote?.LoteID ?? ''}
+                onSelect={setSelectedLoteId}
+                onGeneratePdf={handleGeneratePdf}
+              />
             </MobileCard>
           </div>
 
           {selectedLote && selectedSummary && (
-            <div className="admin-grid">
-              <MobileCard title={`Lote ${selectedLote.CodigoLote}`} subtitle="Resumen tecnico y administrativo">
-                <SelectedLoteStats selectedSummary={selectedSummary} salidas={salidas ?? []} />
-                <div className="section-actions">
-                  <button type="button" onClick={() => handleGenerateAlerts(selectedLote)}>
-                    Generar alertas
-                  </button>
-                  <button type="button" onClick={() => handleGeneratePdf(selectedLote)}>
-                    Reporte PDF
-                  </button>
-                </div>
-              </MobileCard>
-              <PredictionCard prediction={prediction} pesoObjetivo={pesoObjetivo} onPesoObjetivoChange={setPesoObjetivo} />
-            </div>
+            <>
+              <div className="admin-grid">
+                <MobileCard title={`Lote ${selectedLote.CodigoLote}`} subtitle="Resumen tecnico y administrativo">
+                  <SelectedLoteStats selectedSummary={selectedSummary} salidas={salidas ?? []} />
+                  <div className="section-actions">
+                    <button type="button" onClick={() => handleGenerateAlerts(selectedLote)}>
+                      Generar alertas
+                    </button>
+                    <button type="button" onClick={() => handleGeneratePdf(selectedLote)}>
+                      Reporte PDF
+                    </button>
+                  </div>
+                </MobileCard>
+                <PredictionCard prediction={prediction} pesoObjetivo={pesoObjetivo} onPesoObjetivoChange={setPesoObjetivo} />
+              </div>
+              <LoteDailyHistoryView lote={selectedLote} registros={registros ?? []} tipos={tipos ?? []} today={today} />
+            </>
           )}
         </>
       )}
@@ -511,11 +521,13 @@ function SelectedLoteStats({ selectedSummary, salidas }: { selectedSummary: Lote
 function LotesTable({
   summaries,
   lotes,
+  selectedLoteId,
   onSelect,
   onGeneratePdf,
 }: {
   summaries: LoteResumen[];
   lotes: Lote[];
+  selectedLoteId: string;
   onSelect: (loteId: string) => void;
   onGeneratePdf: (lote: Lote) => void;
 }) {
@@ -537,7 +549,7 @@ function LotesTable({
           {summaries.map((summary) => {
             const lote = lotes.find((item) => item.LoteID === summary.LoteID);
             return (
-              <tr key={summary.LoteID}>
+              <tr className={selectedLoteId === summary.LoteID ? 'is-selected' : ''} key={summary.LoteID}>
                 <td data-label="Lote">
                   <button className="text-button" type="button" onClick={() => onSelect(summary.LoteID)}>
                     {summary.CodigoLote}
@@ -561,6 +573,99 @@ function LotesTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+function LoteDailyHistoryView({
+  lote,
+  registros,
+  tipos,
+  today,
+}: {
+  lote: Lote;
+  registros: RegistroDiarioLote[];
+  tipos: TipoAlimento[];
+  today: string;
+}) {
+  const loteRecordsAsc = useMemo(
+    () => registros.filter((registro) => registro.LoteID === lote.LoteID).sort((left, right) => left.Fecha.localeCompare(right.Fecha)),
+    [lote.LoteID, registros],
+  );
+  const loteRecordsDesc = useMemo(() => [...loteRecordsAsc].reverse(), [loteRecordsAsc]);
+  const tiposById = useMemo(() => new Map(tipos.map((tipo) => [tipo.TipoAlimentoID, tipo.Nombre])), [tipos]);
+  const historyEndDate = lote.EstadoLote === 'ACTIVO' ? today : loteRecordsAsc.at(-1)?.Fecha ?? lote.FechaLlegada;
+  const missingDates = useMemo(
+    () => getMissingDailyRegisterDates(lote.FechaLlegada, historyEndDate, loteRecordsAsc),
+    [historyEndDate, lote.FechaLlegada, loteRecordsAsc],
+  );
+  const expectedDays = historyEndDate >= lote.FechaLlegada ? diffDays(lote.FechaLlegada, historyEndDate) + 1 : 0;
+  const totals = loteRecordsAsc.reduce(
+    (acc, registro) => ({
+      kg: acc.kg + registro.KgConsumidos,
+      muertos: acc.muertos + registro.MuertosMachos + registro.MuertosHembras + registro.MuertosSinClasificar,
+      sacrificados: acc.sacrificados + registro.SacrificadosMachos + registro.SacrificadosHembras,
+    }),
+    { kg: 0, muertos: 0, sacrificados: 0 },
+  );
+  const latestDate = loteRecordsAsc.at(-1)?.Fecha ?? 'Sin registros';
+
+  return (
+    <MobileCard className="lote-history-card" title="Registros historicos del lote" subtitle={`Desde ${lote.FechaLlegada} hasta ${historyEndDate}`}>
+      <section className="stats-grid stats-grid--wide lote-history-stats">
+        <StatCard label="Registrados" value={`${fmtNumber(loteRecordsAsc.length)} / ${fmtNumber(expectedDays)}`} tone={missingDates.length ? 'warn' : 'good'} />
+        <StatCard label="Fechas faltantes" value={fmtNumber(missingDates.length)} tone={missingDates.length ? 'warn' : 'good'} />
+        <StatCard label="Consumo acum." value={fmtKg(totals.kg)} />
+        <StatCard label="Mortalidad" value={fmtNumber(totals.muertos)} />
+        <StatCard label="Sacrificio" value={fmtNumber(totals.sacrificados)} />
+        <StatCard label="Ultimo registro" value={latestDate} />
+      </section>
+
+      {missingDates.length > 0 && (
+        <div className="lote-history-alert" role="alert">
+          <strong>Faltan fechas por registrar</strong>
+          <span>{missingDates.slice(0, 10).join(', ')}{missingDates.length > 10 ? ` y ${missingDates.length - 10} mas` : ''}</span>
+        </div>
+      )}
+
+      {loteRecordsDesc.length ? (
+        <div className="table-wrap lote-history-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Dia</th>
+                <th>Alimento</th>
+                <th>Kg</th>
+                <th>Muertos</th>
+                <th>Sacrificio</th>
+                <th>Sync</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loteRecordsDesc.map((registro) => {
+                const muertos = registro.MuertosMachos + registro.MuertosHembras + registro.MuertosSinClasificar;
+                const sacrificados = registro.SacrificadosMachos + registro.SacrificadosHembras;
+                return (
+                  <tr key={registro.RegistroDiarioID}>
+                    <td data-label="Fecha">{registro.Fecha}</td>
+                    <td data-label="Dia">{registro.DiaLote}</td>
+                    <td data-label="Alimento">{tiposById.get(registro.TipoAlimentoID) ?? registro.TipoAlimentoID}</td>
+                    <td data-label="Kg">{fmtKg(registro.KgConsumidos)}</td>
+                    <td data-label="Muertos">{fmtNumber(muertos)}</td>
+                    <td data-label="Sacrificio">{fmtNumber(sacrificados)}</td>
+                    <td data-label="Sync">
+                      <span className={`activity-history-sync activity-history-sync--${registro.EstadoSync.toLowerCase()}`}>{getSyncLabel(registro.EstadoSync)}</span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="empty-state">Este lote todavia no tiene registros diarios.</p>
+      )}
+    </MobileCard>
   );
 }
 

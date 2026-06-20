@@ -13452,3 +13452,325 @@ body:has(.native-record-screen--pest) {
     min-height: 64px;
   }
 }
+
+@media (min-width: 761px) and (min-height: 900px) {
+  html:has(.page-shell--daily-record),
+  body:has(.page-shell--daily-record) {
+    overflow: hidden;
+  }
+
+  .app:has(.page-shell--daily-record) {
+    height: 100svh;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .page-shell.page-shell--mobile.page-shell--daily-record {
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    padding-top: 12px;
+    padding-bottom: calc(var(--bottom-nav-height) + var(--sticky-action-height) + var(--safe-bottom) + 28px) !important;
+    overflow: hidden;
+  }
+
+  .page-shell--daily-record .daily-register-card {
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    overflow: hidden;
+  }
+
+  .page-shell--daily-record .daily-register-form {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .page-shell--daily-record .daily-register-main-card {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    align-content: stretch;
+    overflow: hidden;
+  }
+
+  .page-shell--daily-record .daily-register-content-layout {
+    height: 100%;
+    min-height: 0;
+    align-items: stretch;
+  }
+
+  .page-shell--daily-record .daily-register-form .daily-register-form__section {
+    align-content: stretch;
+  }
+
+  .page-shell--daily-record .daily-register-form .daily-register-form__section > .form-grid {
+    align-content: stretch;
+  }
+
+  .page-shell--daily-record .daily-register-food-selector .food-type-option {
+    min-height: 150px;
+    grid-template-rows: minmax(104px, 1fr) auto;
+    gap: 8px;
+    padding: 10px 8px 12px;
+  }
+
+  .page-shell--daily-record .daily-register-food-selector .food-type-option__image {
+    height: 104px;
+  }
+
+  .page-shell--daily-record .daily-register-food-selector .food-type-option__image img {
+    max-height: 112px;
+  }
+
+  .page-shell--daily-record .daily-register-food-selector .food-type-option strong {
+    font-size: 0.88rem;
+  }
+
+  .page-shell--daily-record .daily-register-form .daily-register-form__section--feed .field input {
+    min-height: 60px;
+    font-size: 1.12rem;
+  }
+
+  .page-shell--daily-record .daily-register-form .daily-register-form__section--feed .field small {
+    display: block;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: stretch;
+    gap: 12px;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button {
+    min-height: 140px;
+    align-content: center;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button > span {
+    font-size: 1rem;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button > div {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    gap: 10px;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button button,
+  .page-shell--daily-record .daily-register-form .count-button input {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    font-size: 1.08rem;
+  }
+
+  .page-shell--daily-record .daily-register-form > .form-optional-panel {
+    min-height: 58px;
+  }
+}
+
+@media (min-width: 761px) and (max-height: 899px) {
+  html:has(.page-shell--daily-record),
+  body:has(.page-shell--daily-record) {
+    overflow: hidden;
+  }
+
+  .app:has(.page-shell--daily-record) {
+    height: 100dvh;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .page-shell.page-shell--mobile.page-shell--daily-record {
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    padding-top: 8px;
+    padding-bottom: calc(var(--bottom-nav-height) + var(--sticky-action-height) + var(--safe-bottom) + 24px) !important;
+    overflow: hidden;
+  }
+
+  .page-shell--daily-record .daily-register-card {
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    overflow: hidden;
+  }
+
+  .page-shell--daily-record .daily-register-form {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .page-shell--daily-record .daily-register-date-card {
+    min-height: 86px;
+    padding: 10px 14px;
+  }
+
+  .page-shell--daily-record .daily-register-date-alert {
+    padding: 9px 12px;
+  }
+
+  .page-shell--daily-record .daily-register-main-card {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    gap: 10px;
+    padding: 12px 14px;
+    overflow: hidden;
+  }
+
+  .page-shell--daily-record .daily-register-content-layout {
+    height: 100%;
+    min-height: 0;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .page-shell--daily-record .daily-register-form .daily-register-form__section {
+    min-height: 0;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .page-shell--daily-record .daily-register-food-selector .food-type-option {
+    min-height: 98px;
+    grid-template-rows: minmax(70px, 1fr) auto;
+    gap: 4px;
+    padding: 6px;
+  }
+
+  .page-shell--daily-record .daily-register-food-selector .food-type-option__image {
+    height: 70px;
+  }
+
+  .page-shell--daily-record .daily-register-food-selector .food-type-option__image img {
+    max-height: 78px;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button {
+    min-height: 98px;
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button > div {
+    grid-template-columns: 36px minmax(0, 1fr) 36px;
+    gap: 6px;
+  }
+
+  .page-shell--daily-record .daily-register-form .count-button button,
+  .page-shell--daily-record .daily-register-form .count-button input {
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+  }
+
+  .page-shell--daily-record .daily-register-form > .form-optional-panel {
+    min-height: 48px;
+  }
+}
+
+/* Sequential daily register status overrides. */
+.daily-register-form--alert .daily-register-main-card,
+.daily-register-date-card--alert,
+.daily-register-complete--alert {
+  border-color: #dc2626;
+  background: #fff1f2;
+  box-shadow: 0 14px 28px rgba(220, 38, 38, 0.14);
+}
+
+.daily-register-date-card--alert .water-date-card__icon,
+.daily-register-form--alert .daily-register-main-card__icon {
+  background: #dc2626;
+  color: #fff;
+}
+
+.daily-register-date-card--alert .water-date-card__status strong,
+.daily-register-form--alert .daily-register-main-card__header > strong {
+  color: #991b1b;
+}
+
+.daily-register-date-alert {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid #dc2626;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #7f1d1d;
+}
+
+.daily-register-date-alert strong {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+}
+
+.daily-register-date-alert span {
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.daily-register-complete-layout--alert {
+  gap: 12px;
+}
+
+.daily-register-card--galpon {
+  width: 100%;
+}
+
+/* Admin lote history overrides. */
+.lote-history-card {
+  margin-top: 16px;
+}
+
+.lote-history-stats {
+  margin-bottom: 14px;
+}
+
+.lote-history-alert {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid #dc2626;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #7f1d1d;
+}
+
+.lote-history-alert strong {
+  font-size: 0.95rem;
+}
+
+.lote-history-alert span {
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.table-wrap tr.is-selected td {
+  background: #ecfeff;
+}
+
+.lote-history-table .activity-history-sync {
+  display: inline-flex;
+  width: max-content;
+}

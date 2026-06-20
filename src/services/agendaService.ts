@@ -1,4 +1,5 @@
 import { addDays, getDiaLote } from '../lib/date';
+import { getNextRequiredDailyRegisterDate } from './dailyRegisterService';
 import { getNextPrepTask } from './preparationService';
 import { cleanActivityName, getRoutineDefinition, isRoutineActivity } from './routineService';
 import type { ActividadLote, Galpon, Lote, LoteGalpon, Perro, RegistroDiarioLote, VacunaLote } from '../types/entities';
@@ -58,20 +59,23 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
   const pendientes: AgendaTask[] = [];
 
   for (const lote of activeLotes) {
-    const hasDailyRecord = input.registros.some((registro) => registro.LoteID === lote.LoteID && registro.Fecha === input.today);
-    if (!hasDailyRecord) {
+    const loteRecords = input.registros.filter((registro) => registro.LoteID === lote.LoteID);
+    const nextDailyDate = getNextRequiredDailyRegisterDate(lote.FechaLlegada, loteRecords, input.today);
+    if (nextDailyDate) {
       const galpones = activeAssignments
         .filter((assignment) => assignment.LoteID === lote.LoteID)
         .map((assignment) => galponNamesById.get(assignment.GalponID) ?? assignment.GalponID);
-      hoy.push({
+      const dailyTask: AgendaTask = {
         id: `daily:${lote.LoteID}`,
         title: `Registro diario ${lote.CodigoLote}`,
-        detail: galpones.length ? `Galpones ${galpones.join(', ')}` : `Dia ${getDiaLote(lote.FechaLlegada, input.today)}`,
-        meta: 'Falta hoy',
+        detail: galpones.length ? `Fecha ${nextDailyDate} - Galpones ${galpones.join(', ')}` : `Dia ${getDiaLote(lote.FechaLlegada, nextDailyDate)}`,
+        meta: nextDailyDate < input.today ? 'Atrasado' : 'Falta hoy',
         tone: 'daily',
-        date: input.today,
+        date: nextDailyDate,
         action: { type: 'daily', loteId: lote.LoteID },
-      });
+      };
+      if (nextDailyDate < input.today) pendientes.push(dailyTask);
+      else hoy.push(dailyTask);
     }
   }
 
