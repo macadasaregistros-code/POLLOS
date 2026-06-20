@@ -1,7 +1,8 @@
 import { addDays, getDiaLote } from '../lib/date';
 import { getNextRequiredDailyRegisterDate } from './dailyRegisterService';
 import { getNextPrepTask } from './preparationService';
-import { cleanActivityName, getRoutineDefinition, isRoutineActivity } from './routineService';
+import { getAgendaToneOrder, getProgramacionActivityCategory, type AgendaTone } from './programmingCatalogService';
+import { cleanActivityName, getRoutineDefinition } from './routineService';
 import type { ActividadLote, Galpon, Lote, LoteGalpon, Perro, RegistroDiarioLote, VacunaLote } from '../types/entities';
 
 export type AgendaRecordKind = 'vacunacion' | 'agua' | 'plagas' | 'medicamento' | 'compostaje' | 'perros' | 'capacitacion';
@@ -27,7 +28,7 @@ export interface AgendaTask {
   title: string;
   detail: string;
   meta: string;
-  tone: 'daily' | 'routine' | 'activity' | 'vaccine' | 'dog' | 'prep';
+  tone: AgendaTone;
   date: string;
   action: AgendaAction;
 }
@@ -84,15 +85,14 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
   const dueActivities = input.actividades.filter(
     (actividad) =>
       actividad.FechaProgramada <= input.today &&
-      (actividad.Estado === 'PENDIENTE' || actividad.Estado === 'VENCIDA') &&
-      !isVaccineActivity(actividad),
+      (actividad.Estado === 'PENDIENTE' || actividad.Estado === 'VENCIDA'),
   );
-  const routineActivities = dueActivities.filter(isAgendaRoutineActivity);
+  const routineActivities = dueActivities.filter((actividad) => getProgramacionActivityCategory(actividad) === 'routine');
   const waterRoutineActivities = routineActivities.filter(isWaterActivity);
   const pestRoutineActivities = routineActivities.filter((actividad) => !isWaterActivity(actividad) && isPestActivity(actividad));
   const routineRecordActivityIds = new Set([...waterRoutineActivities, ...pestRoutineActivities].map((actividad) => actividad.ActividadLoteID));
   const routineCheckActivities = routineActivities.filter((actividad) => !routineRecordActivityIds.has(actividad.ActividadLoteID));
-  const loteActivities = dueActivities.filter((actividad) => !isAgendaRoutineActivity(actividad) && activeLoteIds.has(actividad.LoteID));
+  const loteActivities = dueActivities.filter((actividad) => getProgramacionActivityCategory(actividad) === 'lote' && activeLoteIds.has(actividad.LoteID));
 
   for (const activities of groupBy(waterRoutineActivities, getRoutineRecordGroupKey).values()) {
     addDueActivityTask(
@@ -123,7 +123,7 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
 
   for (const actividad of loteActivities) {
     addDueActivityTask(
-      buildCompletionTask(actividad, actividad.NombreActividad, 'activity', lotesById, galponNamesById),
+      buildCompletionTask(actividad, actividad.NombreActividad, 'lote', lotesById, galponNamesById),
       input.today,
       hoy,
       pendientes,
@@ -284,15 +284,6 @@ function isPendingVaccine(vacuna: VacunaLote): boolean {
   return vacuna.Estado !== 'APLICADA' && vacuna.Estado !== 'NO_APLICADA';
 }
 
-function isVaccineActivity(actividad: ActividadLote): boolean {
-  const text = normalize(`${actividad.Categoria} ${actividad.NombreActividad}`);
-  return text.includes('vacuna') || text.includes('vacunacion');
-}
-
-function isAgendaRoutineActivity(actividad: ActividadLote): boolean {
-  return isRoutineActivity(actividad) || isWaterActivity(actividad) || isPestActivity(actividad);
-}
-
 function isPestActivity(actividad: ActividadLote): boolean {
   const text = normalize(`${actividad.Categoria} ${actividad.NombreActividad}`);
   return ['plaga', 'roedor', 'mosca', 'cipermetrina'].some((word) => text.includes(word));
@@ -328,6 +319,5 @@ function getUniqueNonEmptyValues(values: string[]): string[] {
 }
 
 function sortTasks(tasks: AgendaTask[]): AgendaTask[] {
-  const toneOrder: Record<AgendaTask['tone'], number> = { daily: 0, activity: 1, routine: 2, prep: 3, dog: 4, vaccine: 5 };
-  return tasks.slice().sort((left, right) => toneOrder[left.tone] - toneOrder[right.tone] || left.date.localeCompare(right.date) || left.title.localeCompare(right.title));
+  return tasks.slice().sort((left, right) => getAgendaToneOrder(left.tone) - getAgendaToneOrder(right.tone) || left.date.localeCompare(right.date) || left.title.localeCompare(right.title));
 }

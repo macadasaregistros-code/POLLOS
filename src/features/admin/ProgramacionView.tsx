@@ -13,9 +13,10 @@ import {
 import { getDogNextDate } from '../../services/agendaService';
 import { db } from '../../services/localDbService';
 import { getCompletedPrepTaskIds, getNextPrepTask, preparationCategories, preparationTasks } from '../../services/preparationService';
-import { getRoutineFrequency, isRoutineTemplate, normalizeText, routineFrequencyLabels, type RoutineFrequency } from '../../services/routineService';
+import { getProgramacionTemplateCategory, programacionCategories } from '../../services/programmingCatalogService';
+import { getRoutineFrequency, routineFrequencyLabels, type RoutineFrequency } from '../../services/routineService';
 import { todayISO } from '../../lib/date';
-import type { ActividadProgramada, Galpon, Perro, PlanVacunalBase, Usuario } from '../../types/entities';
+import type { ActividadProgramada, Galpon, Lote, Perro, PlanVacunalBase, Usuario } from '../../types/entities';
 
 interface ProgramacionViewProps {
   user: Usuario;
@@ -24,6 +25,7 @@ interface ProgramacionViewProps {
 
 const frequencyOptions: ActividadProgramada['TipoFrecuencia'][] = ['UNICA', 'DIARIA', 'CADA_3_DIAS', 'SEMANAL', 'MENSUAL', 'SEGUN_DIA_LOTE'];
 const routineFrequencies: RoutineFrequency[] = ['DIARIA', 'SEMANAL', 'MENSUAL'];
+const categoryLabels = Object.fromEntries(programacionCategories.map((category) => [category.key, category.label])) as Record<string, string>;
 
 export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
   const today = todayISO();
@@ -32,12 +34,10 @@ export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
   const vacunas = useLiveQuery(() => db.planVacunalBase.toArray(), []) ?? [];
   const perros = useLiveQuery(() => db.perros.toArray(), []) ?? [];
   const galpones = useLiveQuery(() => db.galpones.toArray(), []) ?? [];
+  const lotes = useLiveQuery(() => db.lotes.where('EstadoLote').equals('ACTIVO').toArray(), []) ?? [];
   const [regenerating, setRegenerating] = useState(false);
-  const loteActivities = useMemo(
-    () => actividades.filter((actividad) => !isRoutineTemplate(actividad) && !isPreparationTemplate(actividad) && !isVaccineTemplate(actividad)),
-    [actividades],
-  );
-  const routineActivities = useMemo(() => actividades.filter(isRoutineTemplate), [actividades]);
+  const loteActivities = useMemo(() => actividades.filter((actividad) => getProgramacionTemplateCategory(actividad) === 'lote'), [actividades]);
+  const routineActivities = useMemo(() => actividades.filter((actividad) => getProgramacionTemplateCategory(actividad) === 'routine'), [actividades]);
 
   async function handleRegenerate() {
     setRegenerating(true);
@@ -53,11 +53,11 @@ export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
     <section className="programming-view">
       <MobileCard title="Programacion activa" subtitle="Reglas que la app usa para armar HOY">
         <div className="programming-summary">
+          <span><strong>{lotes.length}</strong> registro diario</span>
           <span><strong>{loteActivities.filter((item) => item.Activa).length}</strong> act. lote</span>
           <span><strong>{routineActivities.filter((item) => item.Activa).length}</strong> rutinas</span>
           <span><strong>{preparationTasks.length}</strong> alistamiento</span>
-          <span><strong>{vacunas.filter((item) => item.Activa).length}</strong> vacunas base</span>
-          <span><strong>{perros.filter((item) => item.Activo).length}</strong> perros activos</span>
+          <span><strong>{vacunas.filter((item) => item.Activa).length + perros.filter((item) => item.Activo).length}</strong> otros</span>
         </div>
         <button className="primary-action primary-action--icon" type="button" onClick={handleRegenerate} disabled={regenerating}>
           <RefreshCcw size={18} />
@@ -65,16 +65,33 @@ export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
         </button>
       </MobileCard>
 
-      <MobileCard title="1. Alistamiento" subtitle="Se registra con fecha desde el galpon en alistamiento">
+      <MobileCard title={`1. ${categoryLabels.daily}`} subtitle="Registro operativo por lote activo">
+        <DailyRegisterReview lotes={lotes} />
+      </MobileCard>
+
+      <MobileCard title={`2. ${categoryLabels.lote}`} subtitle="Tareas propias del lote; no incluye rutinas ni alistamiento">
+        <NewActivityForm onToast={onToast} />
+        <ActivityProgramGroups actividades={loteActivities} onToast={onToast} />
+      </MobileCard>
+
+      <MobileCard title={`3. ${categoryLabels.routine}`} subtitle="Checks diarios, semanales y mensuales">
+        <NewRoutineForm onToast={onToast} />
+        <RoutineProgramBuckets actividades={routineActivities} onToast={onToast} />
+        <div className="routine-matrix-title">
+          <strong>Cumplimiento del mes</strong>
+          <span>Checks registrados por dia</span>
+        </div>
+        <RoutineMatrix actividades={actividadesLote} today={today} user={user} editable onSaved={onToast} />
+      </MobileCard>
+
+      <MobileCard title={`4. ${categoryLabels.prep}`} subtitle="Se registra con fecha desde el galpon en alistamiento">
         <PreparationReview galpones={galpones} />
       </MobileCard>
 
-      <MobileCard title="2. Actividades del lote" subtitle="Tareas propias del lote; no incluye rutinas ni alistamiento">
-        <NewActivityForm onToast={onToast} />
-        <ActivityProgramGroups actividades={loteActivities} onToast={onToast} />
+      <MobileCard title={`5. ${categoryLabels.other}`}>
         <div className="routine-matrix-title">
-          <strong>Vacunación del lote</strong>
-          <span>Gumboro día 8 y Newcastle día 10</span>
+          <strong>Vacunacion</strong>
+          <span>Gumboro dia 8 y Newcastle dia 10</span>
         </div>
         <NewVaccineForm onToast={onToast} />
         <div className="programming-list programming-list--compact">
@@ -85,19 +102,10 @@ export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
               <VaccineProgramRow key={vacuna.VacunaBaseID} vacuna={vacuna} onToast={onToast} />
             ))}
         </div>
-      </MobileCard>
-
-      <MobileCard title="3. Rutinas" subtitle="Checks diarios, semanales y mensuales">
-        <NewRoutineForm onToast={onToast} />
-        <RoutineProgramBuckets actividades={routineActivities} onToast={onToast} />
         <div className="routine-matrix-title">
-          <strong>Cumplimiento del mes</strong>
-          <span>Checks registrados por dia</span>
+          <strong>Perros</strong>
+          <span>Rabia y desparasitacion</span>
         </div>
-        <RoutineMatrix actividades={actividadesLote} today={today} user={user} editable onSaved={onToast} />
-      </MobileCard>
-
-      <MobileCard title="Perros">
         <NewDogForm onToast={onToast} />
         <div className="programming-list programming-list--compact">
           {perros
@@ -109,6 +117,22 @@ export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
         </div>
       </MobileCard>
     </section>
+  );
+}
+
+function DailyRegisterReview({ lotes }: { lotes: Lote[] }) {
+  return (
+    <div className="programming-list">
+      <article className="routine-schedule-row">
+        <div>
+          <strong>Registro diario del lote</strong>
+          <span>{lotes.length ? `${lotes.length} lotes activos` : 'Sin lotes activos'}</span>
+        </div>
+        <span className={`programming-status ${lotes.length ? 'programming-status--active' : 'programming-status--inactive'}`}>
+          {lotes.length ? 'Activa' : 'Sin lote'}
+        </span>
+      </article>
+    </div>
   );
 }
 
@@ -219,16 +243,6 @@ function PreparationReview({ galpones }: { galpones: Galpon[] }) {
       </div>
     </div>
   );
-}
-
-function isPreparationTemplate(actividad: Pick<ActividadProgramada, 'Categoria' | 'NombreActividad' | 'DiaLote'>): boolean {
-  const text = normalizeText(`${actividad.Categoria} ${actividad.NombreActividad}`);
-  return ['retiro', 'desinfeccion', 'instalacion', 'recibimiento'].some((word) => text.includes(word)) || actividad.DiaLote <= 0;
-}
-
-function isVaccineTemplate(actividad: Pick<ActividadProgramada, 'Categoria' | 'NombreActividad'>): boolean {
-  const text = normalizeText(`${actividad.Categoria} ${actividad.NombreActividad}`);
-  return text.includes('vacuna') || text.includes('vacunacion');
 }
 
 function NewActivityForm({ onToast }: { onToast: (message: string) => void }) {

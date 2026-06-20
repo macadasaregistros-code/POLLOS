@@ -194,7 +194,7 @@
   border-left: 6px solid rgb(var(--agenda-accent));
 }
 
-.agenda-task--activity {
+.agenda-task--lote {
   --agenda-accent: 126 87 194;
   border-left: 6px solid rgb(var(--agenda-accent));
 }
