@@ -357,6 +357,8 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
   const completedCount = completedTaskIds.length;
   const progress = Math.round((completedCount / preparationTasks.length) * 100);
   const currentTask = preparationTasks.find((task) => !completedSet.has(task.id));
+  const activeCategory = preparationCategories.find((category) => category.key === currentTask?.category) ?? preparationCategories[preparationCategories.length - 1];
+  const activeCategoryDone = activeCategory.tasks.filter((task) => completedSet.has(task.id)).length;
   const ready = !currentTask;
 
   async function handleAdvance() {
@@ -423,33 +425,31 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
       </div>
 
       <div className="prep-category-list">
-        {preparationCategories.map((category) => (
-          <section className="prep-category-block" key={category.key}>
-            <header>
-              <strong>{category.label}</strong>
-              <span>
-                {category.tasks.filter((task) => completedSet.has(task.id)).length}/{category.tasks.length}
-              </span>
-            </header>
-            <div className="prep-task-list">
-              {category.tasks.map((task) => {
-                const state = completedSet.has(task.id) ? 'complete' : currentTask?.id === task.id ? 'current' : 'pending';
-                const completedDate = completedDates.get(task.id);
-                return (
-                  <article className={`prep-task prep-task--${state}`} key={task.id}>
-                    {state === 'complete' && <CheckCircle2 size={23} />}
-                    {state === 'current' && <CircleDot size={23} />}
-                    {state === 'pending' && <Circle size={23} />}
-                    <div>
-                      <strong>{task.title}</strong>
-                      <span>{state === 'complete' ? (completedDate ? `Completado ${completedDate}` : 'Completado') : state === 'current' ? 'En proceso' : 'Pendiente'}</span>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        ))}
+        <section className="prep-category-block" key={activeCategory.key}>
+          <header>
+            <strong>{activeCategory.label}</strong>
+            <span>
+              {activeCategoryDone}/{activeCategory.tasks.length}
+            </span>
+          </header>
+          <div className="prep-task-list">
+            {activeCategory.tasks.map((task) => {
+              const state = completedSet.has(task.id) ? 'complete' : currentTask?.id === task.id ? 'current' : 'pending';
+              const completedDate = completedDates.get(task.id);
+              return (
+                <article className={`prep-task prep-task--${state}`} key={task.id}>
+                  {state === 'complete' && <CheckCircle2 size={23} />}
+                  {state === 'current' && <CircleDot size={23} />}
+                  {state === 'pending' && <Circle size={23} />}
+                  <div>
+                    <strong>{task.title}</strong>
+                    <span>{state === 'complete' ? (completedDate ? `Completado ${completedDate}` : 'Completado') : state === 'current' ? 'En proceso' : 'Pendiente'}</span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
       </div>
 
       <div className="prep-panel__actions">

@@ -13737,9 +13737,89 @@ body:has(.native-record-screen--pest) {
   width: 100%;
 }
 
+.page-shell.page-shell--mobile.page-shell--record-view:has(.daily-register-card) {
+  width: min(1180px, 100%);
+}
+
+.page-shell--record-view:has(.daily-register-card) .daily-register-card {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .page-shell.page-shell--mobile.page-shell--record-view:has(.daily-register-card) {
+    padding-right: calc(6px + var(--safe-right));
+    padding-left: calc(6px + var(--safe-left));
+  }
+
+  .page-shell--daily-record .daily-register-form {
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+
+  .page-shell--daily-record .daily-register-main-card {
+    height: 100%;
+    min-height: 0;
+    align-content: stretch;
+  }
+
+  .page-shell--daily-record .daily-register-content-layout {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .page-shell--daily-record .daily-register-form > .primary-action {
+    right: max(calc(6px + var(--safe-right)), calc((100vw - 680px) / 2 + 6px));
+    left: max(calc(6px + var(--safe-left)), calc((100vw - 680px) / 2 + 6px));
+  }
+}
+
 /* Admin lote history overrides. */
 .lote-history-card {
   margin-top: 16px;
+}
+
+.lote-history-identity {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border: 1px solid #9bd8cf;
+  border-radius: 8px;
+  background: #eefaf7;
+  box-shadow: inset 4px 0 0 var(--brand);
+}
+
+.lote-history-identity span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.lote-history-identity strong {
+  display: block;
+  margin-top: 2px;
+  color: var(--brand-strong);
+  font-size: clamp(1.25rem, 2vw, 1.7rem);
+}
+
+.lote-history-identity__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.lote-history-identity__meta span {
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--text);
+  font-size: 0.72rem;
 }
 
 .lote-history-stats {
@@ -13767,10 +13847,27 @@ body:has(.native-record-screen--pest) {
 }
 
 .table-wrap tr.is-selected td {
-  background: #ecfeff;
+  background: #dff7f3;
+  box-shadow: inset 4px 0 0 var(--brand);
+  font-weight: 800;
 }
 
 .lote-history-table .activity-history-sync {
   display: inline-flex;
   width: max-content;
+}
+
+.lote-history-table tbody tr:first-child td {
+  background: #f0fdf7;
+  border-top: 2px solid var(--brand);
+}
+
+@media (max-width: 700px) {
+  .lote-history-identity {
+    grid-template-columns: 1fr;
+  }
+
+  .lote-history-identity__meta {
+    justify-content: flex-start;
+  }
 }

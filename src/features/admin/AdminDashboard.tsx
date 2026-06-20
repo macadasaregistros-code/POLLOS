@@ -601,23 +601,35 @@ function LoteDailyHistoryView({
   const expectedDays = historyEndDate >= lote.FechaLlegada ? diffDays(lote.FechaLlegada, historyEndDate) + 1 : 0;
   const totals = loteRecordsAsc.reduce(
     (acc, registro) => ({
-      kg: acc.kg + registro.KgConsumidos,
+      bultos: acc.bultos + registro.BultosConsumidos,
       muertos: acc.muertos + registro.MuertosMachos + registro.MuertosHembras + registro.MuertosSinClasificar,
       sacrificados: acc.sacrificados + registro.SacrificadosMachos + registro.SacrificadosHembras,
     }),
-    { kg: 0, muertos: 0, sacrificados: 0 },
+    { bultos: 0, muertos: 0, sacrificados: 0 },
   );
   const latestDate = loteRecordsAsc.at(-1)?.Fecha ?? 'Sin registros';
 
   return (
-    <MobileCard className="lote-history-card" title="Registros historicos del lote" subtitle={`Desde ${lote.FechaLlegada} hasta ${historyEndDate}`}>
+    <MobileCard className="lote-history-card" title={`Historial lote ${lote.CodigoLote}`} subtitle="Registros diarios">
+      <section className="lote-history-identity" aria-label="Lote seleccionado">
+        <div>
+          <span>Lote seleccionado</span>
+          <strong>{lote.CodigoLote}</strong>
+        </div>
+        <div className="lote-history-identity__meta">
+          <span>Estado {lote.EstadoLote}</span>
+          <span>Inicio {lote.FechaLlegada}</span>
+          <span>Corte {historyEndDate}</span>
+        </div>
+      </section>
+
       <section className="stats-grid stats-grid--wide lote-history-stats">
+        <StatCard label="Ultima fecha" value={latestDate} />
         <StatCard label="Registrados" value={`${fmtNumber(loteRecordsAsc.length)} / ${fmtNumber(expectedDays)}`} tone={missingDates.length ? 'warn' : 'good'} />
         <StatCard label="Fechas faltantes" value={fmtNumber(missingDates.length)} tone={missingDates.length ? 'warn' : 'good'} />
-        <StatCard label="Consumo acum." value={fmtKg(totals.kg)} />
-        <StatCard label="Mortalidad" value={fmtNumber(totals.muertos)} />
+        <StatCard label="Alimento acum." value={`${fmtNumber(totals.bultos, 1)} bultos`} />
+        <StatCard label="Muertos total" value={fmtNumber(totals.muertos)} />
         <StatCard label="Sacrificio" value={fmtNumber(totals.sacrificados)} />
-        <StatCard label="Ultimo registro" value={latestDate} />
       </section>
 
       {missingDates.length > 0 && (
@@ -635,23 +647,28 @@ function LoteDailyHistoryView({
                 <th>Fecha</th>
                 <th>Dia</th>
                 <th>Alimento</th>
-                <th>Kg</th>
-                <th>Muertos</th>
+                <th>Bultos</th>
+                <th>Muertos M/H</th>
+                <th>Muertos total</th>
                 <th>Sacrificio</th>
                 <th>Sync</th>
               </tr>
             </thead>
             <tbody>
               {loteRecordsDesc.map((registro) => {
-                const muertos = registro.MuertosMachos + registro.MuertosHembras + registro.MuertosSinClasificar;
+                const muertosTotal = registro.MuertosMachos + registro.MuertosHembras + registro.MuertosSinClasificar;
+                const muertosDetalle = registro.MuertosSinClasificar > 0
+                  ? `${fmtNumber(registro.MuertosMachos)} M + ${fmtNumber(registro.MuertosHembras)} H + ${fmtNumber(registro.MuertosSinClasificar)} sin clasificar`
+                  : `${fmtNumber(registro.MuertosMachos)} M + ${fmtNumber(registro.MuertosHembras)} H`;
                 const sacrificados = registro.SacrificadosMachos + registro.SacrificadosHembras;
                 return (
                   <tr key={registro.RegistroDiarioID}>
                     <td data-label="Fecha">{registro.Fecha}</td>
                     <td data-label="Dia">{registro.DiaLote}</td>
                     <td data-label="Alimento">{tiposById.get(registro.TipoAlimentoID) ?? registro.TipoAlimentoID}</td>
-                    <td data-label="Kg">{fmtKg(registro.KgConsumidos)}</td>
-                    <td data-label="Muertos">{fmtNumber(muertos)}</td>
+                    <td data-label="Bultos">{fmtNumber(registro.BultosConsumidos, 1)}</td>
+                    <td data-label="Muertos M/H">{muertosDetalle}</td>
+                    <td data-label="Muertos total">{fmtNumber(muertosTotal)}</td>
                     <td data-label="Sacrificio">{fmtNumber(sacrificados)}</td>
                     <td data-label="Sync">
                       <span className={`activity-history-sync activity-history-sync--${registro.EstadoSync.toLowerCase()}`}>{getSyncLabel(registro.EstadoSync)}</span>
