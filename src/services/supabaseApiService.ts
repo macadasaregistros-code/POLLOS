@@ -140,14 +140,24 @@ async function request<T>(schema: SchemaName, table: string, init?: RequestInit,
   return payload as T;
 }
 
-function normalizeForSupabase(payload: unknown): Record<string, unknown> {
+function normalizeForSupabase(payload: unknown, table?: RemoteTable): Record<string, unknown> {
   const record = { ...((payload ?? {}) as Record<string, unknown>) };
   Object.entries(record).forEach(([key, value]) => {
     if (value === undefined) delete record[key];
     if (value === '' && NULLABLE_DATE_FIELDS.has(key)) record[key] = null;
   });
+  if (table?.table === 'actividades_lote' && record.LoteID === '') record.LoteID = null;
   if ('EstadoSync' in record) record.EstadoSync = 'SINCRONIZADO';
   return record;
+}
+
+function normalizeRemoteRowsForLocal(table: RemoteTable & { localName?: string }, rows: object[]): object[] {
+  if (table.localName !== 'ActividadesLote') return rows;
+  return rows.map((row) => {
+    const record = { ...(row as Record<string, unknown>) };
+    if (record.LoteID === null || record.LoteID === undefined) record.LoteID = '';
+    return record;
+  });
 }
 
 function getMissingColumnName(error: unknown): string | undefined {
@@ -193,7 +203,7 @@ async function listRemoteRows(table: RemoteTable): Promise<object[]> {
 async function upsertRemoteRecord(table: RemoteTable, payload: unknown): Promise<void> {
   if (table.readonly) throw new Error(`La tabla ${table.table} pertenece a core y es solo lectura para POLLOS.`);
 
-  const record = normalizeForSupabase(payload);
+  const record = normalizeForSupabase(payload, table);
   if (!record[table.idField]) throw new Error(`Falta ID ${table.idField}.`);
 
   await writeRemoteRecordWithColumnRetry(table, 'POST', record, `on_conflict=${encodeURIComponent(table.idField)}`, {
@@ -204,7 +214,7 @@ async function upsertRemoteRecord(table: RemoteTable, payload: unknown): Promise
 async function updateRemoteRecord(table: RemoteTable, id: string, payload: unknown): Promise<void> {
   if (table.readonly) throw new Error(`La tabla ${table.table} pertenece a core y es solo lectura para POLLOS.`);
 
-  const record = normalizeForSupabase(payload);
+  const record = normalizeForSupabase(payload, table);
   await writeRemoteRecordWithColumnRetry(table, 'PATCH', record, `${encodeURIComponent(table.idField)}=eq.${encodeURIComponent(id)}`, {
     Prefer: 'return=minimal',
   });
@@ -219,7 +229,7 @@ export async function bootstrap(user: Usuario): Promise<ApiResponse<BootstrapRes
       : BOOTSTRAP_TABLES;
     const entries = await Promise.all(tablesToLoad.map(async (table): Promise<readonly [string, object[]] | undefined> => {
       try {
-        return [table.localName, await listRemoteRows(table)] as const;
+        return [table.localName, normalizeRemoteRowsForLocal(table, await listRemoteRows(table))] as const;
       } catch (error) {
         if (!table.optional) throw error;
         return undefined;

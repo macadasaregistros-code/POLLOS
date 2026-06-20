@@ -1,4 +1,5 @@
 import { addDays, getDiaLote, getSemanaLote, nowISO, todayISO } from '../lib/date';
+import { isRoutineTemplate } from '../services/routineService';
 import type {
   ActividadLote,
   ActividadProgramada,
@@ -318,8 +319,8 @@ export function createDemoData(): DemoData {
 
   const actividadesProgramadas: ActividadProgramada[] = baseActivities.map((activity) => ({ ...activity }));
 
-  const actividadesLote: ActividadLote[] = actividadesProgramadas
-    .filter((activity) => activity.Activa && activity.AplicaDesdeDia <= diaLote && activity.AplicaHastaDia >= Math.max(1, diaLote - 2))
+  const loteActivities: ActividadLote[] = actividadesProgramadas
+    .filter((activity) => !isRoutineTemplate(activity) && activity.Activa && activity.AplicaDesdeDia <= diaLote && activity.AplicaHastaDia >= Math.max(1, diaLote - 2))
     .flatMap((activity) => {
       const scheduledDay =
         activity.TipoFrecuencia === 'DIARIA'
@@ -348,6 +349,24 @@ export function createDemoData(): DemoData {
         },
       ];
     });
+  const routineActivities: ActividadLote[] = actividadesProgramadas
+    .filter((activity) => isRoutineTemplate(activity) && activity.Activa)
+    .map((activity) => ({
+      ActividadLoteID: `act_rutina_${activity.ActividadProgramadaID}_${today}`,
+      LoteID: '',
+      GalponID: '',
+      FechaProgramada: today,
+      DiaLote: 0,
+      NombreActividad: activity.NombreActividad,
+      Categoria: activity.Categoria,
+      Estado: 'PENDIENTE',
+      FechaRealizada: '',
+      RealizadaPor: '',
+      Observacion: '',
+      CerradaComoPendiente: false,
+      EstadoSync: 'SINCRONIZADO' as const,
+    }));
+  const actividadesLote: ActividadLote[] = [...loteActivities, ...routineActivities];
 
   const planVacunalBase: PlanVacunalBase[] = [
     {

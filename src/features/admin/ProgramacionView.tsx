@@ -61,7 +61,7 @@ export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
         </div>
         <button className="primary-action primary-action--icon" type="button" onClick={handleRegenerate} disabled={regenerating}>
           <RefreshCcw size={18} />
-          <span>{regenerating ? 'Regenerando...' : 'Regenerar futuro de lotes activos'}</span>
+          <span>{regenerating ? 'Regenerando...' : 'Regenerar programacion futura'}</span>
         </button>
       </MobileCard>
 

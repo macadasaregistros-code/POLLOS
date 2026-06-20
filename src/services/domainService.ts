@@ -2,6 +2,7 @@ import { avesVivasHembras, avesVivasMachos, calculatePesajeStats, sumLoteTotals 
 import { db } from './localDbService';
 import { enqueueSync } from './syncService';
 import { getMissingDailyRegisterDates } from './dailyRegisterService';
+import { isRoutineTemplate } from './routineService';
 import { addDays, getDiaLote, getSemanaLote, nowISO, todayISO } from '../lib/date';
 import { createId } from '../lib/id';
 import type {
@@ -196,7 +197,7 @@ export interface EventoSanitarioInput {
 }
 
 async function buildActivitiesForLote(lote: Lote, galponId: string): Promise<ActividadLote[]> {
-  const templates = (await db.actividadesProgramadas.toArray()).filter((template) => template.Activa);
+  const templates = (await db.actividadesProgramadas.toArray()).filter((template) => template.Activa && !isRoutineTemplate(template));
   const activities: ActividadLote[] = [];
 
   for (const template of templates) {

@@ -3,6 +3,7 @@ import { addDays, nowISO, todayISO } from '../lib/date';
 import { db } from './localDbService';
 import { enqueueSync } from './syncService';
 import { construirCierreLote, construirCierreSemanal } from './adminAnalyticsService';
+import { isRoutineTemplate } from './routineService';
 import type {
   ActividadLote,
   ActividadProgramada,
@@ -376,9 +377,12 @@ export async function regenerarProgramacionFutura(user: Usuario): Promise<{ acti
     db.vacunasLote.toArray(),
   ]);
   const activeLoteIds = new Set(lotes.map((lote) => lote.LoteID));
+  const activeTemplates = templates.filter((template) => template.Activa);
+  const loteTemplates = activeTemplates.filter((template) => !isRoutineTemplate(template));
+  const routineTemplates = activeTemplates.filter(isRoutineTemplate);
   const futureActivities = oldActivities.filter(
     (actividad) =>
-      activeLoteIds.has(actividad.LoteID) &&
+      (activeLoteIds.has(actividad.LoteID) || !actividad.LoteID || isRoutineTemplate(actividad)) &&
       actividad.FechaProgramada >= today &&
       actividad.Estado !== 'REALIZADA' &&
       actividad.Estado !== 'NO_APLICA',
@@ -393,7 +397,7 @@ export async function regenerarProgramacionFutura(user: Usuario): Promise<{ acti
     const assignment = assignments.find((item) => item.LoteID === lote.LoteID);
     if (!assignment) continue;
     newActivities.push(
-      ...buildFutureActivitiesForLote(lote, assignment.GalponID, templates.filter((template) => template.Activa), today),
+      ...buildFutureActivitiesForLote(lote, assignment.GalponID, loteTemplates, today),
     );
     newVaccines.push(
       ...vacunasBase
@@ -426,6 +430,7 @@ export async function regenerarProgramacionFutura(user: Usuario): Promise<{ acti
         .filter((vacuna) => vacuna.FechaProgramada >= today),
     );
   }
+  newActivities.push(...buildFutureRoutineActivities(routineTemplates, today));
 
   await db.transaction('rw', [db.actividadesLote, db.vacunasLote, db.syncQueue], async () => {
     await Promise.all(
@@ -472,6 +477,39 @@ function buildFutureActivitiesForLote(lote: { LoteID: string; FechaLlegada: stri
       }))
       .filter((actividad) => actividad.FechaProgramada >= today),
   );
+}
+
+function buildFutureRoutineActivities(templates: ActividadProgramada[], today: string, horizonDays = 42): ActividadLote[] {
+  return templates.flatMap((template) =>
+    getRoutineOffsets(template, horizonDays).map((offset): ActividadLote => ({
+      ActividadLoteID: createId('act_rutina'),
+      LoteID: '',
+      GalponID: '',
+      FechaProgramada: addDays(today, offset),
+      DiaLote: 0,
+      NombreActividad: template.NombreActividad,
+      Categoria: template.Categoria,
+      Estado: 'PENDIENTE',
+      FechaRealizada: '',
+      RealizadaPor: '',
+      Observacion: '',
+      CerradaComoPendiente: false,
+      EstadoSync: 'PENDIENTE',
+    })),
+  );
+}
+
+function getRoutineOffsets(template: ActividadProgramada, horizonDays: number): number[] {
+  const step = template.TipoFrecuencia === 'CADA_3_DIAS'
+    ? 3
+    : template.TipoFrecuencia === 'SEMANAL'
+      ? 7
+      : template.TipoFrecuencia === 'MENSUAL'
+        ? 30
+        : 1;
+  const offsets: number[] = [];
+  for (let offset = 0; offset <= horizonDays; offset += step) offsets.push(offset);
+  return offsets;
 }
 
 function getTemplateDays(template: ActividadProgramada): number[] {

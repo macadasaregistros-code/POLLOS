@@ -1,5 +1,6 @@
 import Dexie, { type Table, type Transaction } from 'dexie';
 import { createDemoData } from '../data/demoData';
+import { isRoutineActivity } from './routineService';
 import type {
   ActividadLote,
   ActividadProgramada,
@@ -282,6 +283,28 @@ export class PollosDb extends Dexie {
       await actividades.bulkPut(reference.actividadesProgramadas);
       await vacunas.bulkPut(reference.planVacunalBase);
     });
+
+    this.version(6).upgrade(async (transaction: Transaction) => {
+      const actividades = transaction.table('actividadesLote') as Table<ActividadLote, string>;
+      const current = await actividades.toArray();
+      const seenRoutineKeys = new Set<string>();
+      const updates: ActividadLote[] = [];
+
+      for (const activity of current.filter(isRoutineActivity)) {
+        const key = `${activity.FechaProgramada}|${activity.NombreActividad}`;
+        const duplicate = seenRoutineKeys.has(key);
+        if (!duplicate) seenRoutineKeys.add(key);
+        updates.push({
+          ...activity,
+          LoteID: '',
+          GalponID: '',
+          Estado: duplicate ? 'NO_APLICA' : activity.Estado,
+          Observacion: duplicate && !activity.Observacion ? 'Rutina duplicada por lote' : activity.Observacion,
+        });
+      }
+
+      if (updates.length) await actividades.bulkPut(updates);
+    });
   }
 }
 
@@ -311,6 +334,7 @@ function isDemoPrimaryKey(key: unknown): boolean {
     'peso_m_',
     'peso_h_',
     'act_lote_',
+    'act_rutina_',
     'vac_lote_',
     'perro_demo_',
     'perro_reg_demo_',

@@ -47,6 +47,8 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   const lotes = useLiveQuery(() => db.lotes.where('EstadoLote').equals('ACTIVO').toArray(), []);
   const activeLoteIds = useMemo(() => (lotes ?? []).map((lote) => lote.LoteID), [lotes]);
   const activeLoteIdsKey = activeLoteIds.join('|');
+  const activityScopeIds = useMemo(() => [...activeLoteIds, ''], [activeLoteIds]);
+  const activityScopeIdsKey = activityScopeIds.join('|');
   const registros = useLiveQuery(
     () => activeLoteIds.length ? db.registroDiarioLote.where('LoteID').anyOf(activeLoteIds).toArray() : [],
     [activeLoteIdsKey],
@@ -62,8 +64,8 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   const loteGalpones = useLiveQuery(() => db.loteGalpones.where('Estado').equals('ACTIVO').toArray(), []);
   const galpones = useLiveQuery(() => db.galpones.toArray(), []);
   const actividades = useLiveQuery(
-    () => activeLoteIds.length ? db.actividadesLote.where('LoteID').anyOf(activeLoteIds).toArray() : [],
-    [activeLoteIdsKey],
+    () => db.actividadesLote.where('LoteID').anyOf(activityScopeIds).toArray(),
+    [activityScopeIdsKey],
   );
   const vacunas = useLiveQuery(
     () => activeLoteIds.length ? db.vacunasLote.where('LoteID').anyOf(activeLoteIds).toArray() : [],
@@ -179,7 +181,7 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
     }
     if (task.action.type === 'completeActivities') {
       await markActivitiesDone(task.action.activityIds);
-      onToast(task.action.activityIds.length === 1 ? 'Actividad marcada como realizada.' : 'Actividades marcadas como realizadas.');
+      onToast(task.tone === 'routine' ? 'Rutina marcada como realizada.' : task.action.activityIds.length === 1 ? 'Actividad marcada como realizada.' : 'Actividades marcadas como realizadas.');
       return;
     }
     handleSelectGalpon(task.action.galponId);

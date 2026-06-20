@@ -80,23 +80,23 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
     }
   }
 
+  const activeLoteIds = new Set(activeLotes.map((lote) => lote.LoteID));
   const dueActivities = input.actividades.filter(
     (actividad) =>
       actividad.FechaProgramada <= input.today &&
       (actividad.Estado === 'PENDIENTE' || actividad.Estado === 'VENCIDA') &&
       !isVaccineActivity(actividad),
   );
-  const pestActivities = dueActivities.filter(isPestActivity);
-  const waterActivities = dueActivities.filter((actividad) => !isPestActivity(actividad) && isWaterActivity(actividad));
+  const routineActivities = dueActivities.filter(isRoutineActivity);
+  const loteActivities = dueActivities.filter((actividad) => !isRoutineActivity(actividad) && activeLoteIds.has(actividad.LoteID));
+  const pestActivities = loteActivities.filter(isPestActivity);
+  const waterActivities = loteActivities.filter((actividad) => !isPestActivity(actividad) && isWaterActivity(actividad));
   const specializedActivityIds = new Set([...pestActivities, ...waterActivities].map((actividad) => actividad.ActividadLoteID));
-  const routineActivities = dueActivities.filter((actividad) => !specializedActivityIds.has(actividad.ActividadLoteID) && isRoutineActivity(actividad));
-  const regularActivities = dueActivities.filter(
-    (actividad) => !specializedActivityIds.has(actividad.ActividadLoteID) && !isRoutineActivity(actividad),
-  );
+  const regularActivities = loteActivities.filter((actividad) => !specializedActivityIds.has(actividad.ActividadLoteID));
 
-  for (const actividad of routineActivities) {
+  for (const activities of groupBy(routineActivities, getRoutineGroupKey).values()) {
     addDueActivityTask(
-      buildCompletionTask(actividad, getRoutineAgendaName(actividad), 'routine', lotesById, galponNamesById),
+      buildRoutineTask(activities),
       input.today,
       hoy,
       pendientes,
@@ -128,6 +128,10 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
       hoy,
       pendientes,
     );
+  }
+
+  function getRoutineGroupKey(actividad: ActividadLote): string {
+    return `${actividad.FechaProgramada}|${normalizeKey(getRoutineAgendaName(actividad))}`;
   }
 
   for (const vacuna of input.vacunas.filter(isPendingVaccine)) {
@@ -186,6 +190,20 @@ function addDueActivityTask(task: AgendaTask, today: string, hoy: AgendaTask[], 
     return;
   }
   hoy.push(task);
+}
+
+function buildRoutineTask(activities: ActividadLote[]): AgendaTask {
+  const first = activities[0];
+  const name = getRoutineAgendaName(first);
+  return {
+    id: `routine:${first.FechaProgramada}:${normalizeKey(name)}`,
+    title: name,
+    detail: 'Rutina general de granja',
+    meta: 'Toca hoy',
+    tone: 'routine',
+    date: first.FechaProgramada,
+    action: { type: 'completeActivities', activityIds: activities.map((actividad) => actividad.ActividadLoteID) },
+  };
 }
 
 function buildCompletionTask(
@@ -288,6 +306,18 @@ function getRoutineAgendaName(actividad: ActividadLote): string {
 
 function normalize(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function normalizeKey(value: string): string {
+  return normalize(value).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+function groupBy<T>(items: T[], getKey: (item: T) => string): Map<string, T[]> {
+  return items.reduce((groups, item) => {
+    const key = getKey(item);
+    groups.set(key, [...(groups.get(key) ?? []), item]);
+    return groups;
+  }, new Map<string, T[]>());
 }
 
 function sortTasks(tasks: AgendaTask[]): AgendaTask[] {
