@@ -13775,6 +13775,72 @@ body:has(.native-record-screen--pest) {
   }
 }
 
+.daily-register-form .daily-register-form__section--feed .daily-register-bultos-field {
+  gap: 10px;
+  border: 1.5px solid #d9ad32;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff8df;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 70%),
+    0 10px 22px rgb(145 101 20 / 12%);
+}
+
+.daily-register-form .daily-register-form__section--feed .daily-register-bultos-field span {
+  color: #5d4211;
+  font-size: 1rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.daily-register-form .daily-register-form__section--feed .daily-register-bultos-field input {
+  min-height: 76px;
+  border: 2px solid #c89418;
+  padding: 0 18px;
+  background: #fffef4;
+  color: #14160d;
+  font-size: 1.55rem;
+  font-weight: 950;
+  box-shadow: inset 0 3px 0 rgb(255 255 255 / 80%);
+}
+
+.daily-register-form .daily-register-form__section--feed .daily-register-bultos-field input:focus {
+  border-color: #197018;
+  box-shadow:
+    0 0 0 4px rgb(38 123 27 / 18%),
+    inset 0 3px 0 rgb(255 255 255 / 80%);
+}
+
+.daily-register-form .daily-register-form__section--feed .daily-register-bultos-field small {
+  display: block;
+  color: #5d4211;
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+@media (max-width: 760px) {
+  .page-shell--daily-record .daily-register-form .daily-register-form__section--feed .daily-register-bultos-field {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .page-shell--daily-record .daily-register-form .daily-register-form__section--feed .daily-register-bultos-field span {
+    font-size: 0.9rem;
+  }
+
+  .page-shell--daily-record .daily-register-form .daily-register-form__section--feed .daily-register-bultos-field input {
+    min-height: 58px;
+    padding: 0 14px;
+    font-size: 1.34rem;
+  }
+
+  .page-shell--daily-record .daily-register-form .daily-register-form__section--feed .daily-register-bultos-field small {
+    display: block;
+    font-size: 0.78rem;
+  }
+}
+
 /* Admin lote history overrides. */
 .lote-history-card {
   margin-top: 16px;

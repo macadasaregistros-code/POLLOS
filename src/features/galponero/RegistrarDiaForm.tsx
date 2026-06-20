@@ -180,7 +180,7 @@ export function RegistrarDiaForm({ lote, user, onSaved, onBack }: RegistrarDiaFo
             <DailySectionTitle icon={<Wheat size={28} />} title="Alimentación" />
             <div className="form-grid">
               <FoodTypeSelector options={tipoOptions} selectedTipoId={currentTipoId} onSelect={setTipoAlimentoId} className="daily-register-food-selector" />
-              <label className="field">
+              <label className="field daily-register-bultos-field">
                 <span>Bultos hoy</span>
                 <input
                   inputMode="decimal"

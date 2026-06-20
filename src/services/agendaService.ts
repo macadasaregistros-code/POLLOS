@@ -54,6 +54,7 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
   const activeLotes = input.lotes.filter((lote) => lote.EstadoLote === 'ACTIVO');
   const activeAssignments = input.loteGalpones.filter((assignment) => assignment.Estado === 'ACTIVO');
   const galponNamesById = new Map(input.galpones.map((galpon) => [galpon.GalponID, galpon.NombreGalpon]));
+  const lotesById = new Map(input.lotes.map((lote) => [lote.LoteID, lote]));
   const hoy: AgendaTask[] = [];
   const proximas: AgendaTask[] = [];
   const pendientes: AgendaTask[] = [];
@@ -79,48 +80,54 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
     }
   }
 
-  const todayActivities = input.actividades.filter(
+  const dueActivities = input.actividades.filter(
     (actividad) =>
-      actividad.FechaProgramada === input.today &&
+      actividad.FechaProgramada <= input.today &&
       (actividad.Estado === 'PENDIENTE' || actividad.Estado === 'VENCIDA') &&
       !isVaccineActivity(actividad),
   );
-  const pestActivities = todayActivities.filter(isPestActivity);
-  const waterActivities = todayActivities.filter((actividad) => !isPestActivity(actividad) && isWaterActivity(actividad));
+  const pestActivities = dueActivities.filter(isPestActivity);
+  const waterActivities = dueActivities.filter((actividad) => !isPestActivity(actividad) && isWaterActivity(actividad));
   const specializedActivityIds = new Set([...pestActivities, ...waterActivities].map((actividad) => actividad.ActividadLoteID));
-  const routineActivities = todayActivities.filter((actividad) => !specializedActivityIds.has(actividad.ActividadLoteID) && isRoutineActivity(actividad));
-  const regularActivities = todayActivities.filter(
+  const routineActivities = dueActivities.filter((actividad) => !specializedActivityIds.has(actividad.ActividadLoteID) && isRoutineActivity(actividad));
+  const regularActivities = dueActivities.filter(
     (actividad) => !specializedActivityIds.has(actividad.ActividadLoteID) && !isRoutineActivity(actividad),
   );
 
-  for (const [routineName, activities] of groupBy(routineActivities, getRoutineAgendaName)) {
-    hoy.push({
-      id: `routine:${routineName}:${activities.map((actividad) => actividad.ActividadLoteID).join('|')}`,
-      title: routineName,
-      detail: activities.length === 1 ? 'Check de rutina' : `${activities.length} checks de rutina`,
-      meta: 'Toca hoy',
-      tone: 'routine',
-      date: input.today,
-      action: { type: 'completeActivities', activityIds: activities.map((actividad) => actividad.ActividadLoteID) },
-    });
-  }
-  if (pestActivities.length) {
-    hoy.push(buildRecordTask('plagas', 'Control de plagas', pestActivities, 'activity'));
-  }
-  if (waterActivities.length) {
-    hoy.push(buildRecordTask('agua', 'Tratamiento de agua', waterActivities, 'activity'));
+  for (const actividad of routineActivities) {
+    addDueActivityTask(
+      buildCompletionTask(actividad, getRoutineAgendaName(actividad), 'routine', lotesById, galponNamesById),
+      input.today,
+      hoy,
+      pendientes,
+    );
   }
 
-  for (const [category, activities] of groupBy(regularActivities, (actividad) => actividad.Categoria || 'Actividad')) {
-    hoy.push({
-      id: `activities:${category}:${activities.map((actividad) => actividad.ActividadLoteID).join('|')}`,
-      title: category,
-      detail: activities.length === 1 ? activities[0].NombreActividad : `${activities.length} actividades programadas`,
-      meta: 'Marcar al completar',
-      tone: 'activity',
-      date: input.today,
-      action: { type: 'completeActivities', activityIds: activities.map((actividad) => actividad.ActividadLoteID) },
-    });
+  for (const actividad of pestActivities) {
+    addDueActivityTask(
+      buildRecordTask('plagas', 'Control de plagas', actividad, 'activity', lotesById, galponNamesById),
+      input.today,
+      hoy,
+      pendientes,
+    );
+  }
+
+  for (const actividad of waterActivities) {
+    addDueActivityTask(
+      buildRecordTask('agua', 'Tratamiento de agua', actividad, 'activity', lotesById, galponNamesById),
+      input.today,
+      hoy,
+      pendientes,
+    );
+  }
+
+  for (const actividad of regularActivities) {
+    addDueActivityTask(
+      buildCompletionTask(actividad, actividad.NombreActividad, 'activity', lotesById, galponNamesById),
+      input.today,
+      hoy,
+      pendientes,
+    );
   }
 
   for (const vacuna of input.vacunas.filter(isPendingVaccine)) {
@@ -173,25 +180,70 @@ export function getDogNextDate(perro: Perro, type: AgendaDogRecordType): string 
   return perro.FechaUltimaDesparasitacion ? addDays(perro.FechaUltimaDesparasitacion, perro.FrecuenciaDesparasitacionDias || 90) : '';
 }
 
-function buildRecordTask(kind: AgendaRecordKind, title: string, activities: ActividadLote[], tone: AgendaTask['tone']): AgendaTask {
-  const first = activities[0];
+function addDueActivityTask(task: AgendaTask, today: string, hoy: AgendaTask[], pendientes: AgendaTask[]): void {
+  if (task.date < today) {
+    pendientes.push({ ...task, meta: `Vencida ${task.date}` });
+    return;
+  }
+  hoy.push(task);
+}
+
+function buildCompletionTask(
+  actividad: ActividadLote,
+  title: string,
+  tone: AgendaTask['tone'],
+  lotesById: Map<string, Lote>,
+  galponNamesById: Map<string, string>,
+): AgendaTask {
   return {
-    id: `${kind}:${activities.map((actividad) => actividad.ActividadLoteID).join('|')}`,
-    title,
-    detail: activities.length === 1 ? first.NombreActividad : `${activities.length} actividades relacionadas`,
+    id: `activity:${actividad.ActividadLoteID}`,
+    title: `${getLoteLabel(actividad.LoteID, lotesById)}: ${title}`,
+    detail: getActivityDetail(actividad, lotesById, galponNamesById),
+    meta: 'Marcar al completar',
+    tone,
+    date: actividad.FechaProgramada,
+    action: { type: 'completeActivities', activityIds: [actividad.ActividadLoteID] },
+  };
+}
+
+function buildRecordTask(
+  kind: AgendaRecordKind,
+  title: string,
+  actividad: ActividadLote,
+  tone: AgendaTask['tone'],
+  lotesById: Map<string, Lote>,
+  galponNamesById: Map<string, string>,
+): AgendaTask {
+  return {
+    id: `${kind}:${actividad.ActividadLoteID}`,
+    title: `${getLoteLabel(actividad.LoteID, lotesById)}: ${title}`,
+    detail: getActivityDetail(actividad, lotesById, galponNamesById),
     meta: 'Registrar evidencia',
     tone,
-    date: first.FechaProgramada,
+    date: actividad.FechaProgramada,
     action: {
       type: 'record',
       kind,
       context: {
-        activityIds: activities.map((actividad) => actividad.ActividadLoteID),
-        loteId: first.LoteID,
-        galponId: first.GalponID,
+        activityIds: [actividad.ActividadLoteID],
+        loteId: actividad.LoteID,
+        galponId: actividad.GalponID,
       },
     },
   };
+}
+
+function getLoteLabel(loteId: string, lotesById: Map<string, Lote>): string {
+  const lote = lotesById.get(loteId);
+  return lote ? `Lote ${lote.CodigoLote}` : `Lote ${loteId}`;
+}
+
+function getActivityDetail(actividad: ActividadLote, lotesById: Map<string, Lote>, galponNamesById: Map<string, string>): string {
+  const galpon = galponNamesById.get(actividad.GalponID) ?? actividad.GalponID;
+  const category = actividad.Categoria || 'Actividad';
+  const lote = lotesById.get(actividad.LoteID);
+  const diaLote = lote ? getDiaLote(lote.FechaLlegada, actividad.FechaProgramada) : actividad.DiaLote;
+  return `Galpon ${galpon} - Dia ${diaLote} - ${category} - ${actividad.NombreActividad}`;
 }
 
 function buildDogTasks(perro: Perro, today: string, nextLimit: string): AgendaTask[] {
@@ -236,14 +288,6 @@ function getRoutineAgendaName(actividad: ActividadLote): string {
 
 function normalize(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-}
-
-function groupBy<T>(items: T[], getKey: (item: T) => string): Map<string, T[]> {
-  return items.reduce((groups, item) => {
-    const key = getKey(item);
-    groups.set(key, [...(groups.get(key) ?? []), item]);
-    return groups;
-  }, new Map<string, T[]>());
 }
 
 function sortTasks(tasks: AgendaTask[]): AgendaTask[] {

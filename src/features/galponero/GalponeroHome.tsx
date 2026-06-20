@@ -179,7 +179,7 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
     }
     if (task.action.type === 'completeActivities') {
       await markActivitiesDone(task.action.activityIds);
-      onToast(task.tone === 'routine' ? 'Rutina marcada como realizada.' : 'Actividades marcadas como realizadas.');
+      onToast(task.action.activityIds.length === 1 ? 'Actividad marcada como realizada.' : 'Actividades marcadas como realizadas.');
       return;
     }
     handleSelectGalpon(task.action.galponId);
