@@ -1,9 +1,9 @@
 import { addDays, getDiaLote } from '../lib/date';
 import { getNextRequiredDailyRegisterDate } from './dailyRegisterService';
 import { getNextPrepTask } from './preparationService';
-import { getAgendaToneOrder, getProgramacionActivityCategory, type AgendaTone } from './programmingCatalogService';
+import { getAgendaToneOrder, getProgramacionActivityCategory, isPestRoutineLike, isWaterRoutineLike, type AgendaTone } from './programmingCatalogService';
 import { cleanActivityName, getRoutineDefinition } from './routineService';
-import type { ActividadLote, Galpon, Lote, LoteGalpon, Perro, RegistroDiarioLote, VacunaLote } from '../types/entities';
+import type { ActividadLote, ActividadProgramada, Galpon, Lote, LoteGalpon, Perro, RegistroDiarioLote, VacunaLote } from '../types/entities';
 
 export type AgendaRecordKind = 'vacunacion' | 'agua' | 'plagas' | 'medicamento' | 'compostaje' | 'perros' | 'capacitacion';
 export type AgendaDogRecordType = 'RABIA' | 'DESPARASITACION';
@@ -46,6 +46,7 @@ export interface BuildAgendaInput {
   loteGalpones: LoteGalpon[];
   galpones: Galpon[];
   actividades: ActividadLote[];
+  actividadesProgramadas: ActividadProgramada[];
   vacunas: VacunaLote[];
   perros: Perro[];
 }
@@ -87,12 +88,12 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
       actividad.FechaProgramada <= input.today &&
       (actividad.Estado === 'PENDIENTE' || actividad.Estado === 'VENCIDA'),
   );
-  const routineActivities = dueActivities.filter((actividad) => getProgramacionActivityCategory(actividad) === 'routine');
-  const waterRoutineActivities = routineActivities.filter(isWaterActivity);
-  const pestRoutineActivities = routineActivities.filter((actividad) => !isWaterActivity(actividad) && isPestActivity(actividad));
+  const routineActivities = dueActivities.filter((actividad) => getProgramacionActivityCategory(actividad, input.actividadesProgramadas) === 'routine');
+  const waterRoutineActivities = routineActivities.filter(isWaterRoutineLike);
+  const pestRoutineActivities = routineActivities.filter((actividad) => !isWaterRoutineLike(actividad) && isPestRoutineLike(actividad));
   const routineRecordActivityIds = new Set([...waterRoutineActivities, ...pestRoutineActivities].map((actividad) => actividad.ActividadLoteID));
   const routineCheckActivities = routineActivities.filter((actividad) => !routineRecordActivityIds.has(actividad.ActividadLoteID));
-  const loteActivities = dueActivities.filter((actividad) => getProgramacionActivityCategory(actividad) === 'lote' && activeLoteIds.has(actividad.LoteID));
+  const loteActivities = dueActivities.filter((actividad) => getProgramacionActivityCategory(actividad, input.actividadesProgramadas) === 'lote' && activeLoteIds.has(actividad.LoteID));
 
   for (const activities of groupBy(waterRoutineActivities, getRoutineRecordGroupKey).values()) {
     addDueActivityTask(
@@ -282,16 +283,6 @@ function buildDogTasks(perro: Perro, today: string, nextLimit: string): AgendaTa
 
 function isPendingVaccine(vacuna: VacunaLote): boolean {
   return vacuna.Estado !== 'APLICADA' && vacuna.Estado !== 'NO_APLICADA';
-}
-
-function isPestActivity(actividad: ActividadLote): boolean {
-  const text = normalize(`${actividad.Categoria} ${actividad.NombreActividad}`);
-  return ['plaga', 'roedor', 'mosca', 'cipermetrina'].some((word) => text.includes(word));
-}
-
-function isWaterActivity(actividad: ActividadLote): boolean {
-  const text = normalize(`${actividad.Categoria} ${actividad.NombreActividad}`);
-  return ['agua', 'cloro', 'ph', 'acuades', 'purgar linea', 'tanque'].some((word) => text.includes(word));
 }
 
 function getRoutineAgendaName(actividad: ActividadLote): string {

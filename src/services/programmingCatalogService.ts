@@ -38,17 +38,18 @@ export function getAgendaToneOrder(tone: AgendaTone): number {
 }
 
 export function getProgramacionTemplateCategory(template: ActividadProgramada): ProgramacionCategoryKey {
-  if (isRoutineTemplate(template)) return 'routine';
+  if (isRoutineTemplate(template) || isOperationalRoutineLike(template)) return 'routine';
   if (isVaccineLike(template)) return 'other';
   if (isPreparationLike(template)) return 'prep';
   return 'lote';
 }
 
-export function getProgramacionActivityCategory(actividad: ActividadLote): ProgramacionCategoryKey {
-  if (isRoutineActivity(actividad)) return 'routine';
+export function getProgramacionActivityCategory(actividad: ActividadLote, templates: ActividadProgramada[] = []): ProgramacionCategoryKey {
+  const template = findMatchingTemplate(actividad, templates);
+  if (template) return getProgramacionTemplateCategory(template);
+  if (isRoutineActivity(actividad) || isOperationalRoutineLike(actividad)) return 'routine';
   if (isVaccineLike(actividad)) return 'other';
   if (isPreparationLike(actividad)) return 'prep';
-  if (actividad.LoteID) return 'lote';
   return 'other';
 }
 
@@ -60,4 +61,27 @@ export function isPreparationLike(item: Pick<ActividadProgramada | ActividadLote
 export function isVaccineLike(item: Pick<ActividadProgramada | ActividadLote, 'Categoria' | 'NombreActividad'>): boolean {
   const text = normalizeText(`${item.Categoria} ${item.NombreActividad}`);
   return text.includes('vacuna') || text.includes('vacunacion');
+}
+
+export function isWaterRoutineLike(item: Pick<ActividadProgramada | ActividadLote, 'Categoria' | 'NombreActividad'>): boolean {
+  const text = normalizeText(`${item.Categoria} ${item.NombreActividad}`);
+  return ['agua', 'cloro', 'ph', 'acuades', 'purgar linea', 'tanque'].some((word) => text.includes(word));
+}
+
+export function isPestRoutineLike(item: Pick<ActividadProgramada | ActividadLote, 'Categoria' | 'NombreActividad'>): boolean {
+  const text = normalizeText(`${item.Categoria} ${item.NombreActividad}`);
+  return ['plaga', 'roedor', 'mosca', 'cipermetrina'].some((word) => text.includes(word));
+}
+
+function isOperationalRoutineLike(item: Pick<ActividadProgramada | ActividadLote, 'Categoria' | 'NombreActividad'>): boolean {
+  return isWaterRoutineLike(item) || isPestRoutineLike(item);
+}
+
+function findMatchingTemplate(actividad: ActividadLote, templates: ActividadProgramada[]): ActividadProgramada | undefined {
+  const activityKey = getActivityMatchKey(actividad);
+  return templates.find((template) => getActivityMatchKey(template) === activityKey);
+}
+
+function getActivityMatchKey(item: Pick<ActividadProgramada | ActividadLote, 'Categoria' | 'NombreActividad'>): string {
+  return normalizeText(`${item.Categoria} ${item.NombreActividad}`).replace(/[^a-z0-9]+/g, ' ').trim();
 }

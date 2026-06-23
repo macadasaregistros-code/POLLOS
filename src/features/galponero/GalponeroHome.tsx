@@ -63,6 +63,7 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   );
   const loteGalpones = useLiveQuery(() => db.loteGalpones.where('Estado').equals('ACTIVO').toArray(), []);
   const galpones = useLiveQuery(() => db.galpones.toArray(), []);
+  const actividadesProgramadas = useLiveQuery(() => db.actividadesProgramadas.toArray(), []);
   const actividades = useLiveQuery(
     () => db.actividadesLote.where('LoteID').anyOf(activityScopeIds).toArray(),
     [activityScopeIdsKey],
@@ -111,7 +112,7 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
   const selectedLote = useMemo(() => (lotes ?? []).find((lote) => lote.LoteID === selectedAssignment?.LoteID), [lotes, selectedAssignment?.LoteID]);
   const activeDailyLote = useMemo(() => (lotes ?? []).find((lote) => lote.LoteID === activeDailyLoteId), [activeDailyLoteId, lotes]);
   const agenda = useMemo<AgendaModel>(() => {
-    if (!lotes || !registros || !loteGalpones || !galpones || !actividades || !vacunas || !perros) return { hoy: [], proximas: [], pendientes: [] };
+    if (!lotes || !registros || !loteGalpones || !galpones || !actividades || !actividadesProgramadas || !vacunas || !perros) return { hoy: [], proximas: [], pendientes: [] };
     return buildAgenda({
       today,
       lotes,
@@ -119,10 +120,11 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
       loteGalpones,
       galpones,
       actividades,
+      actividadesProgramadas,
       vacunas,
       perros,
     });
-  }, [actividades, galpones, loteGalpones, lotes, perros, registros, today, vacunas]);
+  }, [actividades, actividadesProgramadas, galpones, loteGalpones, lotes, perros, registros, today, vacunas]);
 
   useEffect(() => {
     if (activeView !== 'galpones' && selectedGalponId) setSelectedGalponId('');

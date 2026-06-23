@@ -3,7 +3,7 @@ import { addDays, nowISO, todayISO } from '../lib/date';
 import { db } from './localDbService';
 import { enqueueSync } from './syncService';
 import { construirCierreLote, construirCierreSemanal } from './adminAnalyticsService';
-import { isRoutineTemplate } from './routineService';
+import { getProgramacionActivityCategory, getProgramacionTemplateCategory } from './programmingCatalogService';
 import type {
   ActividadLote,
   ActividadProgramada,
@@ -378,11 +378,11 @@ export async function regenerarProgramacionFutura(user: Usuario): Promise<{ acti
   ]);
   const activeLoteIds = new Set(lotes.map((lote) => lote.LoteID));
   const activeTemplates = templates.filter((template) => template.Activa);
-  const loteTemplates = activeTemplates.filter((template) => !isRoutineTemplate(template));
-  const routineTemplates = activeTemplates.filter(isRoutineTemplate);
+  const loteTemplates = activeTemplates.filter((template) => getProgramacionTemplateCategory(template) === 'lote');
+  const routineTemplates = activeTemplates.filter((template) => getProgramacionTemplateCategory(template) === 'routine');
   const futureActivities = oldActivities.filter(
     (actividad) =>
-      (activeLoteIds.has(actividad.LoteID) || !actividad.LoteID || isRoutineTemplate(actividad)) &&
+      (activeLoteIds.has(actividad.LoteID) || !actividad.LoteID || getProgramacionActivityCategory(actividad, templates) === 'routine') &&
       actividad.FechaProgramada >= today &&
       actividad.Estado !== 'REALIZADA' &&
       actividad.Estado !== 'NO_APLICA',
