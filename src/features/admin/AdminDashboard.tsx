@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Activity, BarChart3, CalendarClock, ClipboardList, Home, Map as MapIcon, Package } from 'lucide-react';
+import { Activity, BarChart3, CalendarClock, ChevronDown, ClipboardList, Home, Map as MapIcon, Package, Save } from 'lucide-react';
 import { AlertBadge } from '../../components/AlertBadge';
 import { buildGalponDashboardModel, GalponMap, GalponPremiumDashboardCard, getMaxGalponCapacity } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
@@ -13,7 +13,8 @@ import { generarAlertasBasicas } from '../../services/alertsService';
 import { generarReporteLotePDF } from '../../services/reportsService';
 import { db } from '../../services/localDbService';
 import { getProgramacionActivityCategory, type ProgramacionCategoryKey } from '../../services/programmingCatalogService';
-import { addDays, diffDays, todayISO } from '../../lib/date';
+import { enqueueSync } from '../../services/syncService';
+import { addDays, diffDays, getDiaLote, todayISO } from '../../lib/date';
 import { fmtCurrency, fmtKg, fmtNumber, fmtPercent } from '../../lib/format';
 import type { ActividadLote, ActividadProgramada, EstadoSync, Galpon, Lote, LoteResumen, RegistroDiarioLote, TipoAlimento, Usuario } from '../../types/entities';
 import type { MainView } from '../../types/navigation';
@@ -187,6 +188,7 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
             lotes={lotes ?? []}
             galpones={galpones ?? []}
             today={today}
+            onToast={onToast}
           />
         </>
       )}
@@ -345,6 +347,7 @@ interface ActivityHistoryItem {
   diaLote: number;
   galpon: string;
   note: string;
+  actividad: ActividadLote;
 }
 
 function ActivityHistoryView({
@@ -353,12 +356,14 @@ function ActivityHistoryView({
   lotes,
   galpones,
   today,
+  onToast,
 }: {
   actividades: ActividadLote[];
   actividadesProgramadas: ActividadProgramada[];
   lotes: Lote[];
   galpones: Galpon[];
   today: string;
+  onToast: (message: string) => void;
 }) {
   const history = useMemo(() => buildActivityHistory({ actividades, actividadesProgramadas, lotes, galpones }), [actividades, actividadesProgramadas, galpones, lotes]);
   const groups = useMemo(() => groupActivityHistoryByDate(history), [history]);
@@ -395,16 +400,13 @@ function ActivityHistoryView({
                     <span>Galpon</span>
                   </div>
                   {group.items.map((item) => (
-                    <article className={`activity-history-row activity-history-row--${item.tone}`} key={item.id}>
-                      <span className="activity-history-row__time">{item.time}</span>
-                      <div className="activity-history-row__activity">
-                        <strong>{item.name}</strong>
-                        <span className="activity-history-row__category">{item.category}</span>
-                      </div>
-                      <span className="activity-history-row__lote">{item.lote} - Dia {item.diaLote}</span>
-                      <span className="activity-history-row__galpon">{item.galpon}</span>
-                      {item.note && <small className="activity-history-row__note">{item.note}</small>}
-                    </article>
+                    <ActivityHistoryRow
+                      key={item.id}
+                      item={item}
+                      lotes={lotes}
+                      galpones={galpones}
+                      onSaved={() => onToast('Actividad actualizada.')}
+                    />
                   ))}
                 </div>
               </section>
@@ -451,9 +453,195 @@ function buildActivityHistory({
         diaLote: actividad.DiaLote,
         galpon: galpon ? `Galpon ${galpon.NombreGalpon}` : 'Galpon sin dato',
         note: actividad.Observacion.trim(),
+        actividad,
       };
     })
     .sort((left, right) => right.timestamp - left.timestamp || left.name.localeCompare(right.name));
+}
+
+function ActivityHistoryRow({
+  item,
+  lotes,
+  galpones,
+  onSaved,
+}: {
+  item: ActivityHistoryItem;
+  lotes: Lote[];
+  galpones: Galpon[];
+  onSaved: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <details className={`activity-history-row activity-history-row--${item.tone}`} open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary>
+        <span className="activity-history-row__time">{item.time}</span>
+        <div className="activity-history-row__activity">
+          <strong>{item.name}</strong>
+          <span className="activity-history-row__category">{item.category}</span>
+        </div>
+        <span className="activity-history-row__lote">{item.lote} - Dia {item.diaLote}</span>
+        <span className="activity-history-row__galpon">{item.galpon}</span>
+        <ChevronDown className="activity-history-row__chevron" size={17} aria-hidden="true" />
+        {item.note && <small className="activity-history-row__note">{item.note}</small>}
+      </summary>
+      <ActivityHistoryEditForm
+        actividad={item.actividad}
+        lotes={lotes}
+        galpones={galpones}
+        onSaved={() => {
+          setOpen(false);
+          onSaved();
+        }}
+      />
+    </details>
+  );
+}
+
+function ActivityHistoryEditForm({
+  actividad,
+  lotes,
+  galpones,
+  onSaved,
+}: {
+  actividad: ActividadLote;
+  lotes: Lote[];
+  galpones: Galpon[];
+  onSaved: () => void;
+}) {
+  const [draft, setDraft] = useState(() => createActivityEditDraft(actividad));
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await saveActivityEdit(actividad.ActividadLoteID, draft, lotes);
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function moveDate(days: number) {
+    setDraft((current) => ({ ...current, date: addDays(current.date, days) }));
+  }
+
+  return (
+    <form className="activity-history-edit-form" onSubmit={handleSubmit}>
+      <div className="activity-history-edit-form__quick">
+        <button type="button" onClick={() => moveDate(-1)}>Dia anterior</button>
+        <button type="button" onClick={() => moveDate(1)}>Dia siguiente</button>
+      </div>
+      <label className="programming-field programming-field--wide">
+        <span>Actividad</span>
+        <input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} required />
+      </label>
+      <label className="programming-field">
+        <span>Categoria</span>
+        <input value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value })} required />
+      </label>
+      <label className="programming-field">
+        <span>Fecha</span>
+        <input type="date" value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value })} required />
+      </label>
+      <label className="programming-field">
+        <span>Hora</span>
+        <input type="time" value={draft.time} onChange={(event) => setDraft({ ...draft, time: event.target.value })} />
+      </label>
+      <label className="programming-field">
+        <span>Lote</span>
+        <select value={draft.loteId} onChange={(event) => setDraft({ ...draft, loteId: event.target.value })}>
+          <option value="">Sin lote</option>
+          {lotes.map((lote) => (
+            <option key={lote.LoteID} value={lote.LoteID}>{lote.CodigoLote}</option>
+          ))}
+        </select>
+      </label>
+      <label className="programming-field">
+        <span>Galpon</span>
+        <select value={draft.galponId} onChange={(event) => setDraft({ ...draft, galponId: event.target.value })}>
+          <option value="">Sin galpon</option>
+          {galpones.map((galpon) => (
+            <option key={galpon.GalponID} value={galpon.GalponID}>{galpon.NombreGalpon}</option>
+          ))}
+        </select>
+      </label>
+      <label className="programming-field activity-history-edit-form__note">
+        <span>Nota</span>
+        <textarea rows={2} value={draft.note} onChange={(event) => setDraft({ ...draft, note: event.target.value })} />
+      </label>
+      <button className="activity-history-edit-form__save" type="submit" disabled={saving}>
+        <Save size={17} />
+        <span>{saving ? 'Guardando...' : 'Guardar'}</span>
+      </button>
+    </form>
+  );
+}
+
+interface ActivityEditDraft {
+  name: string;
+  category: string;
+  date: string;
+  time: string;
+  loteId: string;
+  galponId: string;
+  note: string;
+}
+
+function createActivityEditDraft(actividad: ActividadLote): ActivityEditDraft {
+  const dateTime = getActivityEditDateTime(actividad);
+  return {
+    name: actividad.NombreActividad,
+    category: actividad.Categoria,
+    date: dateTime.date,
+    time: dateTime.time,
+    loteId: actividad.LoteID,
+    galponId: actividad.GalponID,
+    note: actividad.Observacion,
+  };
+}
+
+function getActivityEditDateTime(actividad: ActividadLote): { date: string; time: string } {
+  if (!actividad.FechaRealizada) return { date: actividad.FechaProgramada, time: '' };
+  const date = new Date(actividad.FechaRealizada);
+  if (!Number.isFinite(date.getTime())) {
+    return {
+      date: actividad.FechaRealizada.slice(0, 10) || actividad.FechaProgramada,
+      time: actividad.FechaRealizada.slice(11, 16),
+    };
+  }
+  return {
+    date: `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`,
+    time: `${pad2(date.getHours())}:${pad2(date.getMinutes())}`,
+  };
+}
+
+function pad2(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
+async function saveActivityEdit(activityId: string, draft: ActivityEditDraft, lotes: Lote[]): Promise<void> {
+  const actividad = await db.actividadesLote.get(activityId);
+  if (!actividad) throw new Error('Actividad no encontrada.');
+  const date = draft.date || actividad.FechaProgramada;
+  const time = draft.time || '00:00';
+  const lote = lotes.find((item) => item.LoteID === draft.loteId);
+  const patch: Partial<ActividadLote> = {
+    NombreActividad: draft.name.trim(),
+    Categoria: draft.category.trim(),
+    FechaProgramada: date,
+    FechaRealizada: `${date}T${time}:00.000`,
+    LoteID: draft.loteId,
+    GalponID: draft.galponId,
+    DiaLote: lote ? getDiaLote(lote.FechaLlegada, date) : actividad.DiaLote,
+    Observacion: draft.note.trim(),
+    EstadoSync: 'PENDIENTE',
+  };
+
+  await db.transaction('rw', [db.actividadesLote, db.syncQueue], async () => {
+    await db.actividadesLote.update(activityId, patch);
+    await enqueueSync('ActividadesLote', activityId, 'UPDATE', { ...actividad, ...patch });
+  });
 }
 
 function groupActivityHistoryByDate(history: ActivityHistoryItem[]): Array<{ date: string; items: ActivityHistoryItem[] }> {

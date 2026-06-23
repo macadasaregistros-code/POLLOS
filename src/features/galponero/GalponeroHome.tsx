@@ -358,7 +358,6 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
   const completedTaskRecords = getCompletedPrepTaskRecords(galpon);
   const completedTaskIds = completedTaskRecords.map((record) => record.id);
   const completedSet = new Set(completedTaskIds);
-  const completedDates = new Map(completedTaskRecords.map((record) => [record.id, record.fecha]));
   const completedCount = completedTaskIds.length;
   const progress = Math.round((completedCount / preparationTasks.length) * 100);
   const currentTask = preparationTasks.find((task) => !completedSet.has(task.id));
@@ -438,21 +437,23 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
             </span>
           </header>
           <div className="prep-task-list">
-            {activeCategory.tasks.map((task) => {
-              const state = completedSet.has(task.id) ? 'complete' : currentTask?.id === task.id ? 'current' : 'pending';
-              const completedDate = completedDates.get(task.id);
-              return (
-                <article className={`prep-task prep-task--${state}`} key={task.id}>
-                  {state === 'complete' && <CheckCircle2 size={23} />}
-                  {state === 'current' && <CircleDot size={23} />}
-                  {state === 'pending' && <Circle size={23} />}
-                  <div>
-                    <strong>{task.title}</strong>
-                    <span>{state === 'complete' ? (completedDate ? `Completado ${completedDate}` : 'Completado') : state === 'current' ? 'En proceso' : 'Pendiente'}</span>
-                  </div>
-                </article>
-              );
-            })}
+            {currentTask ? (
+              <article className="prep-task prep-task--current">
+                <CircleDot size={23} />
+                <div>
+                  <strong>{currentTask.title}</strong>
+                  <span>En proceso</span>
+                </div>
+              </article>
+            ) : (
+              <article className="prep-task prep-task--complete">
+                <CheckCircle2 size={23} />
+                <div>
+                  <strong>Alistamiento completo</strong>
+                  <span>Listo para recibir pollito</span>
+                </div>
+              </article>
+            )}
           </div>
         </section>
       </div>

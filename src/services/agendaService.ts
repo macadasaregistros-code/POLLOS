@@ -89,7 +89,12 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
       actividad.FechaProgramada <= input.today &&
       (actividad.Estado === 'PENDIENTE' || actividad.Estado === 'VENCIDA'),
   );
-  const routineActivities = dueActivities.filter((actividad) => getProgramacionActivityCategory(actividad, input.actividadesProgramadas) === 'routine');
+  const routineActivities = input.actividades.filter(
+    (actividad) =>
+      actividad.FechaProgramada === input.today &&
+      (actividad.Estado === 'PENDIENTE' || actividad.Estado === 'VENCIDA') &&
+      getProgramacionActivityCategory(actividad, input.actividadesProgramadas) === 'routine',
+  );
   const waterRoutineActivities = routineActivities.filter(isWaterRoutineLike);
   const pestRoutineActivities = routineActivities.filter((actividad) => !isWaterRoutineLike(actividad) && isPestRoutineLike(actividad));
   const routineRecordActivityIds = new Set([...waterRoutineActivities, ...pestRoutineActivities].map((actividad) => actividad.ActividadLoteID));
