@@ -1,5 +1,5 @@
 import { addDays, getDiaLote, getSemanaLote, nowISO, todayISO } from '../lib/date';
-import { isRoutineTemplate } from '../services/routineService';
+import { isRoutineScheduledForDate, isRoutineTemplate } from '../services/routineService';
 import type {
   ActividadLote,
   ActividadProgramada,
@@ -7,6 +7,7 @@ import type {
   Cliente,
   ConsumoAlimentoLote,
   CurvaEstandar,
+  DiaSemana,
   Galpon,
   InventarioAlimento,
   Lote,
@@ -44,6 +45,9 @@ export interface DemoData {
   alertas: Alerta[];
 }
 
+const routineDailyDays: DiaSemana[] = [1, 2, 3, 4, 5, 6, 7];
+const routineTuesday: DiaSemana[] = [2];
+
 const baseActivityRows: Array<[string, string, string, ActividadProgramada['TipoFrecuencia'], number, string, number, number]> = [
   ['act_lote_ampliacion_dia_3', 'Ampliación día 3.', 'Manejo', 'SEGUN_DIA_LOTE', 3, '', 3, 3],
   ['act_lote_ampliacion_dia_8', 'Ampliación día 8.', 'Manejo', 'SEGUN_DIA_LOTE', 8, '', 8, 8],
@@ -67,20 +71,57 @@ const baseActivityRows: Array<[string, string, string, ActividadProgramada['Tipo
   ['act_rutina_lavar_filtros', 'Lavar filtros.', 'Rutina', 'SEMANAL', 7, '', 7, 42],
 ];
 
+const defaultRoutineOrderById: Record<string, number> = {
+  act_rutina_clorar_tanque: 1,
+  act_rutina_sulfatar_tanque: 2,
+  act_rutina_medir_cloro_ph: 3,
+  act_rutina_purgar_linea: 4,
+  act_rutina_alimentacion_manana: 5,
+  act_rutina_alimentacion_tarde: 6,
+  act_rutina_fumigacion_9am: 7,
+  act_rutina_fumigacion_4pm: 8,
+  act_rutina_revolcar_cama: 9,
+  act_rutina_control_pediluvios: 10,
+  act_rutina_control_plagas: 11,
+  act_rutina_limpiar_mallas: 12,
+  act_rutina_lavar_filtros: 13,
+};
+
+const defaultRoutineDaysById: Record<string, DiaSemana[]> = {
+  act_rutina_clorar_tanque: routineDailyDays,
+  act_rutina_sulfatar_tanque: routineDailyDays,
+  act_rutina_medir_cloro_ph: routineDailyDays,
+  act_rutina_purgar_linea: routineDailyDays,
+  act_rutina_alimentacion_manana: routineDailyDays,
+  act_rutina_alimentacion_tarde: routineDailyDays,
+  act_rutina_fumigacion_9am: routineDailyDays,
+  act_rutina_fumigacion_4pm: routineDailyDays,
+  act_rutina_revolcar_cama: routineDailyDays,
+  act_rutina_control_pediluvios: routineDailyDays,
+  act_rutina_control_plagas: routineTuesday,
+};
+
 const baseActivities: ActividadProgramada[] = baseActivityRows.map(
-  ([ActividadProgramadaID, NombreActividad, Categoria, TipoFrecuencia, DiaLote, HoraSugerida, AplicaDesdeDia, AplicaHastaDia]) => ({
-    ActividadProgramadaID: String(ActividadProgramadaID),
-    NombreActividad: String(NombreActividad),
-    Categoria: String(Categoria),
-    TipoFrecuencia: TipoFrecuencia as ActividadProgramada['TipoFrecuencia'],
-    DiaLote: Number(DiaLote),
-    HoraSugerida: String(HoraSugerida),
-    AplicaDesdeDia: Number(AplicaDesdeDia),
-    AplicaHastaDia: Number(AplicaHastaDia),
-    RequiereDato: /calentadoras|Cisco|temperatura|pollinaza/i.test(String(NombreActividad)),
-    RequiereFoto: false,
-    Activa: true,
-  }),
+  ([ActividadProgramadaID, NombreActividad, Categoria, TipoFrecuencia, DiaLote, HoraSugerida, AplicaDesdeDia, AplicaHastaDia]) => {
+    const activityId = String(ActividadProgramadaID);
+    const isPestControl = activityId === 'act_rutina_control_plagas';
+    const isWaterTreatment = activityId === 'act_rutina_medir_cloro_ph';
+    return {
+      ActividadProgramadaID: activityId,
+      NombreActividad: isWaterTreatment ? 'Tratamiento de agua.' : isPestControl ? 'Control de plagas.' : String(NombreActividad),
+      Categoria: String(Categoria),
+      TipoFrecuencia: isPestControl ? 'SEMANAL' : TipoFrecuencia as ActividadProgramada['TipoFrecuencia'],
+      DiaLote: Number(DiaLote),
+      HoraSugerida: String(HoraSugerida),
+      AplicaDesdeDia: Number(AplicaDesdeDia),
+      AplicaHastaDia: Number(AplicaHastaDia),
+      DiasSemana: defaultRoutineDaysById[activityId] ?? [],
+      OrdenProgramacion: defaultRoutineOrderById[activityId] ?? Number(DiaLote),
+      RequiereDato: /calentadoras|Cisco|temperatura|pollinaza/i.test(String(NombreActividad)),
+      RequiereFoto: false,
+      Activa: true,
+    };
+  },
 );
 
 export function createDemoData(): DemoData {
@@ -351,6 +392,7 @@ export function createDemoData(): DemoData {
     });
   const routineActivities: ActividadLote[] = actividadesProgramadas
     .filter((activity) => isRoutineTemplate(activity) && activity.Activa)
+    .filter((activity) => isRoutineScheduledForDate(activity, today))
     .map((activity) => ({
       ActividadLoteID: `act_rutina_${activity.ActividadProgramadaID}_${today}`,
       LoteID: '',

@@ -4,6 +4,7 @@ export type EstadoActivo = 'ACTIVO' | 'CERRADO' | 'CANCELADO';
 export type SexoLote = 'MIXTO' | 'MACHO' | 'HEMBRA';
 export type TipoMaterialInventario = 'CISCO' | 'GAS';
 export type TipoPlaga = 'ROEDORES' | 'MOSCA';
+export type DiaSemana = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export type FechaISO = string;
 export type FechaHoraISO = string;
 
@@ -155,6 +156,8 @@ export interface ActividadProgramada {
   HoraSugerida: string;
   AplicaDesdeDia: number;
   AplicaHastaDia: number;
+  DiasSemana?: DiaSemana[];
+  OrdenProgramacion?: number;
   RequiereDato: boolean;
   RequiereFoto: boolean;
   Activa: boolean;

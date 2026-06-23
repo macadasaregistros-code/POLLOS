@@ -1,4 +1,4 @@
-import type { ActividadLote, ActividadProgramada } from '../types/entities';
+import type { ActividadLote, ActividadProgramada, DiaSemana, FechaISO } from '../types/entities';
 
 export type RoutineFrequency = 'DIARIA' | 'SEMANAL' | 'MENSUAL';
 export type RoutineState = 'empty' | 'pending' | 'partial' | 'done';
@@ -34,7 +34,28 @@ export interface RoutineMatrixModel {
   rows: RoutineMatrixRow[];
 }
 
+export interface RoutineWeekdayOption {
+  value: DiaSemana;
+  shortLabel: string;
+  label: string;
+}
+
+export const routineWeekdays: RoutineWeekdayOption[] = [
+  { value: 1, shortLabel: 'L', label: 'Lunes' },
+  { value: 2, shortLabel: 'M', label: 'Martes' },
+  { value: 3, shortLabel: 'X', label: 'Miercoles' },
+  { value: 4, shortLabel: 'J', label: 'Jueves' },
+  { value: 5, shortLabel: 'V', label: 'Viernes' },
+  { value: 6, shortLabel: 'S', label: 'Sabado' },
+  { value: 7, shortLabel: 'D', label: 'Domingo' },
+];
+
+const allWeekdays = routineWeekdays.map((day) => day.value);
+const weekdayLabels = new Map(routineWeekdays.map((day) => [day.value, day.label]));
+const weekdayOrder = new Map(routineWeekdays.map((day, index) => [day.value, index]));
+
 export const routineDefinitions: RoutineDefinition[] = [
+  { key: 'tratamiento_agua', label: 'Tratamiento de agua', frequency: 'DIARIA', suggestedHour: '08:00', aliases: ['tratamiento de agua', 'acuades diario'] },
   { key: 'clorar_tanque', label: 'Clorar tanque principal cada 3 días', frequency: 'DIARIA', suggestedHour: '', aliases: ['clorar tanque principal'] },
   { key: 'sulfatar_tanque', label: 'Sulfatar tanque 24 horas antes de clorar', frequency: 'DIARIA', suggestedHour: '', aliases: ['sulfatar tanque'] },
   { key: 'medir_cloro_ph', label: 'Medir cloro y pH en líneas y tanques', frequency: 'DIARIA', suggestedHour: '08:00', aliases: ['medir cloro y ph'] },
@@ -45,7 +66,7 @@ export const routineDefinitions: RoutineDefinition[] = [
   { key: 'fumigacion_4pm', label: 'Fumigación con desinfectante 4pm', frequency: 'DIARIA', suggestedHour: '16:00', aliases: ['fumigacion con desinfectante dentro del galpon 4pm', 'fumigacion diaria 4pm'] },
   { key: 'revolcar_cama', label: 'Revolcar cama', frequency: 'DIARIA', suggestedHour: '10:00', aliases: ['revolcar cama'] },
   { key: 'control_pediluvios', label: 'Control de pediluvios con creolina', frequency: 'DIARIA', suggestedHour: '08:30', aliases: ['pediluvio'] },
-  { key: 'control_plagas', label: 'Control de plagas con Cicario / Cipermetrina', frequency: 'DIARIA', suggestedHour: '17:00', aliases: ['control de plagas con cicario', 'control de plagas con cipermetrina', 'control de mosca con cipermetrina'] },
+  { key: 'control_plagas', label: 'Control de plagas', frequency: 'SEMANAL', suggestedHour: '17:00', aliases: ['control de plagas con cicario', 'control de plagas con cipermetrina', 'control de mosca con cipermetrina'] },
   { key: 'limpiar_mallas_telaranas', label: 'Limpiar mallas y telarañas', frequency: 'SEMANAL', suggestedHour: '', aliases: ['limpiar malla', 'limpiar mallas', 'telarana'] },
   { key: 'lavar_filtros', label: 'Lavar filtros', frequency: 'SEMANAL', suggestedHour: '', aliases: ['lavar filtro'] },
 ];
@@ -77,6 +98,57 @@ export function getRoutineFrequency(item: Pick<ActividadProgramada, 'TipoFrecuen
   if (item.TipoFrecuencia === 'MENSUAL') return 'MENSUAL';
   if (item.TipoFrecuencia === 'SEMANAL') return 'SEMANAL';
   return 'DIARIA';
+}
+
+export function getRoutineOrder(item: Pick<ActividadProgramada, 'OrdenProgramacion' | 'NombreActividad' | 'Categoria'>): number {
+  if (typeof item.OrdenProgramacion === 'number' && Number.isFinite(item.OrdenProgramacion)) return item.OrdenProgramacion;
+  const definition = getRoutineDefinition(item);
+  const definitionIndex = definition ? routineDefinitions.findIndex((candidate) => candidate.key === definition.key) : -1;
+  return definitionIndex >= 0 ? definitionIndex + 1 : 999;
+}
+
+export function normalizeRoutineWeekdays(days?: unknown): DiaSemana[] {
+  if (!Array.isArray(days)) return [];
+  const unique = new Set<DiaSemana>();
+  for (const value of days) {
+    const day = Number(value);
+    if (day >= 1 && day <= 7 && Number.isInteger(day)) unique.add(day as DiaSemana);
+  }
+  return [...unique].sort((left, right) => (weekdayOrder.get(left) ?? 0) - (weekdayOrder.get(right) ?? 0));
+}
+
+export function getRoutineWeekdays(item: Pick<ActividadProgramada, 'DiasSemana' | 'TipoFrecuencia'>): DiaSemana[] {
+  const selectedDays = normalizeRoutineWeekdays(item.DiasSemana);
+  if (selectedDays.length > 0) return selectedDays;
+  if (item.TipoFrecuencia === 'DIARIA' || item.TipoFrecuencia === 'CADA_3_DIAS') return [...allWeekdays];
+  return [];
+}
+
+export function hasRoutineWeekdaySelection(item: Pick<ActividadProgramada, 'DiasSemana'>): boolean {
+  return normalizeRoutineWeekdays(item.DiasSemana).length > 0;
+}
+
+export function formatRoutineWeekdays(item: Pick<ActividadProgramada, 'DiasSemana' | 'TipoFrecuencia'>): string {
+  const days = getRoutineWeekdays(item);
+  if (days.length === 0) return 'Sin dia fijo';
+  if (days.length === 7) return 'Todos los dias';
+  return days.map((day) => weekdayLabels.get(day) ?? String(day)).join(', ');
+}
+
+export function getWeekdayFromISO(dateISO: FechaISO): DiaSemana {
+  const [year, month, day] = dateISO.split('-').map(Number);
+  const jsDay = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return (jsDay === 0 ? 7 : jsDay) as DiaSemana;
+}
+
+export function isRoutineScheduledForDate(template: ActividadProgramada, dateISO: FechaISO, offset = 0): boolean {
+  const selectedDays = getRoutineWeekdays(template);
+  if (selectedDays.length > 0 && !selectedDays.includes(getWeekdayFromISO(dateISO))) return false;
+  if (template.TipoFrecuencia === 'DIARIA') return true;
+  if (template.TipoFrecuencia === 'CADA_3_DIAS') return offset % 3 === 0;
+  if (template.TipoFrecuencia === 'SEMANAL') return selectedDays.length > 0 || offset % 7 === 0;
+  if (template.TipoFrecuencia === 'MENSUAL') return offset % 30 === 0;
+  return offset === 0;
 }
 
 export function getRoutineFrequencyFromActivities(activities: ActividadLote[], name: string): RoutineFrequency {

@@ -1,5 +1,5 @@
 import type { ActividadLote, ActividadProgramada } from '../types/entities';
-import { isRoutineActivity, isRoutineTemplate, normalizeText } from './routineService';
+import { getRoutineOrder, isRoutineActivity, isRoutineTemplate, normalizeText } from './routineService';
 
 export type ProgramacionCategoryKey = 'daily' | 'lote' | 'routine' | 'prep' | 'other';
 export type AgendaTone = 'daily' | 'lote' | 'routine' | 'prep' | 'dog' | 'vaccine';
@@ -35,6 +35,18 @@ export function getProgramacionCategoryOrder(category: ProgramacionCategoryKey):
 
 export function getAgendaToneOrder(tone: AgendaTone): number {
   return getProgramacionCategoryOrder(agendaToneCategory[tone]);
+}
+
+export function getProgramacionTemplateOrder(template: ActividadProgramada): number {
+  if (getProgramacionTemplateCategory(template) === 'routine') return getRoutineOrder(template);
+  return typeof template.OrdenProgramacion === 'number' && Number.isFinite(template.OrdenProgramacion) ? template.OrdenProgramacion : template.DiaLote;
+}
+
+export function getProgramacionActivityOrder(actividad: ActividadLote, templates: ActividadProgramada[] = []): number {
+  const template = findMatchingTemplate(actividad, templates);
+  if (template) return getProgramacionTemplateOrder(template);
+  if (getProgramacionActivityCategory(actividad, templates) === 'routine') return getRoutineOrder({ ...actividad, OrdenProgramacion: undefined });
+  return 999;
 }
 
 export function getProgramacionTemplateCategory(template: ActividadProgramada): ProgramacionCategoryKey {

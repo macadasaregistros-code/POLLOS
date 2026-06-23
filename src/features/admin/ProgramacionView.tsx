@@ -13,8 +13,8 @@ import {
 import { getDogNextDate } from '../../services/agendaService';
 import { db } from '../../services/localDbService';
 import { getCompletedPrepTaskIds, getNextPrepTask, preparationCategories, preparationTasks } from '../../services/preparationService';
-import { getProgramacionTemplateCategory, programacionCategories } from '../../services/programmingCatalogService';
-import { getRoutineFrequency, routineFrequencyLabels, type RoutineFrequency } from '../../services/routineService';
+import { getProgramacionTemplateCategory, getProgramacionTemplateOrder, programacionCategories } from '../../services/programmingCatalogService';
+import { formatRoutineWeekdays, getRoutineOrder, normalizeRoutineWeekdays, routineWeekdays } from '../../services/routineService';
 import { todayISO } from '../../lib/date';
 import type { ActividadProgramada, Galpon, Lote, Perro, PlanVacunalBase, Usuario } from '../../types/entities';
 
@@ -24,7 +24,6 @@ interface ProgramacionViewProps {
 }
 
 const frequencyOptions: ActividadProgramada['TipoFrecuencia'][] = ['UNICA', 'DIARIA', 'CADA_3_DIAS', 'SEMANAL', 'MENSUAL', 'SEGUN_DIA_LOTE'];
-const routineFrequencies: RoutineFrequency[] = ['DIARIA', 'SEMANAL', 'MENSUAL'];
 const categoryLabels = Object.fromEntries(programacionCategories.map((category) => [category.key, category.label])) as Record<string, string>;
 
 export function ProgramacionView({ user, onToast }: ProgramacionViewProps) {
@@ -159,28 +158,16 @@ function ActivityProgramGroups({ actividades, onToast }: { actividades: Activida
 }
 
 function RoutineProgramBuckets({ actividades, onToast }: { actividades: ActividadProgramada[]; onToast: (message: string) => void }) {
+  const sorted = actividades
+    .slice()
+    .sort((left, right) => getProgramacionTemplateOrder(left) - getProgramacionTemplateOrder(right) || left.NombreActividad.localeCompare(right.NombreActividad));
+  if (!sorted.length) return <p className="empty-state">No hay rutinas configuradas.</p>;
+
   return (
-    <div className="routine-program-buckets">
-      {routineFrequencies.map((frequency) => {
-        const items = actividades.filter((actividad) => getRoutineFrequency(actividad) === frequency);
-        return (
-          <section className="routine-program-bucket" key={frequency}>
-            <header>
-              <strong>{routineFrequencyLabels[frequency]}</strong>
-              <span>{items.length}</span>
-            </header>
-            <div className="programming-list">
-              {items
-                .slice()
-                .sort((left, right) => left.NombreActividad.localeCompare(right.NombreActividad))
-                .map((actividad) => (
-                  <RoutineProgramRow key={actividad.ActividadProgramadaID} actividad={actividad} onToast={onToast} />
-                ))}
-              {items.length === 0 && <p className="empty-state">Sin rutinas de frecuencia {routineFrequencyLabels[frequency].toLowerCase()}.</p>}
-            </div>
-          </section>
-        );
-      })}
+    <div className="programming-list programming-list--compact routine-program-list">
+      {sorted.map((actividad) => (
+        <RoutineProgramRow key={actividad.ActividadProgramadaID} actividad={actividad} onToast={onToast} />
+      ))}
     </div>
   );
 }
@@ -190,6 +177,7 @@ function RoutineProgramRow({ actividad, onToast }: { actividad: ActividadProgram
     <article className={`routine-schedule-row ${actividad.Activa ? '' : 'routine-schedule-row--inactive'}`}>
       <div>
         <strong>{actividad.NombreActividad}</strong>
+        <span>Orden {getRoutineOrder(actividad)} - {formatRoutineWeekdays(actividad)}</span>
         <span>{getActivityScheduleLabel(actividad)} · {actividad.HoraSugerida ? actividad.HoraSugerida : 'sin hora'}</span>
       </div>
       <span className={`programming-status ${actividad.Activa ? 'programming-status--active' : 'programming-status--inactive'}`}>
@@ -299,6 +287,8 @@ function NewRoutineForm({ onToast }: { onToast: (message: string) => void }) {
         HoraSugerida: '',
         AplicaDesdeDia: 1,
         AplicaHastaDia: 42,
+        DiasSemana: routineWeekdays.map((day) => day.value),
+        OrdenProgramacion: 99,
         RequiereDato: false,
         RequiereFoto: false,
         Activa: true,
@@ -363,18 +353,41 @@ function getCompactScheduleLabel(actividad: ActividadProgramada): string {
   return parts.join(' · ');
 }
 
+function normalizeActivityDraft(actividad: ActividadProgramada): ActividadProgramada {
+  const isRoutine = getProgramacionTemplateCategory(actividad) === 'routine';
+  return {
+    ...actividad,
+    DiasSemana: isRoutine ? normalizeRoutineWeekdays(actividad.DiasSemana) : [],
+    OrdenProgramacion: typeof actividad.OrdenProgramacion === 'number' && Number.isFinite(actividad.OrdenProgramacion)
+      ? actividad.OrdenProgramacion
+      : getProgramacionTemplateOrder(actividad),
+  };
+}
+
+function toggleRoutineWeekday(actividad: ActividadProgramada, day: number, checked: boolean): ActividadProgramada {
+  const current = new Set(normalizeRoutineWeekdays(actividad.DiasSemana));
+  if (checked) current.add(day as NonNullable<ActividadProgramada['DiasSemana']>[number]);
+  else current.delete(day as NonNullable<ActividadProgramada['DiasSemana']>[number]);
+  return { ...actividad, DiasSemana: normalizeRoutineWeekdays([...current]) };
+}
+
 function ActivityProgramForm({ actividad, onSaved }: { actividad: ActividadProgramada; onSaved: () => void }) {
-  const [draft, setDraft] = useState(actividad);
-  const usesSingleDay = draft.TipoFrecuencia === 'UNICA' || draft.TipoFrecuencia === 'SEGUN_DIA_LOTE';
+  const [draft, setDraft] = useState(() => normalizeActivityDraft(actividad));
+  const isRoutineDraft = getProgramacionTemplateCategory(draft) === 'routine';
+  const usesSingleDay = !isRoutineDraft && (draft.TipoFrecuencia === 'UNICA' || draft.TipoFrecuencia === 'SEGUN_DIA_LOTE');
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    await guardarActividadProgramada(draft);
+    await guardarActividadProgramada({
+      ...draft,
+      DiasSemana: isRoutineDraft ? normalizeRoutineWeekdays(draft.DiasSemana) : [],
+      OrdenProgramacion: typeof draft.OrdenProgramacion === 'number' && Number.isFinite(draft.OrdenProgramacion) ? draft.OrdenProgramacion : getProgramacionTemplateOrder(draft),
+    });
     onSaved();
   }
 
   return (
-    <form className={`programming-row programming-row--activity ${usesSingleDay ? 'programming-row--single-day' : 'programming-row--range'}`} onSubmit={handleSubmit}>
+    <form className={`programming-row programming-row--activity ${isRoutineDraft ? 'programming-row--routine' : usesSingleDay ? 'programming-row--single-day' : 'programming-row--range'}`} onSubmit={handleSubmit}>
       <label className="programming-field programming-field--wide">
         <span>Actividad</span>
         <input aria-label="Nombre actividad" value={draft.NombreActividad} placeholder="Actividad" onChange={(event) => setDraft({ ...draft, NombreActividad: event.target.value })} required />
@@ -389,7 +402,31 @@ function ActivityProgramForm({ actividad, onSaved }: { actividad: ActividadProgr
           {frequencyOptions.map((option) => <option key={option} value={option}>{getFrequencyLabel(option)}</option>)}
         </select>
       </label>
-      {usesSingleDay ? (
+      {isRoutineDraft && (
+        <>
+          <label className="programming-field programming-field--small">
+            <span>Orden</span>
+            <input aria-label="Orden rutina" type="number" value={draft.OrdenProgramacion ?? 999} onChange={(event) => setDraft({ ...draft, OrdenProgramacion: Number(event.target.value || 999) })} />
+          </label>
+          <fieldset className="programming-weekdays">
+            <legend>Dias</legend>
+            {routineWeekdays.map((day) => {
+              const selected = normalizeRoutineWeekdays(draft.DiasSemana).includes(day.value);
+              return (
+                <label key={day.value} className={selected ? 'is-selected' : ''}>
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={(event) => setDraft(toggleRoutineWeekday(draft, day.value, event.target.checked))}
+                  />
+                  <span>{day.shortLabel}</span>
+                </label>
+              );
+            })}
+          </fieldset>
+        </>
+      )}
+      {!isRoutineDraft && (usesSingleDay ? (
         <label className="programming-field programming-field--small">
           <span>Dia</span>
           <input aria-label="Dia lote" type="number" value={draft.DiaLote} onChange={(event) => setDraft({ ...draft, DiaLote: Number(event.target.value || 0) })} />
@@ -405,7 +442,7 @@ function ActivityProgramForm({ actividad, onSaved }: { actividad: ActividadProgr
             <input aria-label="Hasta dia" type="number" value={draft.AplicaHastaDia} onChange={(event) => setDraft({ ...draft, AplicaHastaDia: Number(event.target.value || 0) })} />
           </label>
         </>
-      )}
+      ))}
       <label className="programming-field programming-field--small">
         <span>Hora</span>
         <input aria-label="Hora sugerida" value={draft.HoraSugerida} placeholder="Hora" onChange={(event) => setDraft({ ...draft, HoraSugerida: event.target.value })} />

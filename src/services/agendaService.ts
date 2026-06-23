@@ -1,7 +1,7 @@
 import { addDays, getDiaLote } from '../lib/date';
 import { getNextRequiredDailyRegisterDate } from './dailyRegisterService';
 import { getNextPrepTask } from './preparationService';
-import { getAgendaToneOrder, getProgramacionActivityCategory, isPestRoutineLike, isWaterRoutineLike, type AgendaTone } from './programmingCatalogService';
+import { getAgendaToneOrder, getProgramacionActivityCategory, getProgramacionActivityOrder, isPestRoutineLike, isWaterRoutineLike, type AgendaTone } from './programmingCatalogService';
 import { cleanActivityName, getRoutineDefinition } from './routineService';
 import type { ActividadLote, ActividadProgramada, Galpon, Lote, LoteGalpon, Perro, RegistroDiarioLote, VacunaLote } from '../types/entities';
 
@@ -30,6 +30,7 @@ export interface AgendaTask {
   meta: string;
   tone: AgendaTone;
   date: string;
+  order?: number;
   action: AgendaAction;
 }
 
@@ -93,11 +94,13 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
   const pestRoutineActivities = routineActivities.filter((actividad) => !isWaterRoutineLike(actividad) && isPestRoutineLike(actividad));
   const routineRecordActivityIds = new Set([...waterRoutineActivities, ...pestRoutineActivities].map((actividad) => actividad.ActividadLoteID));
   const routineCheckActivities = routineActivities.filter((actividad) => !routineRecordActivityIds.has(actividad.ActividadLoteID));
-  const loteActivities = dueActivities.filter((actividad) => getProgramacionActivityCategory(actividad, input.actividadesProgramadas) === 'lote' && activeLoteIds.has(actividad.LoteID));
+  const loteActivities = selectNextLoteActivityByLote(
+    dueActivities.filter((actividad) => getProgramacionActivityCategory(actividad, input.actividadesProgramadas) === 'lote' && activeLoteIds.has(actividad.LoteID)),
+  );
 
   for (const activities of groupBy(waterRoutineActivities, getRoutineRecordGroupKey).values()) {
     addDueActivityTask(
-      buildRoutineRecordTask('agua', 'Tratamiento de agua', activities),
+      buildRoutineRecordTask('agua', 'Tratamiento de agua', activities, input.actividadesProgramadas),
       input.today,
       hoy,
       pendientes,
@@ -106,7 +109,7 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
 
   for (const activities of groupBy(pestRoutineActivities, getRoutineRecordGroupKey).values()) {
     addDueActivityTask(
-      buildRoutineRecordTask('plagas', 'Control de plagas', activities),
+      buildRoutineRecordTask('plagas', 'Control de plagas', activities, input.actividadesProgramadas),
       input.today,
       hoy,
       pendientes,
@@ -115,7 +118,7 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
 
   for (const activities of groupBy(routineCheckActivities, getRoutineGroupKey).values()) {
     addDueActivityTask(
-      buildRoutineTask(activities),
+      buildRoutineTask(activities, input.actividadesProgramadas),
       input.today,
       hoy,
       pendientes,
@@ -123,12 +126,8 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
   }
 
   for (const actividad of loteActivities) {
-    addDueActivityTask(
-      buildCompletionTask(actividad, actividad.NombreActividad, 'lote', lotesById, galponNamesById),
-      input.today,
-      hoy,
-      pendientes,
-    );
+    const task = buildCompletionTask(actividad, actividad.NombreActividad, 'lote', lotesById, galponNamesById);
+    hoy.push(actividad.FechaProgramada < input.today ? { ...task, meta: `Pendiente desde ${actividad.FechaProgramada}` } : task);
   }
 
   function getRoutineGroupKey(actividad: ActividadLote): string {
@@ -197,7 +196,7 @@ function addDueActivityTask(task: AgendaTask, today: string, hoy: AgendaTask[], 
   hoy.push(task);
 }
 
-function buildRoutineTask(activities: ActividadLote[]): AgendaTask {
+function buildRoutineTask(activities: ActividadLote[], templates: ActividadProgramada[]): AgendaTask {
   const first = activities[0];
   const name = getRoutineAgendaName(first);
   return {
@@ -207,11 +206,12 @@ function buildRoutineTask(activities: ActividadLote[]): AgendaTask {
     meta: 'Toca hoy',
     tone: 'routine',
     date: first.FechaProgramada,
+    order: getActivityGroupOrder(activities, templates),
     action: { type: 'completeActivities', activityIds: activities.map((actividad) => actividad.ActividadLoteID) },
   };
 }
 
-function buildRoutineRecordTask(kind: Extract<AgendaRecordKind, 'agua' | 'plagas'>, title: string, activities: ActividadLote[]): AgendaTask {
+function buildRoutineRecordTask(kind: Extract<AgendaRecordKind, 'agua' | 'plagas'>, title: string, activities: ActividadLote[], templates: ActividadProgramada[]): AgendaTask {
   const first = activities[0];
   const loteIds = getUniqueNonEmptyValues(activities.map((actividad) => actividad.LoteID));
   const galponIds = getUniqueNonEmptyValues(activities.map((actividad) => actividad.GalponID));
@@ -229,6 +229,7 @@ function buildRoutineRecordTask(kind: Extract<AgendaRecordKind, 'agua' | 'plagas
     meta: 'Registrar evidencia',
     tone: 'routine',
     date: first.FechaProgramada,
+    order: getActivityGroupOrder(activities, templates),
     action: { type: 'record', kind, context },
   };
 }
@@ -305,10 +306,34 @@ function groupBy<T>(items: T[], getKey: (item: T) => string): Map<string, T[]> {
   }, new Map<string, T[]>());
 }
 
+function selectNextLoteActivityByLote(activities: ActividadLote[]): ActividadLote[] {
+  return [...groupBy(activities, (actividad) => actividad.LoteID).values()]
+    .map((loteActivities) =>
+      loteActivities
+        .slice()
+        .sort(
+          (left, right) =>
+            left.FechaProgramada.localeCompare(right.FechaProgramada) ||
+            left.DiaLote - right.DiaLote ||
+            left.NombreActividad.localeCompare(right.NombreActividad),
+        )[0],
+    )
+    .filter((actividad): actividad is ActividadLote => Boolean(actividad));
+}
+
 function getUniqueNonEmptyValues(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))];
 }
 
+function getActivityGroupOrder(activities: ActividadLote[], templates: ActividadProgramada[]): number {
+  return Math.min(...activities.map((actividad) => getProgramacionActivityOrder(actividad, templates)));
+}
+
 function sortTasks(tasks: AgendaTask[]): AgendaTask[] {
-  return tasks.slice().sort((left, right) => getAgendaToneOrder(left.tone) - getAgendaToneOrder(right.tone) || left.date.localeCompare(right.date) || left.title.localeCompare(right.title));
+  return tasks.slice().sort((left, right) =>
+    getAgendaToneOrder(left.tone) - getAgendaToneOrder(right.tone) ||
+    left.date.localeCompare(right.date) ||
+    (left.order ?? 999) - (right.order ?? 999) ||
+    left.title.localeCompare(right.title),
+  );
 }

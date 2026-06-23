@@ -117,6 +117,8 @@ const TABLE_HEADERS = {
     'HoraSugerida',
     'AplicaDesdeDia',
     'AplicaHastaDia',
+    'DiasSemana',
+    'OrdenProgramacion',
     'RequiereDato',
     'RequiereFoto',
     'Activa',
@@ -510,6 +512,13 @@ function rowToObject(headers, row) {
 
 function serializeCell(value) {
   if (Object.prototype.toString.call(value) === '[object Date]') return value.toISOString();
+  if (typeof value === 'string' && /^[\[{]/.test(value.trim())) {
+    try {
+      return JSON.parse(value);
+    } catch (error) {
+      return value;
+    }
+  }
   return value;
 }
 

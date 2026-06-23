@@ -1,6 +1,7 @@
 import Dexie, { type Table, type Transaction } from 'dexie';
 import { createDemoData } from '../data/demoData';
-import { isRoutineActivity } from './routineService';
+import { getProgramacionTemplateCategory, isPestRoutineLike } from './programmingCatalogService';
+import { getWeekdayFromISO, isRoutineActivity, normalizeRoutineWeekdays } from './routineService';
 import type {
   ActividadLote,
   ActividadProgramada,
@@ -304,6 +305,59 @@ export class PollosDb extends Dexie {
       }
 
       if (updates.length) await actividades.bulkPut(updates);
+    });
+
+    this.version(7).upgrade(async (transaction: Transaction) => {
+      const actividades = transaction.table('actividadesProgramadas') as Table<ActividadProgramada, string>;
+      const actividadesLote = transaction.table('actividadesLote') as Table<ActividadLote, string>;
+      const referenceById = new Map(createDemoData().actividadesProgramadas.map((actividad) => [actividad.ActividadProgramadaID, actividad]));
+      const current = await actividades.toArray();
+      const updates = current.map((activity, index): ActividadProgramada => {
+        const reference = referenceById.get(activity.ActividadProgramadaID);
+        const isRoutine = getProgramacionTemplateCategory(reference ?? activity) === 'routine';
+        const selectedDays = normalizeRoutineWeekdays(activity.DiasSemana);
+        const next: ActividadProgramada = {
+          ...activity,
+          DiasSemana: selectedDays.length > 0 ? selectedDays : reference?.DiasSemana ?? [],
+          OrdenProgramacion: typeof activity.OrdenProgramacion === 'number' && Number.isFinite(activity.OrdenProgramacion)
+            ? activity.OrdenProgramacion
+            : reference?.OrdenProgramacion ?? (isRoutine ? 100 + index : activity.DiaLote),
+        };
+
+        if (activity.ActividadProgramadaID === 'act_rutina_medir_cloro_ph' && reference) {
+          next.NombreActividad = reference.NombreActividad;
+          next.TipoFrecuencia = reference.TipoFrecuencia;
+          next.HoraSugerida = reference.HoraSugerida;
+        }
+
+        if (activity.ActividadProgramadaID === 'act_rutina_control_plagas' && reference) {
+          next.NombreActividad = reference.NombreActividad;
+          next.TipoFrecuencia = reference.TipoFrecuencia;
+          next.DiasSemana = reference.DiasSemana;
+          next.OrdenProgramacion = reference.OrdenProgramacion;
+          next.HoraSugerida = reference.HoraSugerida;
+        }
+
+        if (!isRoutine) next.DiasSemana = [];
+        return next;
+      });
+
+      if (updates.length) await actividades.bulkPut(updates);
+
+      const generatedActivities = await actividadesLote.toArray();
+      const pestOffDayUpdates = generatedActivities
+        .filter((activity) =>
+          isPestRoutineLike(activity) &&
+          getWeekdayFromISO(activity.FechaProgramada) !== 2 &&
+          activity.Estado !== 'REALIZADA' &&
+          activity.Estado !== 'NO_APLICA',
+        )
+        .map((activity): ActividadLote => ({
+          ...activity,
+          Estado: 'NO_APLICA',
+          Observacion: activity.Observacion || 'Control de plagas programado solo martes',
+        }));
+      if (pestOffDayUpdates.length) await actividadesLote.bulkPut(pestOffDayUpdates);
     });
   }
 }

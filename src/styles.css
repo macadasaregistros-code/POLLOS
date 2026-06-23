@@ -447,7 +447,7 @@
 .activity-history-table__header,
 .activity-history-row {
   display: grid;
-  grid-template-columns: 72px minmax(190px, 1.35fr) minmax(110px, 0.75fr) minmax(105px, 0.7fr) minmax(120px, 0.8fr) 84px;
+  grid-template-columns: 72px minmax(220px, 1.45fr) minmax(130px, 0.85fr) minmax(120px, 0.75fr);
   gap: 9px;
   align-items: center;
 }
@@ -462,9 +462,35 @@
 }
 
 .activity-history-row {
+  --activity-accent: 20 102 94;
+
   min-height: 52px;
   padding: 9px 10px;
   border-top: 1px solid rgb(20 33 29 / 8%);
+  border-left: 6px solid rgb(var(--activity-accent));
+  background:
+    linear-gradient(90deg, rgb(var(--activity-accent) / 0.12) 0, rgb(var(--activity-accent) / 0.04) 54px, #ffffff 150px),
+    #ffffff;
+}
+
+.activity-history-row--daily {
+  --activity-accent: 47 157 88;
+}
+
+.activity-history-row--lote {
+  --activity-accent: 126 87 194;
+}
+
+.activity-history-row--routine {
+  --activity-accent: 230 126 34;
+}
+
+.activity-history-row--prep {
+  --activity-accent: 47 128 237;
+}
+
+.activity-history-row--other {
+  --activity-accent: 201 154 46;
 }
 
 .activity-history-row:first-of-type {
@@ -496,13 +522,25 @@
 .activity-history-row__activity span,
 .activity-history-row__lote,
 .activity-history-row__galpon,
-.activity-history-row__user,
 .activity-history-row__note {
   min-width: 0;
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 800;
   overflow-wrap: anywhere;
+}
+
+.activity-history-row__activity .activity-history-row__category {
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgb(var(--activity-accent) / 0.13);
+  color: rgb(var(--activity-accent));
+  font-size: 0.7rem;
+  font-weight: 950;
+  line-height: 1.05;
+  text-transform: uppercase;
 }
 
 .activity-history-sync {
@@ -592,6 +630,10 @@
   grid-template-columns: minmax(180px, 1.4fr) minmax(120px, 0.8fr) minmax(130px, 0.8fr) 74px 74px 82px minmax(70px, auto) auto;
 }
 
+.programming-row--routine {
+  grid-template-columns: minmax(180px, 1.4fr) minmax(110px, 0.8fr) minmax(120px, 0.8fr) 72px minmax(230px, 1fr) 82px minmax(70px, auto) auto;
+}
+
 .programming-row--compact {
   grid-template-columns: minmax(150px, 1fr) 86px minmax(120px, 1fr) minmax(70px, auto) 42px;
 }
@@ -624,6 +666,54 @@
   font-size: 0.68rem;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.programming-weekdays {
+  min-width: 0;
+  display: flex;
+  align-items: end;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.programming-weekdays legend {
+  width: 100%;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.programming-weekdays label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 38px;
+  border: 1px solid rgb(20 33 29 / 14%);
+  border-radius: 8px;
+  background: #fbfcfb;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.programming-weekdays label.is-selected {
+  border-color: rgb(18 102 94 / 32%);
+  background: #e8f6f1;
+  color: var(--brand-strong);
+}
+
+.programming-weekdays input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .programming-row > label:not(.programming-field),
@@ -1024,6 +1114,7 @@
   .programming-row,
   .programming-row--single-day,
   .programming-row--range,
+  .programming-row--routine,
   .programming-row--compact,
   .programming-row--dog {
     grid-template-columns: 1fr;
@@ -4630,8 +4721,11 @@ th {
     gap: 7px 10px;
     padding: 11px;
     border: 1px solid var(--border);
+    border-left: 6px solid rgb(var(--activity-accent));
     border-radius: 8px;
-    background: #ffffff;
+    background:
+      linear-gradient(90deg, rgb(var(--activity-accent) / 0.12) 0, rgb(var(--activity-accent) / 0.04) 62px, #ffffff 154px),
+      #ffffff;
   }
 
   .activity-history-row:first-of-type {
@@ -4652,7 +4746,6 @@ th {
   .activity-history-row__activity,
   .activity-history-row__lote,
   .activity-history-row__galpon,
-  .activity-history-row__user,
   .activity-history-row__note {
     grid-column: 1 / -1;
   }

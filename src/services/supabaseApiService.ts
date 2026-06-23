@@ -152,12 +152,52 @@ function normalizeForSupabase(payload: unknown, table?: RemoteTable): Record<str
 }
 
 function normalizeRemoteRowsForLocal(table: RemoteTable & { localName?: string }, rows: object[]): object[] {
+  if (table.localName === 'ActividadesProgramadas') return rows.map(normalizeRemoteScheduledActivity);
   if (table.localName !== 'ActividadesLote') return rows;
   return rows.map((row) => {
     const record = { ...(row as Record<string, unknown>) };
     if (record.LoteID === null || record.LoteID === undefined) record.LoteID = '';
     return record;
   });
+}
+
+function normalizeRemoteScheduledActivity(row: object): object {
+  const record = { ...(row as Record<string, unknown>) };
+  const id = String(record.ActividadProgramadaID ?? '');
+  const dailyDays = [1, 2, 3, 4, 5, 6, 7];
+  const defaultOrderById: Record<string, number> = {
+    act_rutina_clorar_tanque: 1,
+    act_rutina_sulfatar_tanque: 2,
+    act_rutina_medir_cloro_ph: 3,
+    act_rutina_purgar_linea: 4,
+    act_rutina_alimentacion_manana: 5,
+    act_rutina_alimentacion_tarde: 6,
+    act_rutina_fumigacion_9am: 7,
+    act_rutina_fumigacion_4pm: 8,
+    act_rutina_revolcar_cama: 9,
+    act_rutina_control_pediluvios: 10,
+    act_rutina_control_plagas: 11,
+    act_rutina_limpiar_mallas: 12,
+    act_rutina_lavar_filtros: 13,
+  };
+
+  if (id === 'act_rutina_medir_cloro_ph') {
+    record.NombreActividad = 'Tratamiento de agua.';
+    record.TipoFrecuencia = 'DIARIA';
+    record.HoraSugerida = record.HoraSugerida || '08:00';
+  }
+
+  if (id === 'act_rutina_control_plagas') {
+    record.NombreActividad = 'Control de plagas.';
+    record.TipoFrecuencia = 'SEMANAL';
+    record.DiasSemana = [2];
+    record.HoraSugerida = record.HoraSugerida || '17:00';
+  } else if (id.startsWith('act_rutina_') && (!Array.isArray(record.DiasSemana) || record.DiasSemana.length === 0)) {
+    record.DiasSemana = id === 'act_rutina_limpiar_mallas' || id === 'act_rutina_lavar_filtros' ? [] : dailyDays;
+  }
+
+  if (id in defaultOrderById && typeof record.OrdenProgramacion !== 'number') record.OrdenProgramacion = defaultOrderById[id];
+  return record;
 }
 
 function getMissingColumnName(error: unknown): string | undefined {

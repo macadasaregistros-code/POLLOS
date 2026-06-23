@@ -3,7 +3,8 @@ import { addDays, nowISO, todayISO } from '../lib/date';
 import { db } from './localDbService';
 import { enqueueSync } from './syncService';
 import { construirCierreLote, construirCierreSemanal } from './adminAnalyticsService';
-import { getProgramacionActivityCategory, getProgramacionTemplateCategory } from './programmingCatalogService';
+import { getProgramacionActivityCategory, getProgramacionTemplateCategory, getProgramacionTemplateOrder } from './programmingCatalogService';
+import { isRoutineScheduledForDate, normalizeRoutineWeekdays } from './routineService';
 import type {
   ActividadLote,
   ActividadProgramada,
@@ -324,6 +325,8 @@ export async function guardarActividadProgramada(input: ActividadProgramadaInput
     HoraSugerida: input.HoraSugerida.trim(),
     AplicaDesdeDia: input.AplicaDesdeDia,
     AplicaHastaDia: input.AplicaHastaDia,
+    DiasSemana: normalizeRoutineWeekdays(input.DiasSemana),
+    OrdenProgramacion: typeof input.OrdenProgramacion === 'number' && Number.isFinite(input.OrdenProgramacion) ? input.OrdenProgramacion : 999,
     RequiereDato: input.RequiereDato,
     RequiereFoto: input.RequiereFoto,
     Activa: input.Activa,
@@ -379,7 +382,9 @@ export async function regenerarProgramacionFutura(user: Usuario): Promise<{ acti
   const activeLoteIds = new Set(lotes.map((lote) => lote.LoteID));
   const activeTemplates = templates.filter((template) => template.Activa);
   const loteTemplates = activeTemplates.filter((template) => getProgramacionTemplateCategory(template) === 'lote');
-  const routineTemplates = activeTemplates.filter((template) => getProgramacionTemplateCategory(template) === 'routine');
+  const routineTemplates = activeTemplates
+    .filter((template) => getProgramacionTemplateCategory(template) === 'routine')
+    .sort((left, right) => getProgramacionTemplateOrder(left) - getProgramacionTemplateOrder(right) || left.NombreActividad.localeCompare(right.NombreActividad));
   const futureActivities = oldActivities.filter(
     (actividad) =>
       (activeLoteIds.has(actividad.LoteID) || !actividad.LoteID || getProgramacionActivityCategory(actividad, templates) === 'routine') &&
@@ -481,7 +486,7 @@ function buildFutureActivitiesForLote(lote: { LoteID: string; FechaLlegada: stri
 
 function buildFutureRoutineActivities(templates: ActividadProgramada[], today: string, horizonDays = 42): ActividadLote[] {
   return templates.flatMap((template) =>
-    getRoutineOffsets(template, horizonDays).map((offset): ActividadLote => ({
+    getRoutineOffsets(template, today, horizonDays).map((offset): ActividadLote => ({
       ActividadLoteID: createId('act_rutina'),
       LoteID: '',
       GalponID: '',
@@ -499,16 +504,12 @@ function buildFutureRoutineActivities(templates: ActividadProgramada[], today: s
   );
 }
 
-function getRoutineOffsets(template: ActividadProgramada, horizonDays: number): number[] {
-  const step = template.TipoFrecuencia === 'CADA_3_DIAS'
-    ? 3
-    : template.TipoFrecuencia === 'SEMANAL'
-      ? 7
-      : template.TipoFrecuencia === 'MENSUAL'
-        ? 30
-        : 1;
+function getRoutineOffsets(template: ActividadProgramada, today: string, horizonDays: number): number[] {
   const offsets: number[] = [];
-  for (let offset = 0; offset <= horizonDays; offset += step) offsets.push(offset);
+  for (let offset = 0; offset <= horizonDays; offset += 1) {
+    const date = addDays(today, offset);
+    if (isRoutineScheduledForDate(template, date, offset)) offsets.push(offset);
+  }
   return offsets;
 }
 

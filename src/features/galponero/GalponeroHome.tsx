@@ -331,6 +331,7 @@ function AgendaSection({ title, tasks, empty, onTask }: { title: string; tasks: 
 }
 
 function getAgendaActionLabel(task: AgendaTask): string {
+  if (task.action.type === 'record') return 'Abrir';
   if (task.tone === 'routine') return 'Check';
   if (task.action.type === 'completeActivities') return 'Marcar';
   if (task.action.type === 'prep') return 'Ir';
