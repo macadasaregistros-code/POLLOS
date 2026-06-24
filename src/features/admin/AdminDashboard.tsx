@@ -81,9 +81,11 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
       loteGalpones: loteGalpones ?? [],
       lotesById: new Map((lotes ?? []).map((lote) => [lote.LoteID, lote])),
       summariesByLoteId: new Map(summaries.map((summary) => [summary.LoteID, summary])),
+      registrosDiarios: registros ?? [],
       maxCapacity: getMaxGalponCapacity(galpones ?? []),
+      today,
     });
-  }, [galpones, loteGalpones, lotes, selectedGalpon, summaries]);
+  }, [galpones, loteGalpones, lotes, registros, selectedGalpon, summaries, today]);
   const selectedGalponSummary = selectedGalponDashboard?.summary;
   const totals = {
     avesIniciales: lotes?.reduce((sum, lote) => sum + lote.CantidadInicialTotal, 0) ?? 0,
@@ -201,6 +203,8 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
             loteGalpones={loteGalpones ?? []}
             lotes={lotes ?? []}
             summaries={summaries}
+            registrosDiarios={registros ?? []}
+            today={today}
             selectedGalponId={selectedGalponId}
             onSelectGalpon={(galponId) => setSelectedGalponId(galponId)}
           />
@@ -210,6 +214,7 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
                 data={selectedGalponDashboard.data}
                 empty={selectedGalponDashboard.empty}
                 vacating={selectedGalponDashboard.vacating}
+                staleData={selectedGalponDashboard.staleData}
                 emptyState={selectedGalponDashboard.emptyState}
                 capacityRatio={selectedGalponDashboard.capacityRatio}
               />

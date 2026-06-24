@@ -262,6 +262,8 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
             loteGalpones={loteGalpones ?? []}
             lotes={lotes ?? []}
             summaries={summaries}
+            registrosDiarios={registros ?? []}
+            today={today}
             selectedGalponId={selectedGalpon?.GalponID}
             onSelectGalpon={handleSelectGalpon}
           />
@@ -358,11 +360,17 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
   const completedTaskRecords = getCompletedPrepTaskRecords(galpon);
   const completedTaskIds = completedTaskRecords.map((record) => record.id);
   const completedSet = new Set(completedTaskIds);
+  const completedRecordById = new Map(completedTaskRecords.map((record) => [record.id, record]));
   const completedCount = completedTaskIds.length;
   const progress = Math.round((completedCount / preparationTasks.length) * 100);
   const currentTask = preparationTasks.find((task) => !completedSet.has(task.id));
-  const activeCategory = preparationCategories.find((category) => category.key === currentTask?.category) ?? preparationCategories[preparationCategories.length - 1];
-  const activeCategoryDone = activeCategory.tasks.filter((task) => completedSet.has(task.id)).length;
+  const visiblePreparationCategories = preparationCategories
+    .map((category) => ({
+      ...category,
+      done: category.tasks.filter((task) => completedSet.has(task.id)).length,
+      visibleTasks: category.tasks.filter((task) => completedSet.has(task.id) || task.id === currentTask?.id),
+    }))
+    .filter((category) => category.visibleTasks.length > 0);
   const ready = !currentTask;
 
   async function handleAdvance() {
@@ -429,33 +437,40 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
       </div>
 
       <div className="prep-category-list">
-        <section className="prep-category-block" key={activeCategory.key}>
-          <header>
-            <strong>{activeCategory.label}</strong>
-            <span>
-              {activeCategoryDone}/{activeCategory.tasks.length}
-            </span>
-          </header>
-          <div className="prep-task-list">
-            {currentTask ? (
-              <article className="prep-task prep-task--current">
-                <CircleDot size={23} />
-                <div>
-                  <strong>{currentTask.title}</strong>
-                  <span>En proceso</span>
-                </div>
-              </article>
-            ) : (
-              <article className="prep-task prep-task--complete">
-                <CheckCircle2 size={23} />
-                <div>
-                  <strong>Alistamiento completo</strong>
-                  <span>Listo para recibir pollito</span>
-                </div>
-              </article>
-            )}
-          </div>
-        </section>
+        {visiblePreparationCategories.map((category) => (
+          <section className="prep-category-block" key={category.key}>
+            <header>
+              <strong>{category.label}</strong>
+              <span>
+                {category.done}/{category.tasks.length}
+              </span>
+            </header>
+            <div className="prep-task-list">
+              {category.visibleTasks.map((task) => {
+                const completedRecord = completedRecordById.get(task.id);
+                const completed = completedSet.has(task.id);
+                return (
+                  <article className={`prep-task prep-task--${completed ? 'complete' : 'current'}`} key={task.id}>
+                    {completed ? <CheckCircle2 size={23} /> : <CircleDot size={23} />}
+                    <div>
+                      <strong>{task.title}</strong>
+                      <span>{completed ? (completedRecord?.fecha ? `Realizada ${completedRecord.fecha}` : 'Realizada') : 'En proceso'}</span>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+        {ready && (
+          <article className="prep-task prep-task--complete">
+            <CheckCircle2 size={23} />
+            <div>
+              <strong>Alistamiento completo</strong>
+              <span>Listo para recibir pollito</span>
+            </div>
+          </article>
+        )}
       </div>
 
       <div className="prep-panel__actions">

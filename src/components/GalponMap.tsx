@@ -1,13 +1,16 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { ArrowDown, BarChart3, Bird, CalendarDays, Check, ClipboardList, House, Leaf, Package, Scale, ShieldPlus, UsersRound } from 'lucide-react';
+import { addDays, todayISO } from '../lib/date';
 import { fmtKg, fmtNumber, fmtPercent } from '../lib/format';
-import type { Galpon, Lote, LoteGalpon, LoteResumen } from '../types/entities';
+import type { FechaISO, Galpon, Lote, LoteGalpon, LoteResumen, RegistroDiarioLote } from '../types/entities';
 
 interface GalponMapProps {
   galpones: Galpon[];
   loteGalpones: LoteGalpon[];
   lotes: Lote[];
   summaries: LoteResumen[];
+  registrosDiarios?: RegistroDiarioLote[];
+  today?: FechaISO;
   selectedGalponId?: string;
   onSelectGalpon: (galponId: string, loteId?: string) => void;
 }
@@ -31,6 +34,7 @@ export interface GalponDashboardModel {
   data: GalponDashboardCardData;
   empty: boolean;
   vacating: boolean;
+  staleData: boolean;
   emptyState: ReturnType<typeof getEmptyState>;
   capacityRatio: number;
   lote?: Lote;
@@ -42,7 +46,10 @@ export interface GalponDashboardModelInput {
   loteGalpones: LoteGalpon[];
   lotesById: Map<string, Lote>;
   summariesByLoteId: Map<string, LoteResumen>;
+  latestRegistroDatesByLoteId?: Map<string, FechaISO>;
+  registrosDiarios?: RegistroDiarioLote[];
   maxCapacity: number;
+  today?: FechaISO;
 }
 
 const layout = [
@@ -80,10 +87,11 @@ const emptyStateFlow = [
   { key: 'RECIBIMIENTO', label: 'Recibir', detail: 'Listo para pollito' },
 ] as const;
 
-export function GalponMap({ galpones, loteGalpones, lotes, summaries, selectedGalponId, onSelectGalpon }: GalponMapProps) {
+export function GalponMap({ galpones, loteGalpones, lotes, summaries, registrosDiarios = [], today = todayISO(), selectedGalponId, onSelectGalpon }: GalponMapProps) {
   const galponesById = new Map(galpones.map((galpon) => [galpon.GalponID, galpon]));
   const lotesById = new Map(lotes.map((lote) => [lote.LoteID, lote]));
   const summariesByLoteId = new Map(summaries.map((summary) => [summary.LoteID, summary]));
+  const latestRegistroDatesByLoteId = buildLatestRegistroDateMap(registrosDiarios);
   const maxCapacity = getMaxGalponCapacity(galpones);
   const activeAssignments = loteGalpones.filter((item) => item.Estado === 'ACTIVO');
   const totalCapacity = galpones.reduce((sum, galpon) => sum + galpon.Capacidad, 0);
@@ -130,8 +138,10 @@ export function GalponMap({ galpones, loteGalpones, lotes, summaries, selectedGa
                     loteGalpones={loteGalpones}
                     lotesById={lotesById}
                     summariesByLoteId={summariesByLoteId}
+                    latestRegistroDatesByLoteId={latestRegistroDatesByLoteId}
                     selectedGalponId={selectedGalponId}
                     maxCapacity={maxCapacity}
+                    today={today}
                     onSelectGalpon={onSelectGalpon}
                   />
                 );
@@ -149,16 +159,20 @@ function GalponTile({
   loteGalpones,
   lotesById,
   summariesByLoteId,
+  latestRegistroDatesByLoteId,
   selectedGalponId,
   maxCapacity,
+  today,
   onSelectGalpon,
 }: {
   galpon: Galpon;
   loteGalpones: LoteGalpon[];
   lotesById: Map<string, Lote>;
   summariesByLoteId: Map<string, LoteResumen>;
+  latestRegistroDatesByLoteId: Map<string, FechaISO>;
   selectedGalponId?: string;
   maxCapacity: number;
+  today: FechaISO;
   onSelectGalpon: (galponId: string, loteId?: string) => void;
 }) {
   const isSelected = selectedGalponId === galpon.GalponID;
@@ -167,7 +181,9 @@ function GalponTile({
     loteGalpones,
     lotesById,
     summariesByLoteId,
+    latestRegistroDatesByLoteId,
     maxCapacity,
+    today,
   });
 
   return (
@@ -176,6 +192,7 @@ function GalponTile({
       selected={isSelected}
       empty={dashboardModel.empty}
       vacating={dashboardModel.vacating}
+      staleData={dashboardModel.staleData}
       emptyState={dashboardModel.emptyState}
       capacityRatio={dashboardModel.capacityRatio}
       dataGalponId={galpon.GalponID}
@@ -193,7 +210,10 @@ export function buildGalponDashboardModel({
   loteGalpones,
   lotesById,
   summariesByLoteId,
+  latestRegistroDatesByLoteId,
+  registrosDiarios,
   maxCapacity,
+  today = todayISO(),
 }: GalponDashboardModelInput): GalponDashboardModel {
   const assignments = loteGalpones.filter((item) => item.GalponID === galpon.GalponID && item.Estado === 'ACTIVO');
   const primaryAssignment = assignments[0];
@@ -207,6 +227,8 @@ export function buildGalponDashboardModel({
   const capacityRatio = Math.max(0.45, galpon.Capacidad / maxCapacity);
   const empty = assignments.length === 0 || !lote;
   const vacating = !empty && (galpon.EstadoActual === 'SALIDA' || salidaRatio > 0);
+  const latestDates = latestRegistroDatesByLoteId ?? (registrosDiarios ? buildLatestRegistroDateMap(registrosDiarios) : undefined);
+  const staleData = latestDates ? !empty && isGalponRegistroStale(assignments, latestDates, today) : false;
   const growth = getGrowthState(summary?.DiaLote ?? 0);
   const emptyState = getEmptyState(galpon.EstadoActual);
 
@@ -227,6 +249,7 @@ export function buildGalponDashboardModel({
     },
     empty,
     vacating,
+    staleData,
     emptyState,
     capacityRatio,
     lote,
@@ -239,6 +262,7 @@ export function GalponDashboardCard({
   selected = false,
   empty = false,
   vacating = false,
+  staleData = false,
   emptyState,
   capacityRatio = 1,
   dataGalponId,
@@ -248,6 +272,7 @@ export function GalponDashboardCard({
   selected?: boolean;
   empty?: boolean;
   vacating?: boolean;
+  staleData?: boolean;
   emptyState?: ReturnType<typeof getEmptyState>;
   capacityRatio?: number;
   dataGalponId?: string;
@@ -294,6 +319,7 @@ export function GalponDashboardCard({
         selected ? 'is-selected' : '',
         empty ? 'farm-shed--empty' : '',
         vacating ? 'farm-shed--vacating' : '',
+        staleData ? 'farm-shed--stale-data' : '',
         isOverdue ? 'farm-shed--overdue' : '',
         'farm-shed--compact',
       ].join(' ')}
@@ -477,12 +503,14 @@ export function GalponPremiumDashboardCard({
   data,
   empty = false,
   vacating = false,
+  staleData = false,
   emptyState,
   capacityRatio = 1,
 }: {
   data: GalponDashboardCardData;
   empty?: boolean;
   vacating?: boolean;
+  staleData?: boolean;
   emptyState?: ReturnType<typeof getEmptyState>;
   capacityRatio?: number;
 }) {
@@ -525,6 +553,7 @@ export function GalponPremiumDashboardCard({
         `farm-shed--occupancy-${occupancyTone}`,
         empty ? 'farm-shed--empty' : '',
         vacating ? 'farm-shed--vacating' : '',
+        staleData ? 'farm-shed--stale-data' : '',
         isOverdue ? 'farm-shed--overdue' : '',
       ].join(' ')}
       style={style}
@@ -670,6 +699,27 @@ function getChickenImage(day: number) {
   }
 
   return chickenImages[0];
+}
+
+function buildLatestRegistroDateMap(registros: RegistroDiarioLote[]): Map<string, FechaISO> {
+  const latestByLote = new Map<string, FechaISO>();
+
+  for (const registro of registros) {
+    const current = latestByLote.get(registro.LoteID);
+    if (!current || registro.Fecha > current) latestByLote.set(registro.LoteID, registro.Fecha);
+  }
+
+  return latestByLote;
+}
+
+function isGalponRegistroStale(assignments: LoteGalpon[], latestByLote: Map<string, FechaISO>, today: FechaISO): boolean {
+  const yesterday = addDays(today, -1);
+  const occupiedAssignments = assignments.filter((assignment) => Math.max(0, assignment.CantidadEntrada - assignment.CantidadSalida) > 0);
+
+  return occupiedAssignments.some((assignment) => {
+    const latestDate = latestByLote.get(assignment.LoteID);
+    return !latestDate || latestDate < yesterday;
+  });
 }
 
 function getEmptyState(estado: Galpon['EstadoActual']) {
