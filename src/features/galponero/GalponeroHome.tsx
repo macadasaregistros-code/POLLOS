@@ -364,13 +364,14 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
   const completedCount = completedTaskIds.length;
   const progress = Math.round((completedCount / preparationTasks.length) * 100);
   const currentTask = preparationTasks.find((task) => !completedSet.has(task.id));
-  const visiblePreparationCategories = preparationCategories
-    .map((category) => ({
-      ...category,
-      done: category.tasks.filter((task) => completedSet.has(task.id)).length,
-      visibleTasks: category.tasks.filter((task) => completedSet.has(task.id) || task.id === currentTask?.id),
-    }))
-    .filter((category) => category.visibleTasks.length > 0);
+  const currentCategoryKey = currentTask?.category ?? preparationCategories[preparationCategories.length - 1].key;
+  const [selectedCategoryKey, setSelectedCategoryKey] = useState(currentCategoryKey);
+  useEffect(() => {
+    setSelectedCategoryKey(currentCategoryKey);
+  }, [currentCategoryKey, galpon.GalponID]);
+  const selectedCategory = preparationCategories.find((category) => category.key === selectedCategoryKey) ?? preparationCategories[0];
+  const selectedCategoryDone = selectedCategory.tasks.filter((task) => completedSet.has(task.id)).length;
+  const selectedCategoryHasCurrentTask = selectedCategory.tasks.some((task) => task.id === currentTask?.id);
   const ready = !currentTask;
 
   async function handleAdvance() {
@@ -422,8 +423,16 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
           const categoryTasks = category.tasks;
           const done = categoryTasks.filter((task) => completedSet.has(task.id)).length;
           const state = done === categoryTasks.length ? 'complete' : done > 0 || currentTask?.category === category.key ? 'current' : 'pending';
+          const selected = category.key === selectedCategory.key;
           return (
-            <span className={`prep-category-track__step prep-category-track__step--${state}`} key={category.key}>
+            <button
+              className={`prep-category-track__step prep-category-track__step--${state} ${selected ? 'is-selected' : ''}`}
+              type="button"
+              aria-label={`Ver ${category.label}`}
+              aria-pressed={selected}
+              key={category.key}
+              onClick={() => setSelectedCategoryKey(category.key)}
+            >
               {state === 'complete' && <CheckCircle2 size={18} />}
               {state === 'current' && <CircleDot size={18} />}
               {state === 'pending' && <Circle size={18} />}
@@ -431,50 +440,43 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
               <small>
                 {done}/{categoryTasks.length}
               </small>
-            </span>
+            </button>
           );
         })}
       </div>
 
       <div className="prep-category-list">
-        {visiblePreparationCategories.map((category) => (
-          <section className="prep-category-block" key={category.key}>
-            <header>
-              <strong>{category.label}</strong>
-              <span>
-                {category.done}/{category.tasks.length}
-              </span>
-            </header>
-            <div className="prep-task-list">
-              {category.visibleTasks.map((task) => {
-                const completedRecord = completedRecordById.get(task.id);
-                const completed = completedSet.has(task.id);
-                return (
-                  <article className={`prep-task prep-task--${completed ? 'complete' : 'current'}`} key={task.id}>
-                    {completed ? <CheckCircle2 size={23} /> : <CircleDot size={23} />}
-                    <div>
-                      <strong>{task.title}</strong>
-                      <span>{completed ? (completedRecord?.fecha ? `Realizada ${completedRecord.fecha}` : 'Realizada') : 'En proceso'}</span>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        ))}
-        {ready && (
-          <article className="prep-task prep-task--complete">
-            <CheckCircle2 size={23} />
-            <div>
-              <strong>Alistamiento completo</strong>
-              <span>Listo para recibir pollito</span>
-            </div>
-          </article>
-        )}
+        <section className="prep-category-block" key={selectedCategory.key}>
+          <header>
+            <strong>{selectedCategory.label}</strong>
+            <span>
+              {selectedCategoryDone}/{selectedCategory.tasks.length}
+            </span>
+          </header>
+          <div className="prep-task-list">
+            {selectedCategory.tasks.map((task) => {
+              const completedRecord = completedRecordById.get(task.id);
+              const completed = completedSet.has(task.id);
+              const current = task.id === currentTask?.id;
+              const state = completed ? 'complete' : current ? 'current' : 'pending';
+              return (
+                <article className={`prep-task prep-task--${state}`} key={task.id}>
+                  {completed && <CheckCircle2 size={23} />}
+                  {current && <CircleDot size={23} />}
+                  {!completed && !current && <Circle size={23} />}
+                  <div>
+                    <strong>{task.title}</strong>
+                    <span>{completed ? (completedRecord?.fecha ? `Realizada ${completedRecord.fecha}` : 'Realizada') : current ? 'En proceso' : 'Pendiente'}</span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
       </div>
 
       <div className="prep-panel__actions">
-        <button className="primary-action primary-action--icon" type="button" onClick={handleAdvance} disabled={saving || ready}>
+        <button className="primary-action primary-action--icon" type="button" onClick={handleAdvance} disabled={saving || ready || !selectedCategoryHasCurrentTask}>
           <Check size={18} />
           <span>{ready ? 'Alistamiento completo' : 'Marcar realizada'}</span>
         </button>
