@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Activity, BarChart3, CalendarClock, ChevronDown, ClipboardList, Home, Map as MapIcon, Package, Save } from 'lucide-react';
+import { Activity, BarChart3, CalendarClock, ChevronDown, ClipboardList, FileText, Flame, Home, Map as MapIcon, Package, PackagePlus, Save, Truck, Warehouse } from 'lucide-react';
 import { AlertBadge } from '../../components/AlertBadge';
 import { buildGalponDashboardModel, GalponMap, GalponPremiumDashboardCard, getMaxGalponCapacity } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
@@ -12,11 +12,11 @@ import { getMissingDailyRegisterDates } from '../../services/dailyRegisterServic
 import { generarAlertasBasicas } from '../../services/alertsService';
 import { generarReporteLotePDF } from '../../services/reportsService';
 import { db } from '../../services/localDbService';
-import { getProgramacionActivityCategory, type ProgramacionCategoryKey } from '../../services/programmingCatalogService';
+import { getProgramacionActivityCategory, programacionCategories, type ProgramacionCategoryKey } from '../../services/programmingCatalogService';
 import { enqueueSync } from '../../services/syncService';
 import { addDays, diffDays, getDiaLote, todayISO } from '../../lib/date';
 import { fmtCurrency, fmtKg, fmtNumber, fmtPercent } from '../../lib/format';
-import type { ActividadLote, ActividadProgramada, EstadoSync, Galpon, Lote, LoteResumen, RegistroDiarioLote, TipoAlimento, Usuario } from '../../types/entities';
+import type { ActividadLote, ActividadProgramada, EntradaAlimento, EntradaMaterial, EstadoSync, Galpon, Lote, LoteResumen, RegistroDiarioLote, TipoAlimento, Usuario } from '../../types/entities';
 import type { MainView } from '../../types/navigation';
 import { AdminAdvancedModules } from './AdminAdvancedModules';
 import { CrearLoteForm } from './CrearLoteForm';
@@ -44,6 +44,7 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
   const inventario = useLiveQuery(() => db.inventarioAlimento.toArray(), []);
   const inventarioMaterial = useLiveQuery(() => db.inventarioMaterial.toArray(), []);
   const movimientosMaterial = useLiveQuery(() => db.movimientosInventarioMaterial.toArray(), []);
+  const entradasAlimento = useLiveQuery(() => db.entradasAlimento.toArray(), []);
   const entradasMaterial = useLiveQuery(() => db.entradasMaterial.toArray(), []);
   const tipos = useLiveQuery(() => db.tiposAlimento.toArray(), []);
   const salidas = useLiveQuery(() => db.salidasPollo.toArray(), []);
@@ -260,9 +261,35 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
                 </MobileCard>
                 <PredictionCard prediction={prediction} pesoObjetivo={pesoObjetivo} onPesoObjetivoChange={setPesoObjetivo} />
               </div>
-              <LoteDailyHistoryView lote={selectedLote} registros={registros ?? []} tipos={tipos ?? []} today={today} />
             </>
           )}
+        </>
+      )}
+
+      {activeView === 'hojasManejo' && (
+        <>
+          <AdminTitle eyebrow="REGISTROS" title="Hojas de manejo" icon={<FileText size={34} />} />
+          <HojasManejoView
+            lotes={lotes ?? []}
+            selectedLote={selectedLote}
+            selectedLoteId={selectedLote?.LoteID ?? ''}
+            onSelectLote={setSelectedLoteId}
+            registros={registros ?? []}
+            tipos={tipos ?? []}
+            today={today}
+          />
+        </>
+      )}
+
+      {activeView === 'entradas' && (
+        <>
+          <AdminTitle eyebrow="GALPONERO" title="Entradas" icon={<Truck size={34} />} />
+          <EntradasHistoryView
+            entradasAlimento={entradasAlimento ?? []}
+            entradasMaterial={entradasMaterial ?? []}
+            tipos={tipos ?? []}
+            today={today}
+          />
         </>
       )}
 
@@ -355,6 +382,8 @@ interface ActivityHistoryItem {
   actividad: ActividadLote;
 }
 
+type ActivityHistoryFilterKey = ProgramacionCategoryKey | 'all';
+
 function ActivityHistoryView({
   actividades,
   actividadesProgramadas,
@@ -370,12 +399,19 @@ function ActivityHistoryView({
   today: string;
   onToast: (message: string) => void;
 }) {
+  const [selectedCategory, setSelectedCategory] = useState<ActivityHistoryFilterKey>('all');
   const history = useMemo(() => buildActivityHistory({ actividades, actividadesProgramadas, lotes, galpones }), [actividades, actividadesProgramadas, galpones, lotes]);
-  const groups = useMemo(() => groupActivityHistoryByDate(history), [history]);
+  const categoryCounts = useMemo(() => getActivityHistoryCategoryCounts(history), [history]);
+  const filteredHistory = useMemo(
+    () => selectedCategory === 'all' ? history : history.filter((item) => item.tone === selectedCategory),
+    [history, selectedCategory],
+  );
+  const groups = useMemo(() => groupActivityHistoryByDate(filteredHistory), [filteredHistory]);
   const last7Start = addDays(today, -6);
-  const todayCount = history.filter((item) => item.date === today).length;
-  const last7Count = history.filter((item) => item.date >= last7Start).length;
-  const loteCount = new Set(history.map((item) => item.lote)).size;
+  const todayCount = filteredHistory.filter((item) => item.date === today).length;
+  const last7Count = filteredHistory.filter((item) => item.date >= last7Start).length;
+  const loteCount = new Set(filteredHistory.map((item) => item.lote)).size;
+  const selectedCategoryLabel = programacionCategories.find((category) => category.key === selectedCategory)?.label ?? 'esta categoria';
 
   return (
     <section className="activity-history-view">
@@ -383,6 +419,33 @@ function ActivityHistoryView({
         <StatCard label="Hechas hoy" value={fmtNumber(todayCount)} tone={todayCount > 0 ? 'good' : 'neutral'} />
         <StatCard label="Ultimos 7 dias" value={fmtNumber(last7Count)} />
         <StatCard label="Lotes con actividad" value={fmtNumber(loteCount)} />
+      </section>
+
+      <section className="activity-history-filter" role="group" aria-label="Filtrar actividades hechas por categoria">
+        <button
+          className={`activity-history-filter__button activity-history-filter__button--all ${selectedCategory === 'all' ? 'is-active' : ''}`}
+          type="button"
+          aria-pressed={selectedCategory === 'all'}
+          onClick={() => setSelectedCategory('all')}
+        >
+          <span>Todas</span>
+          <b>{fmtNumber(history.length)}</b>
+        </button>
+        {programacionCategories.map((category) => {
+          const count = categoryCounts.get(category.key) ?? 0;
+          return (
+            <button
+              className={`activity-history-filter__button activity-history-filter__button--${category.key} ${selectedCategory === category.key ? 'is-active' : ''}`}
+              type="button"
+              key={category.key}
+              aria-pressed={selectedCategory === category.key}
+              onClick={() => setSelectedCategory(category.key)}
+            >
+              <span>{category.label}</span>
+              <b>{fmtNumber(count)}</b>
+            </button>
+          );
+        })}
       </section>
 
       <MobileCard title="Actividades realizadas" subtitle="Ordenadas por fecha descendente">
@@ -418,11 +481,21 @@ function ActivityHistoryView({
             ))}
           </div>
         ) : (
-          <p className="empty-state">Todavia no hay actividades marcadas como realizadas.</p>
+          <p className="empty-state">
+            {history.length ? `No hay actividades realizadas para ${selectedCategoryLabel}.` : 'Todavia no hay actividades marcadas como realizadas.'}
+          </p>
         )}
       </MobileCard>
     </section>
   );
+}
+
+function getActivityHistoryCategoryCounts(history: ActivityHistoryItem[]): Map<ProgramacionCategoryKey, number> {
+  const counts = new Map<ProgramacionCategoryKey, number>(programacionCategories.map((category) => [category.key, 0]));
+  for (const item of history) {
+    counts.set(item.tone, (counts.get(item.tone) ?? 0) + 1);
+  }
+  return counts;
 }
 
 function buildActivityHistory({
@@ -760,6 +833,57 @@ function LotesTable({
   );
 }
 
+function HojasManejoView({
+  lotes,
+  selectedLote,
+  selectedLoteId,
+  onSelectLote,
+  registros,
+  tipos,
+  today,
+}: {
+  lotes: Lote[];
+  selectedLote?: Lote;
+  selectedLoteId: string;
+  onSelectLote: (loteId: string) => void;
+  registros: RegistroDiarioLote[];
+  tipos: TipoAlimento[];
+  today: string;
+}) {
+  return (
+    <section className="hojas-manejo-view">
+      <section className="hojas-manejo-filter" aria-label="Filtrar hojas de manejo por lote">
+        <div className="hojas-manejo-filter__heading">
+          <span>Filtrar por lote</span>
+          <strong>{selectedLote ? `Lote ${selectedLote.CodigoLote}` : 'Sin lote seleccionado'}</strong>
+        </div>
+        <div className="hojas-manejo-filter__list" role="list">
+          {lotes.map((lote) => (
+            <button
+              className={selectedLoteId === lote.LoteID ? 'is-active' : ''}
+              type="button"
+              key={lote.LoteID}
+              onClick={() => onSelectLote(lote.LoteID)}
+              aria-pressed={selectedLoteId === lote.LoteID}
+            >
+              <span>{lote.CodigoLote}</span>
+              <small>{lote.EstadoLote}</small>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {selectedLote ? (
+        <LoteDailyHistoryView lote={selectedLote} registros={registros} tipos={tipos} today={today} />
+      ) : (
+        <MobileCard title="Historial de hojas de manejo" subtitle="Registros diarios">
+          <p className="empty-state">Todavia no hay lotes para consultar.</p>
+        </MobileCard>
+      )}
+    </section>
+  );
+}
+
 function LoteDailyHistoryView({
   lote,
   registros,
@@ -868,6 +992,148 @@ function LoteDailyHistoryView({
       )}
     </MobileCard>
   );
+}
+
+type EntryHistoryKind = 'alimento' | 'cisco' | 'gas';
+
+interface EntryHistoryItem {
+  id: string;
+  kind: EntryHistoryKind;
+  date: string;
+  timestamp: number;
+  typeLabel: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  note: string;
+}
+
+function EntradasHistoryView({
+  entradasAlimento,
+  entradasMaterial,
+  tipos,
+  today,
+}: {
+  entradasAlimento: EntradaAlimento[];
+  entradasMaterial: EntradaMaterial[];
+  tipos: TipoAlimento[];
+  today: string;
+}) {
+  const history = useMemo(
+    () => buildEntryHistory({ entradasAlimento, entradasMaterial, tipos }),
+    [entradasAlimento, entradasMaterial, tipos],
+  );
+  const totals = useMemo(() => getEntryHistoryTotals(history), [history]);
+
+  return (
+    <section className="entry-history-view">
+      <section className="stats-grid stats-grid--wide entry-history-stats">
+        <StatCard label="Entradas" value={fmtNumber(history.length)} />
+        <StatCard label="Alimento" value={`${fmtNumber(totals.alimento, 1)} bultos`} />
+        <StatCard label="Cisco" value={`${fmtNumber(totals.cisco, 1)} pacas`} />
+        <StatCard label="Gas" value={`${fmtNumber(totals.gas, 1)} cilindros`} />
+      </section>
+
+      <MobileCard title="Historial de entradas" subtitle="Alimento, cisco y gas ordenados por fecha">
+        {history.length ? (
+          <div className="entry-history-list">
+            {history.map((item) => (
+              <article className={`entry-history-row entry-history-row--${item.kind}`} key={item.id}>
+                <span className="entry-history-row__image" aria-label={item.typeLabel}>
+                  {getEntryHistoryIcon(item.kind)}
+                </span>
+                <div className="entry-history-row__main">
+                  <span className="entry-history-row__date">
+                    {item.date} - {formatActivityDate(item.date, today)}
+                  </span>
+                  <strong>{item.name}</strong>
+                  <small>{item.typeLabel}</small>
+                  {item.note && <em>{item.note}</em>}
+                </div>
+                <div className="entry-history-row__quantity" aria-label="Cantidad">
+                  <strong>{fmtNumber(item.quantity, 1)}</strong>
+                  <span>{item.unit}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="empty-state">Todavia no hay entradas registradas por Galponero.</p>
+        )}
+      </MobileCard>
+    </section>
+  );
+}
+
+function buildEntryHistory({
+  entradasAlimento,
+  entradasMaterial,
+  tipos,
+}: {
+  entradasAlimento: EntradaAlimento[];
+  entradasMaterial: EntradaMaterial[];
+  tipos: TipoAlimento[];
+}): EntryHistoryItem[] {
+  const tiposById = new Map(tipos.map((tipo) => [tipo.TipoAlimentoID, tipo.Nombre]));
+  const foodEntries: EntryHistoryItem[] = entradasAlimento.map((entrada) => ({
+    id: entrada.EntradaAlimentoID,
+    kind: 'alimento',
+    date: entrada.Fecha,
+    timestamp: getTimestamp(`${entrada.Fecha}T12:00:00`),
+    typeLabel: 'Alimento',
+    name: tiposById.get(entrada.TipoAlimentoID) ?? 'Alimento sin tipo',
+    quantity: entrada.CantidadBultos,
+    unit: 'bultos',
+    note: entrada.Observaciones.trim(),
+  }));
+  const materialEntries: EntryHistoryItem[] = entradasMaterial.map((entrada) => {
+    const kind: EntryHistoryKind = entrada.TipoMaterial === 'GAS' ? 'gas' : 'cisco';
+    return {
+      id: entrada.EntradaMaterialID,
+      kind,
+      date: entrada.Fecha,
+      timestamp: getTimestamp(entrada.FechaHoraRegistro || `${entrada.Fecha}T12:00:00`),
+      typeLabel: getEntryHistoryLabel(kind),
+      name: getEntryHistoryLabel(kind),
+      quantity: entrada.Cantidad,
+      unit: getEntryHistoryUnit(entrada.Unidad, kind),
+      note: entrada.Observaciones.trim(),
+    };
+  });
+
+  return [...foodEntries, ...materialEntries].sort((left, right) => right.timestamp - left.timestamp || left.name.localeCompare(right.name));
+}
+
+function getEntryHistoryTotals(history: EntryHistoryItem[]): Record<EntryHistoryKind, number> {
+  return history.reduce(
+    (acc, item) => {
+      acc[item.kind] += item.quantity;
+      return acc;
+    },
+    { alimento: 0, cisco: 0, gas: 0 },
+  );
+}
+
+function getEntryHistoryLabel(kind: EntryHistoryKind): string {
+  const labels: Record<EntryHistoryKind, string> = {
+    alimento: 'Alimento',
+    cisco: 'Cisco',
+    gas: 'Gas',
+  };
+  return labels[kind];
+}
+
+function getEntryHistoryUnit(unit: string, kind: EntryHistoryKind): string {
+  if (unit) return unit.toLowerCase();
+  if (kind === 'cisco') return 'pacas';
+  if (kind === 'gas') return 'cilindros';
+  return 'bultos';
+}
+
+function getEntryHistoryIcon(kind: EntryHistoryKind): ReactNode {
+  if (kind === 'alimento') return <PackagePlus size={28} />;
+  if (kind === 'cisco') return <Warehouse size={28} />;
+  return <Flame size={28} />;
 }
 
 function PredictionCard({

@@ -389,6 +389,208 @@
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
+.activity-history-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.activity-history-filter__button {
+  --activity-accent: 20 102 94;
+
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid rgb(var(--activity-accent) / 0.24);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #ffffff;
+  color: rgb(var(--activity-accent));
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1.05;
+  cursor: pointer;
+}
+
+.activity-history-filter__button span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.activity-history-filter__button b {
+  min-width: 26px;
+  min-height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  padding: 3px 7px;
+  background: rgb(var(--activity-accent) / 0.12);
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.activity-history-filter__button:hover {
+  background: rgb(var(--activity-accent) / 0.07);
+}
+
+.activity-history-filter__button.is-active {
+  border-color: transparent;
+  background: rgb(var(--activity-accent));
+  color: #ffffff;
+}
+
+.activity-history-filter__button.is-active b {
+  background: #ffffff;
+  color: rgb(var(--activity-accent));
+}
+
+.activity-history-filter__button--daily {
+  --activity-accent: 47 157 88;
+}
+
+.activity-history-filter__button--lote {
+  --activity-accent: 126 87 194;
+}
+
+.activity-history-filter__button--routine {
+  --activity-accent: 230 126 34;
+}
+
+.activity-history-filter__button--prep {
+  --activity-accent: 47 128 237;
+}
+
+.activity-history-filter__button--other {
+  --activity-accent: 201 154 46;
+}
+
+.entry-history-view {
+  display: grid;
+  gap: 12px;
+}
+
+.entry-history-stats {
+  margin-bottom: 0;
+}
+
+.entry-history-stats.stats-grid--wide {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.entry-history-list {
+  display: grid;
+  gap: 8px;
+}
+
+.entry-history-row {
+  --entry-accent: 20 102 94;
+
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) minmax(92px, auto);
+  gap: 10px;
+  align-items: center;
+  min-height: 70px;
+  border: 1px solid rgb(20 33 29 / 10%);
+  border-left: 6px solid rgb(var(--entry-accent));
+  border-radius: 8px;
+  padding: 10px;
+  background:
+    linear-gradient(90deg, rgb(var(--entry-accent) / 0.12) 0, rgb(var(--entry-accent) / 0.04) 58px, #ffffff 150px),
+    #ffffff;
+}
+
+.entry-history-row--alimento {
+  --entry-accent: 47 157 88;
+}
+
+.entry-history-row--cisco {
+  --entry-accent: 154 112 42;
+}
+
+.entry-history-row--gas {
+  --entry-accent: 209 92 42;
+}
+
+.entry-history-row__image {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgb(var(--entry-accent) / 0.14);
+  color: rgb(var(--entry-accent));
+}
+
+.entry-history-row__main {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.entry-history-row__date {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  text-transform: capitalize;
+}
+
+.entry-history-row__main strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.96rem;
+  font-weight: 950;
+  line-height: 1.16;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry-history-row__main small,
+.entry-history-row__main em {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.entry-history-row__main em {
+  font-style: normal;
+  font-weight: 700;
+}
+
+.entry-history-row__quantity {
+  min-width: 0;
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  text-align: right;
+}
+
+.entry-history-row__quantity strong {
+  color: rgb(var(--entry-accent));
+  font-size: 1.12rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.entry-history-row__quantity span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
 .activity-history-list {
   display: grid;
   gap: 14px;
@@ -4790,6 +4992,39 @@ th {
     display: none;
   }
 
+  .activity-history-filter {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .activity-history-filter__button {
+    width: 100%;
+  }
+
+  .entry-history-row {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 8px 10px;
+    padding: 10px;
+  }
+
+  .entry-history-row__image {
+    width: 42px;
+    height: 42px;
+  }
+
+  .entry-history-row__main strong {
+    white-space: normal;
+  }
+
+  .entry-history-row__quantity {
+    grid-column: 2;
+    justify-items: start;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    text-align: left;
+  }
+
   .activity-history-row {
     border: 1px solid var(--border);
     border-left: 6px solid rgb(var(--activity-accent));
@@ -6457,7 +6692,7 @@ th {
 
 .farm-shed__compact-progress > span span {
   display: block;
-  width: var(--occupancy-percent);
+  width: var(--compact-progress-percent, var(--occupancy-percent));
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, #5b9a60, #77b47b);
@@ -6477,33 +6712,30 @@ th {
   color: #41664f;
   font-size: 0.78rem;
   font-weight: 860;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   line-height: 1;
   text-transform: uppercase;
 }
 
 .farm-shed__compact-metrics {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  overflow: hidden;
-  border: 1px solid rgb(20 33 29 / 10%);
-  border-radius: 15px;
-  background: rgb(255 255 255 / 68%);
-  box-shadow:
-    0 9px 18px rgb(20 33 29 / 5%),
-    inset 0 0 0 1px rgb(255 255 255 / 68%);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  overflow: visible;
+  padding: 2px 2px 0;
 }
 
 .farm-shed__compact-metric {
   min-width: 0;
   display: grid;
-  justify-items: center;
+  grid-template-columns: 34px minmax(0, 1fr);
+  justify-items: start;
   align-content: center;
-  gap: 3px;
-  border-right: 1px solid rgb(20 33 29 / 10%);
-  padding: 8px 4px 7px;
-  color: #2f7d55;
-  text-align: center;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  color: #5d7f38;
+  text-align: left;
 }
 
 .farm-shed__compact-metric:last-child {
@@ -6517,26 +6749,26 @@ th {
 .farm-shed__compact-metric-icon {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: rgb(234 244 234 / 82%);
+  width: 34px;
+  height: 34px;
+  color: #5d7f38;
+  background: transparent;
 }
 
 .farm-shed__compact-metric--warn .farm-shed__compact-metric-icon {
-  background: rgb(255 245 220 / 90%);
+  background: transparent;
 }
 
 .farm-shed__compact-metric span:last-child {
   min-width: 0;
   display: grid;
-  gap: 1px;
+  gap: 2px;
 }
 
 .farm-shed__compact-metric small {
   min-width: 0;
   color: #344d4b;
-  font-size: 0.58rem;
+  font-size: 0.62rem;
   font-weight: 900;
   line-height: 1.1;
   overflow: hidden;
@@ -6548,7 +6780,7 @@ th {
 .farm-shed__compact-metric strong {
   min-width: 0;
   color: #163d3a;
-  font-size: 0.9rem;
+  font-size: 1.14rem;
   font-weight: 950;
   line-height: 1.05;
   overflow: hidden;
@@ -6559,7 +6791,7 @@ th {
 .farm-shed__compact-metric em {
   min-width: 0;
   color: #516764;
-  font-size: 0.64rem;
+  font-size: 0.68rem;
   font-style: normal;
   font-weight: 700;
   line-height: 1.1;
@@ -6925,22 +7157,24 @@ th {
 }
 
 .farm-shed--compact .farm-shed__compact-metrics {
-  border-radius: 11px;
+  gap: 8px;
+  padding-top: 0;
 }
 
 .farm-shed--compact .farm-shed__compact-metric {
-  gap: 2px;
-  padding: 5px 2px;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 5px;
+  padding: 4px 0;
 }
 
 .farm-shed--compact .farm-shed__compact-metric-icon {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
 .farm-shed--compact .farm-shed__compact-metric-icon svg {
-  width: 15px;
-  height: 15px;
+  width: 20px;
+  height: 20px;
 }
 
 .farm-shed--compact .farm-shed__compact-metric small {
@@ -6948,11 +7182,11 @@ th {
 }
 
 .farm-shed--compact .farm-shed__compact-metric strong {
-  font-size: 0.7rem;
+  font-size: 0.74rem;
 }
 
 .farm-shed--compact .farm-shed__compact-metric em {
-  display: none;
+  font-size: 0.48rem;
 }
 
 @media (max-width: 1100px) {
@@ -7107,16 +7341,19 @@ th {
   }
 
   .farm-shed--compact .farm-shed__compact-metric {
+    grid-template-columns: 18px minmax(0, 1fr);
+    gap: 3px;
     padding-block: 4px;
   }
 
-  .farm-shed--compact .farm-shed__compact-metric:nth-child(2),
-  .farm-shed--compact .farm-shed__compact-metric:nth-child(4) {
-    display: none;
+  .farm-shed--compact .farm-shed__compact-metric-icon {
+    width: 18px;
+    height: 18px;
   }
 
-  .farm-shed--compact .farm-shed__compact-metric-icon {
-    display: none;
+  .farm-shed--compact .farm-shed__compact-metric-icon svg {
+    width: 17px;
+    height: 17px;
   }
 
   .farm-shed--compact .farm-shed__compact-metric small {
@@ -7158,7 +7395,7 @@ th {
 
 /* Ultra-compact six-card fit */
 .farm-shed--compact {
-  min-height: 168px;
+  min-height: 212px;
   border-radius: 18px;
   padding: 6px;
 }
@@ -7198,9 +7435,9 @@ th {
 }
 
 .farm-shed--compact .farm-shed__compact-main {
-  grid-template-columns: 43px minmax(0, 1fr) 58px;
+  grid-template-columns: 43px minmax(92px, 1fr) 58px;
   gap: 4px;
-  min-height: 50px;
+  min-height: 92px;
 }
 
 .farm-shed--compact .farm-shed__compact-day small,
@@ -7231,30 +7468,32 @@ th {
 }
 
 .farm-shed--compact .farm-shed__compact-bird {
-  min-height: 50px;
+  min-height: 92px;
 }
 
 .farm-shed--compact .farm-shed__compact-bird::after {
-  bottom: 3px;
-  height: 10px;
+  right: 12%;
+  bottom: 5px;
+  left: 12%;
+  height: 18px;
 }
 
 .farm-shed--compact .farm-shed__compact-bird-image {
-  height: 52px;
-  max-width: 76px;
+  height: 94px;
+  max-width: 138px;
 }
 
 .farm-shed--compact .farm-shed__compact-bird-image--day-1,
 .farm-shed--compact .farm-shed__compact-bird-image--day-8 {
-  height: 48px;
+  height: 84px;
 }
 
 .farm-shed--compact .farm-shed__compact-bird-image--day-36,
 .farm-shed--compact .farm-shed__compact-bird-image--day-43,
 .farm-shed--compact .farm-shed__compact-bird-image--day-50,
 .farm-shed--compact .farm-shed__compact-bird-image--day-57 {
-  height: 58px;
-  max-width: 86px;
+  height: 106px;
+  max-width: 154px;
 }
 
 .farm-shed--compact .farm-shed__compact-progress {
@@ -7275,22 +7514,24 @@ th {
 
 .farm-shed--compact .farm-shed__compact-metrics {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-radius: 9px;
+  gap: 5px;
 }
 
 .farm-shed--compact .farm-shed__compact-metric {
+  grid-template-columns: 17px minmax(0, 1fr);
+  gap: 3px;
   min-height: 24px;
-  padding: 3px 2px;
+  padding: 3px 0;
 }
 
-.farm-shed--compact .farm-shed__compact-metric:nth-child(2),
-.farm-shed--compact .farm-shed__compact-metric:nth-child(4) {
-  display: none;
+.farm-shed--compact .farm-shed__compact-metric-icon {
+  width: 17px;
+  height: 17px;
 }
 
-.farm-shed--compact .farm-shed__compact-metric-icon,
-.farm-shed--compact .farm-shed__compact-metric em {
-  display: none;
+.farm-shed--compact .farm-shed__compact-metric-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .farm-shed--compact .farm-shed__compact-metric small {
@@ -7299,6 +7540,10 @@ th {
 
 .farm-shed--compact .farm-shed__compact-metric strong {
   font-size: 0.62rem;
+}
+
+.farm-shed--compact .farm-shed__compact-metric em {
+  font-size: 0.42rem;
 }
 
 @media (orientation: landscape) and (min-width: 720px) and (max-height: 820px) {
@@ -7403,7 +7648,7 @@ th {
   }
 
   .page-shell--galpones .farm-shed--compact {
-    min-height: 140px;
+    min-height: 178px;
     border-radius: 16px;
     padding: 5px;
   }
@@ -7438,8 +7683,8 @@ th {
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-main {
-    grid-template-columns: 42px minmax(0, 1fr) 62px;
-    min-height: 46px;
+    grid-template-columns: 42px minmax(82px, 1fr) 62px;
+    min-height: 82px;
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-day small,
@@ -7456,25 +7701,25 @@ th {
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird {
-    min-height: 46px;
+    min-height: 82px;
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird-image {
-    height: 46px;
-    max-width: 82px;
+    height: 88px;
+    max-width: 150px;
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird-image--day-1,
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird-image--day-8 {
-    height: 42px;
+    height: 78px;
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird-image--day-36,
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird-image--day-43,
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird-image--day-50,
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird-image--day-57 {
-    height: 54px;
-    max-width: 100px;
+    height: 100px;
+    max-width: 170px;
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-progress > span {
@@ -7483,11 +7728,24 @@ th {
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-metrics {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-metric {
+    grid-template-columns: 15px minmax(0, 1fr);
+    gap: 3px;
     min-height: 21px;
-    padding: 2px;
+    padding: 2px 0;
+  }
+
+  .page-shell--galpones .farm-shed--compact .farm-shed__compact-metric-icon {
+    width: 15px;
+    height: 15px;
+  }
+
+  .page-shell--galpones .farm-shed--compact .farm-shed__compact-metric-icon svg {
+    width: 14px;
+    height: 14px;
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-metric small {
@@ -7496,6 +7754,10 @@ th {
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-metric strong {
     font-size: 0.58rem;
+  }
+
+  .page-shell--galpones .farm-shed--compact .farm-shed__compact-metric em {
+    font-size: 0.36rem;
   }
 }
 
@@ -14124,6 +14386,86 @@ body:has(.native-record-screen--pest) {
 }
 
 /* Admin lote history overrides. */
+.hojas-manejo-view {
+  display: grid;
+  gap: 16px;
+}
+
+.hojas-manejo-view .lote-history-card {
+  margin-top: 0;
+}
+
+.hojas-manejo-filter {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.3fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  padding: 14px;
+  border: 1px solid rgb(20 33 29 / 10%);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--shadow-card);
+}
+
+.hojas-manejo-filter__heading {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.hojas-manejo-filter__heading span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.hojas-manejo-filter__heading strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 1.12rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hojas-manejo-filter__list {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.hojas-manejo-filter__list button {
+  min-width: 112px;
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  padding: 10px 12px;
+  border: 1px solid #d8e5df;
+  border-radius: 8px;
+  background: #f8faf9;
+  color: var(--text);
+  font-weight: 850;
+  text-align: left;
+}
+
+.hojas-manejo-filter__list button.is-active {
+  border-color: var(--brand);
+  background: #e8f7f4;
+  color: var(--brand-strong);
+  box-shadow: inset 0 0 0 1px var(--brand);
+}
+
+.hojas-manejo-filter__list small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 .lote-history-card {
   margin-top: 16px;
 }
@@ -14211,6 +14553,10 @@ body:has(.native-record-screen--pest) {
 }
 
 @media (max-width: 700px) {
+  .hojas-manejo-filter {
+    grid-template-columns: 1fr;
+  }
+
   .lote-history-identity {
     grid-template-columns: 1fr;
   }

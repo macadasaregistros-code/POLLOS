@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { ArrowDown, BarChart3, Bird, CalendarDays, Check, ClipboardList, House, Leaf, Package, Scale, ShieldPlus, UsersRound } from 'lucide-react';
+import { ArrowDown, BarChart3, Bird, CalendarDays, Check, ClipboardList, HeartPulse, House, Leaf, Package, Scale, ShieldPlus, UsersRound } from 'lucide-react';
 import { addDays, todayISO } from '../lib/date';
 import { fmtKg, fmtNumber, fmtPercent } from '../lib/format';
 import type { FechaISO, Galpon, Lote, LoteGalpon, LoteResumen, RegistroDiarioLote } from '../types/entities';
@@ -26,6 +26,7 @@ export interface GalponDashboardCardData {
   entrada: number;
   mortalidadPct: number;
   consumoKg: number;
+  consumoBultos: number;
   conversionCA: number;
   pendientes: number;
 }
@@ -78,6 +79,8 @@ const chickenImages = [
   { day: 50, src: '/chickens/day-50.png' },
   { day: 57, src: '/chickens/day-57.png' },
 ] as const;
+
+const DEFAULT_KG_PER_BULTO = 40;
 
 const emptyStateFlow = [
   { key: 'VACIO', label: 'Vacío', detail: 'Sin lote activo' },
@@ -139,6 +142,7 @@ export function GalponMap({ galpones, loteGalpones, lotes, summaries, registrosD
                     lotesById={lotesById}
                     summariesByLoteId={summariesByLoteId}
                     latestRegistroDatesByLoteId={latestRegistroDatesByLoteId}
+                    registrosDiarios={registrosDiarios}
                     selectedGalponId={selectedGalponId}
                     maxCapacity={maxCapacity}
                     today={today}
@@ -160,6 +164,7 @@ function GalponTile({
   lotesById,
   summariesByLoteId,
   latestRegistroDatesByLoteId,
+  registrosDiarios,
   selectedGalponId,
   maxCapacity,
   today,
@@ -170,6 +175,7 @@ function GalponTile({
   lotesById: Map<string, Lote>;
   summariesByLoteId: Map<string, LoteResumen>;
   latestRegistroDatesByLoteId: Map<string, FechaISO>;
+  registrosDiarios: RegistroDiarioLote[];
   selectedGalponId?: string;
   maxCapacity: number;
   today: FechaISO;
@@ -182,6 +188,7 @@ function GalponTile({
     lotesById,
     summariesByLoteId,
     latestRegistroDatesByLoteId,
+    registrosDiarios,
     maxCapacity,
     today,
   });
@@ -244,6 +251,7 @@ export function buildGalponDashboardModel({
       entrada: vacating ? avesEnGalpon : avesEntrada,
       mortalidadPct: summary ? summary.MortalidadAcumulada * 100 : 0,
       consumoKg: summary?.ConsumoAcumuladoKg ?? 0,
+      consumoBultos: getConsumptionBultos(assignments, summary, registrosDiarios),
       conversionCA: summary?.ConversionAlimenticia ?? 0,
       pendientes: summary?.PendientesHoy ?? 0,
     },
@@ -291,6 +299,9 @@ export function GalponDashboardCard({
       ? `${fmtNumber(100 - occupancyPercent, 0)}% desocupado`
       : data.tipoAlimento || growth.stage.detail;
   const occupancyValue = fmtPercent(occupancyRatio, 0);
+  const compactProgressRatio = empty ? resolvedEmptyState.progress : occupancyRatio;
+  const compactProgressValue = fmtPercent(compactProgressRatio, 0);
+  const compactProgressLabel = empty ? 'alistamiento' : 'ocupación';
   const entryLabel = vacating ? 'quedan' : 'entrada';
   const isOverdue = !empty && growth.isOverdue;
   const birdStageLabel = empty ? resolvedEmptyState.label : getBirdStageLabel(growth.index);
@@ -298,6 +309,7 @@ export function GalponDashboardCard({
   const style = {
     '--capacity-ratio': capacityRatio,
     '--occupancy-percent': `${Math.round(occupancyPercent)}%`,
+    '--compact-progress-percent': `${Math.round(compactProgressRatio * 100)}%`,
     '--occupancy-ratio': occupancyRatio,
     '--departure-percent': `${Math.round(100 - occupancyPercent)}%`,
     '--growth-percent': `${Math.round(growth.progress * 100)}%`,
@@ -384,22 +396,14 @@ export function GalponDashboardCard({
           <span>
             <span />
           </span>
-          <strong>{occupancyValue}</strong>
-          <small>ocupación</small>
+          <strong>{compactProgressValue}</strong>
+          <small>{compactProgressLabel}</small>
         </div>
 
         <div className="farm-shed__compact-metrics">
-          <CompactMetric icon={<Bird size={26} />} label="Ocupación" value={occupancyValue} detail={`${fmtNumber(data.entrada)} / ${fmtNumber(data.capacidad)} cap.`} />
-          <CompactMetric icon={<Package size={26} />} label="Consumo total" value={empty ? '-' : fmtKg(data.consumoKg, 0)} detail="Alimento" />
-          <CompactMetric icon={<Scale size={26} />} label="Conversión (CA)" value={empty ? '-' : fmtNumber(data.conversionCA, 2)} detail="Promedio" />
-          <CompactMetric icon={<ShieldPlus size={26} />} label="Mortalidad" value={empty ? '-' : `${fmtNumber(data.mortalidadPct, 1)}%`} detail="Acum." />
-          <CompactMetric
-            icon={<ClipboardList size={26} />}
-            label="Pendientes"
-            value={empty ? '-' : fmtNumber(data.pendientes)}
-            detail={vacating ? 'Por retirar' : 'Por hacer'}
-            tone={!empty && data.pendientes > 0 ? 'warn' : 'neutral'}
-          />
+          <CompactMetric icon={<Package size={26} />} label="Consumo en btos" value={empty ? '-' : `${fmtNumber(data.consumoBultos, 1)} btos`} detail="Alimento" />
+          <CompactMetric icon={<Scale size={26} />} label="Conversión" value={empty ? '-' : fmtNumber(data.conversionCA, 2)} />
+          <CompactMetric icon={<HeartPulse size={26} />} label="Mortalidad" value={empty ? '-' : `${fmtNumber(data.mortalidadPct, 1)}%`} />
         </div>
       </section>
 
@@ -691,6 +695,16 @@ function getOccupancyTone(occupancyPercent: number) {
   return 'low';
 }
 
+function getConsumptionBultos(assignments: LoteGalpon[], summary?: LoteResumen, registrosDiarios: RegistroDiarioLote[] = []) {
+  const loteIds = new Set(assignments.map((assignment) => assignment.LoteID));
+  const bultosFromRecords = registrosDiarios
+    .filter((registro) => loteIds.has(registro.LoteID))
+    .reduce((sum, registro) => sum + registro.BultosConsumidos, 0);
+
+  if (bultosFromRecords > 0) return bultosFromRecords;
+  return (summary?.ConsumoAcumuladoKg ?? 0) / DEFAULT_KG_PER_BULTO;
+}
+
 function getChickenImage(day: number) {
   const safeDay = Math.max(1, day);
 
@@ -822,7 +836,7 @@ function CompactMetric({
   icon: ReactNode;
   label: string;
   value: string;
-  detail: string;
+  detail?: string;
   tone?: 'neutral' | 'warn';
 }) {
   return (
@@ -831,7 +845,7 @@ function CompactMetric({
       <span>
         <small>{label}</small>
         <strong>{value}</strong>
-        <em>{detail}</em>
+        {detail && <em>{detail}</em>}
       </span>
     </span>
   );

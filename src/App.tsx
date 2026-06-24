@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Activity, BarChart3, CalendarClock, ClipboardList, Home, Map, Package, RefreshCcw, Shield, Truck, UserRound } from 'lucide-react';
+import { Activity, BarChart3, CalendarClock, ClipboardList, FileText, Home, Map, Package, RefreshCcw, Shield, Truck, UserRound } from 'lucide-react';
 import { SyncStatusBadge } from './components/SyncStatusBadge';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { getCurrentUser, getOrCreateSupabaseUser, switchRole } from './services/authService';
@@ -22,6 +22,8 @@ const adminNavItems: Array<{ view: MainView; label: string; icon: typeof Home }>
   { view: 'actividades', label: 'Hechas', icon: Activity },
   { view: 'galpones', label: 'Galpones', icon: Map },
   { view: 'lotes', label: 'Lotes', icon: ClipboardList },
+  { view: 'hojasManejo', label: 'Hojas manejo', icon: FileText },
+  { view: 'entradas', label: 'Entradas', icon: Truck },
   { view: 'programacion', label: 'Programacion', icon: CalendarClock },
   { view: 'inventario', label: 'Inventario', icon: Package },
   { view: 'reportes', label: 'Reportes', icon: BarChart3 },
