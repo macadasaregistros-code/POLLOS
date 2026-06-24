@@ -72,6 +72,7 @@ const GALPONERO_BOOTSTRAP_TABLE_NAMES = new Set([
   'RegistroDiarioLote',
   'Pesajes',
   'SalidasPollo',
+  'ActividadesProgramadas',
   'ActividadesLote',
   'VacunasLote',
   'ConsumoAlimentoLote',

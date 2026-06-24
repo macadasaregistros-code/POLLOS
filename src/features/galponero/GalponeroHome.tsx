@@ -297,11 +297,18 @@ function GalponeroTitle({ eyebrow, title, icon }: { eyebrow: string; title: stri
 }
 
 function NaturalAgenda({ agenda, onTask }: { agenda: AgendaModel; onTask: (task: AgendaTask) => void | Promise<void> }) {
+  const sections = [
+    { title: 'HOY', tasks: agenda.hoy, empty: 'No hay registros programados para hoy.' },
+    { title: 'PROXIMAS', tasks: agenda.proximas, empty: 'Sin vacunas ni perros en los proximos 5 dias.' },
+    { title: 'PENDIENTES', tasks: agenda.pendientes, empty: 'Sin vacunas ni perros vencidos.' },
+  ];
+  const orderedSections = agenda.pendientes.length > 0 ? [sections[2], sections[0], sections[1]] : sections;
+
   return (
     <section className="natural-agenda" aria-label="Agenda natural de registros">
-      <AgendaSection title="HOY" tasks={agenda.hoy} empty="No hay registros programados para hoy." onTask={onTask} />
-      <AgendaSection title="PROXIMAS" tasks={agenda.proximas} empty="Sin vacunas ni perros en los proximos 5 dias." onTask={onTask} />
-      <AgendaSection title="PENDIENTES" tasks={agenda.pendientes} empty="Sin vacunas ni perros vencidos." onTask={onTask} />
+      {orderedSections.map((section) => (
+        <AgendaSection key={section.title} title={section.title} tasks={section.tasks} empty={section.empty} onTask={onTask} />
+      ))}
     </section>
   );
 }

@@ -5,6 +5,8 @@ import * as sheetsApiService from './sheetsApiService';
 import * as supabaseApiService from './supabaseApiService';
 import type { EstadoSync, SyncEntityTable, SyncOperation, SyncQueueItem, Usuario } from '../types/entities';
 
+const LOCAL_ONLY_BOOTSTRAP_TABLES = new Set<string>(['Usuarios']);
+
 export async function enqueueSync(
   table: SyncEntityTable,
   recordId: string,
@@ -113,14 +115,47 @@ export async function bootstrapFromRemote(user: Usuario): Promise<{ updatedTable
   let updatedTables = 0;
   let updatedRows = 0;
   for (const [tableName, rows] of Object.entries(tables)) {
-    if (!Array.isArray(rows) || rows.length === 0) continue;
-    const table = getLocalTableBySheetName(tableName);
-    if (!table) continue;
-    await table.bulkPut(rows);
+    if (!Array.isArray(rows)) continue;
+    const applied = await applyRemoteBootstrapRows(tableName, rows);
+    if (!applied) continue;
     updatedTables += 1;
     updatedRows += rows.length;
   }
   await ensureCanonicalFeedTypes();
 
   return { updatedTables, updatedRows, skipped: false };
+}
+
+async function applyRemoteBootstrapRows(tableName: string, rows: object[]): Promise<boolean> {
+  const table = getLocalTableBySheetName(tableName);
+  if (!table) return false;
+
+  const locallyPendingIds = await getLocallyPendingRecordIds(tableName);
+  const rowsToPut = locallyPendingIds.size > 0 ? rows.filter((row) => !locallyPendingIds.has(getPrimaryKeyFromRow(table, row))) : rows;
+
+  if (!LOCAL_ONLY_BOOTSTRAP_TABLES.has(tableName)) {
+    const remoteIds = new Set(rows.map((row) => getPrimaryKeyFromRow(table, row)).filter(Boolean));
+    const localKeys = (await table.toCollection().primaryKeys()).map((key) => String(key));
+    const staleLocalKeys = localKeys.filter((key) => !remoteIds.has(key) && !locallyPendingIds.has(key));
+    if (staleLocalKeys.length > 0) await table.bulkDelete(staleLocalKeys);
+  }
+
+  if (rowsToPut.length > 0) await table.bulkPut(rowsToPut);
+  return true;
+}
+
+async function getLocallyPendingRecordIds(tableName: string): Promise<Set<string>> {
+  const items = await db.syncQueue
+    .where('Tabla')
+    .equals(tableName)
+    .and((item) => item.EstadoSync === 'PENDIENTE' || item.EstadoSync === 'ERROR')
+    .toArray();
+  return new Set(items.map((item) => item.RegistroID));
+}
+
+function getPrimaryKeyFromRow(table: ReturnType<typeof getLocalTableBySheetName>, row: object): string {
+  const keyPath = table?.schema.primKey.keyPath;
+  if (typeof keyPath !== 'string') return '';
+  const value = (row as Record<string, unknown>)[keyPath];
+  return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
 }
