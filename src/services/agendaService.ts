@@ -1,11 +1,12 @@
 import { addDays, getDiaLote } from '../lib/date';
 import { getNextRequiredDailyRegisterDate } from './dailyRegisterService';
 import { getNextPrepTask } from './preparationService';
+import { isPesajeActivity } from './pesajeScheduleService';
 import { getAgendaToneOrder, getProgramacionActivityCategory, getProgramacionActivityOrder, isPestRoutineLike, isProgramacionActivityActive, isWaterRoutineLike, type AgendaTone } from './programmingCatalogService';
 import { cleanActivityName, getRoutineDefinition } from './routineService';
 import type { ActividadLote, ActividadProgramada, Galpon, Lote, LoteGalpon, Perro, RegistroDiarioLote, VacunaLote } from '../types/entities';
 
-export type AgendaRecordKind = 'vacunacion' | 'agua' | 'plagas' | 'medicamento' | 'compostaje' | 'perros' | 'capacitacion';
+export type AgendaRecordKind = 'vacunacion' | 'agua' | 'plagas' | 'medicamento' | 'compostaje' | 'perros' | 'capacitacion' | 'pesaje';
 export type AgendaDogRecordType = 'RABIA' | 'DESPARASITACION';
 
 export interface AgendaRecordContext {
@@ -100,9 +101,9 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
   const pestRoutineActivities = routineActivities.filter((actividad) => !isWaterRoutineLike(actividad) && isPestRoutineLike(actividad));
   const routineRecordActivityIds = new Set([...waterRoutineActivities, ...pestRoutineActivities].map((actividad) => actividad.ActividadLoteID));
   const routineCheckActivities = routineActivities.filter((actividad) => !routineRecordActivityIds.has(actividad.ActividadLoteID));
-  const loteActivities = selectNextLoteActivityByLote(
-    dueActivities.filter((actividad) => getProgramacionActivityCategory(actividad, input.actividadesProgramadas) === 'lote' && activeLoteIds.has(actividad.LoteID)),
-  );
+  const dueLoteActivities = dueActivities.filter((actividad) => getProgramacionActivityCategory(actividad, input.actividadesProgramadas) === 'lote' && activeLoteIds.has(actividad.LoteID));
+  const pesajeActivities = [...groupBy(dueLoteActivities.filter(isPesajeActivity), getPesajeGroupKey).values()];
+  const loteActivities = selectNextLoteActivityByLote(dueLoteActivities.filter((actividad) => !isPesajeActivity(actividad)));
 
   for (const activities of groupBy(waterRoutineActivities, getRoutineRecordGroupKey).values()) {
     addDueActivityTask(
@@ -136,12 +137,20 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
     hoy.push(actividad.FechaProgramada < input.today ? { ...task, meta: `Pendiente desde ${actividad.FechaProgramada}` } : task);
   }
 
+  for (const activities of pesajeActivities) {
+    addDueActivityTask(buildPesajeTask(activities, lotesById), input.today, hoy, pendientes);
+  }
+
   function getRoutineGroupKey(actividad: ActividadLote): string {
     return `${actividad.FechaProgramada}|${normalizeKey(getRoutineAgendaName(actividad))}`;
   }
 
   function getRoutineRecordGroupKey(actividad: ActividadLote): string {
     return actividad.FechaProgramada;
+  }
+
+  function getPesajeGroupKey(actividad: ActividadLote): string {
+    return `${actividad.LoteID}|${actividad.DiaLote}`;
   }
 
   for (const vacuna of input.vacunas.filter(isPendingVaccine)) {
@@ -255,6 +264,34 @@ function buildCompletionTask(
     tone,
     date: actividad.FechaProgramada,
     action: { type: 'completeActivities', activityIds: [actividad.ActividadLoteID] },
+  };
+}
+
+function buildPesajeTask(activities: ActividadLote[], lotesById: Map<string, Lote>): AgendaTask {
+  const first = activities.slice().sort((left, right) =>
+    left.FechaProgramada.localeCompare(right.FechaProgramada) ||
+    left.ActividadLoteID.localeCompare(right.ActividadLoteID),
+  )[0];
+  const lote = lotesById.get(first.LoteID);
+  const loteLabel = lote ? `Lote ${lote.CodigoLote}` : `Lote ${first.LoteID}`;
+  const diaLote = lote ? getDiaLote(lote.FechaLlegada, first.FechaProgramada) : first.DiaLote;
+
+  return {
+    id: `pesaje:${first.LoteID}:${first.DiaLote}`,
+    title: `Pesaje ${loteLabel}`,
+    detail: `Dia ${diaLote} - peso pollo por pollo`,
+    meta: 'Registrar pesos',
+    tone: 'lote',
+    date: first.FechaProgramada,
+    order: first.DiaLote,
+    action: {
+      type: 'record',
+      kind: 'pesaje',
+      context: {
+        loteId: first.LoteID,
+        activityIds: activities.map((actividad) => actividad.ActividadLoteID),
+      },
+    },
   };
 }
 

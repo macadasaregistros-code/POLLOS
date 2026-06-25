@@ -1,7 +1,10 @@
 import Dexie, { type Table, type Transaction } from 'dexie';
 import { createDemoData } from '../data/demoData';
 import { getProgramacionTemplateCategory, isPestRoutineLike } from './programmingCatalogService';
+import { buildPesajeActivityTemplates, isPesajeActivity } from './pesajeScheduleService';
 import { getWeekdayFromISO, isRoutineActivity, normalizeRoutineWeekdays } from './routineService';
+import { addDays, nowISO, todayISO } from '../lib/date';
+import { createId } from '../lib/id';
 import type {
   ActividadLote,
   ActividadProgramada,
@@ -359,6 +362,40 @@ export class PollosDb extends Dexie {
         }));
       if (pestOffDayUpdates.length) await actividadesLote.bulkPut(pestOffDayUpdates);
     });
+
+    this.version(8).upgrade(async (transaction: Transaction) => {
+      const actividades = transaction.table('actividadesProgramadas') as Table<ActividadProgramada, string>;
+      const actividadesLote = transaction.table('actividadesLote') as Table<ActividadLote, string>;
+      const lotes = transaction.table('lotes') as Table<Lote, string>;
+      const syncQueue = transaction.table('syncQueue') as Table<SyncQueueItem, string>;
+      const templates = buildPesajeActivityTemplates();
+      const existingTemplateIds = new Set(await actividades.toCollection().primaryKeys());
+      const now = nowISO();
+      const today = todayISO();
+
+      await actividades.bulkPut(templates);
+
+      const activeLotes = (await lotes.toArray()).filter((lote) => lote.EstadoLote === 'ACTIVO');
+      const currentActivities = await actividadesLote.toArray();
+      const missingActivities = buildMissingPesajeActivities(activeLotes, currentActivities, templates, today);
+      if (missingActivities.length) await actividadesLote.bulkAdd(missingActivities);
+
+      const syncItems = [
+        ...templates.map((template) =>
+          createLocalSyncQueueItem(
+            'ActividadesProgramadas',
+            template.ActividadProgramadaID,
+            existingTemplateIds.has(template.ActividadProgramadaID) ? 'UPDATE' : 'CREATE',
+            template,
+            now,
+          ),
+        ),
+        ...missingActivities.map((actividad) =>
+          createLocalSyncQueueItem('ActividadesLote', actividad.ActividadLoteID, 'CREATE', actividad, now),
+        ),
+      ];
+      if (syncItems.length) await syncQueue.bulkAdd(syncItems);
+    });
   }
 }
 
@@ -394,6 +431,68 @@ function isDemoPrimaryKey(key: unknown): boolean {
     'perro_reg_demo_',
     'inv_alimento_',
   ].some((prefix) => key.startsWith(prefix));
+}
+
+function buildMissingPesajeActivities(
+  lotes: Lote[],
+  currentActivities: ActividadLote[],
+  templates: ActividadProgramada[],
+  today: string,
+): ActividadLote[] {
+  const missing: ActividadLote[] = [];
+
+  for (const lote of lotes) {
+    for (const template of templates) {
+      const day = Math.max(1, template.DiaLote);
+      const exists = currentActivities.some((actividad) =>
+        actividad.LoteID === lote.LoteID &&
+        actividad.DiaLote === day &&
+        actividad.Estado !== 'NO_APLICA' &&
+        isPesajeActivity(actividad),
+      );
+      if (exists) continue;
+
+      const fechaProgramada = addDays(lote.FechaLlegada, day - 1);
+      missing.push({
+        ActividadLoteID: createId('act_lote'),
+        LoteID: lote.LoteID,
+        GalponID: '',
+        FechaProgramada: fechaProgramada,
+        DiaLote: day,
+        NombreActividad: template.NombreActividad,
+        Categoria: template.Categoria,
+        Estado: fechaProgramada < today ? 'VENCIDA' : 'PENDIENTE',
+        FechaRealizada: '',
+        RealizadaPor: '',
+        Observacion: '',
+        CerradaComoPendiente: false,
+        EstadoSync: 'PENDIENTE',
+      });
+    }
+  }
+
+  return missing;
+}
+
+function createLocalSyncQueueItem(
+  table: SyncEntityTable,
+  recordId: string,
+  operation: SyncQueueItem['Operacion'],
+  payload: unknown,
+  now: string,
+): SyncQueueItem {
+  return {
+    SyncID: createId('sync'),
+    Tabla: table,
+    RegistroID: recordId,
+    Operacion: operation,
+    Payload: payload,
+    EstadoSync: 'PENDIENTE',
+    Intentos: 0,
+    Error: '',
+    CreadoEn: now,
+    ActualizadoEn: now,
+  };
 }
 
 async function getExistingStoreNames(): Promise<string[]> {
@@ -681,6 +780,7 @@ export async function prepareRemoteLocalData(): Promise<void> {
         await db.tiposAlimento.put(mergeCanonicalFeedType(canonical, existing));
       }
       if ((await db.actividadesProgramadas.count()) === 0) await db.actividadesProgramadas.bulkPut(reference.actividadesProgramadas);
+      else await db.actividadesProgramadas.bulkPut(buildPesajeActivityTemplates());
       if ((await db.planVacunalBase.count()) === 0) await db.planVacunalBase.bulkPut(reference.planVacunalBase);
       if ((await db.curvasEstandar.count()) === 0) await db.curvasEstandar.bulkPut(reference.curvasEstandar);
     });

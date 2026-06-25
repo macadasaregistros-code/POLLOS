@@ -24,6 +24,7 @@ import {
   PenLine,
   Pill,
   Save,
+  Scale,
   ShieldCheck,
   Sprout,
   SquarePlus,
@@ -52,8 +53,9 @@ import { fmtNumber } from '../../lib/format';
 import { avesVivasTotal, sumLoteTotals } from '../../services/calculationsService';
 import type { CompostajeCajon, ControlAgua, Lote, TipoMaterialInventario, Usuario } from '../../types/entities';
 import { FoodTypeSelector, getFeedTypeOptions } from './FeedTypeSelector';
+import { PesajeForm } from './PesajeForm';
 
-export type ActivityRecordKind = 'vacunacion' | 'agua' | 'plagas' | 'medicamento' | 'compostaje' | 'perros' | 'capacitacion';
+export type ActivityRecordKind = 'vacunacion' | 'agua' | 'plagas' | 'medicamento' | 'compostaje' | 'perros' | 'capacitacion' | 'pesaje';
 export type EntryKind = 'alimento' | 'cisco' | 'gas';
 
 interface RecordOption<TKind extends string> {
@@ -97,6 +99,14 @@ const activityOptions: Array<RecordOption<ActivityRecordKind>> = [
     eyebrow: 'Veterinaria',
     icon: <Pill size={28} />,
     tone: 'medicine',
+  },
+  {
+    kind: 'pesaje',
+    title: 'Pesaje',
+    subtitle: 'Peso pollo por pollo del lote',
+    eyebrow: 'Peso',
+    icon: <Scale size={28} />,
+    tone: 'weight',
   },
   {
     kind: 'compostaje',
@@ -230,6 +240,7 @@ export function GalponeroActivityRecords({ user, activeKind, recordContext, onAc
         {resolvedActiveKind === 'agua' && <WaterTreatmentForm user={user} context={recordContext} onSaved={onSaved} />}
         {resolvedActiveKind === 'plagas' && <PestControlForm user={user} context={recordContext} onSaved={onSaved} />}
         {resolvedActiveKind === 'medicamento' && <MedicationForm user={user} onSaved={onSaved} />}
+        {resolvedActiveKind === 'pesaje' && <PesajeRecordForm user={user} context={recordContext} onSaved={onSaved} />}
         {resolvedActiveKind === 'compostaje' && <CompostingPanel />}
         {resolvedActiveKind === 'perros' && <DogRecordForm user={user} context={recordContext} onSaved={onSaved} />}
         {resolvedActiveKind === 'capacitacion' && <TrainingForm user={user} onSaved={onSaved} />}
@@ -341,6 +352,56 @@ function ReminderPanel() {
         <span>Semanales: limpiar malla y telaranas, barrer bodegas, plagas.</span>
       </div>
     </article>
+  );
+}
+
+function PesajeRecordForm({ user, context, onSaved }: { user: Usuario; context?: AgendaRecordContext; onSaved: (message: string) => void }) {
+  const lotes = useLiveQuery(() => db.lotes.where('EstadoLote').equals('ACTIVO').toArray(), []);
+  const activeLotes = lotes ?? [];
+  const [loteId, setLoteId] = useState(context?.loteId ?? '');
+  const selectedLote = activeLotes.find((lote) => lote.LoteID === loteId);
+  const lockedByAgenda = Boolean(context?.loteId);
+
+  useEffect(() => {
+    if (context?.loteId) {
+      setLoteId(context.loteId);
+      return;
+    }
+    if (!loteId && activeLotes[0]) setLoteId(activeLotes[0].LoteID);
+  }, [activeLotes, context?.loteId, loteId]);
+
+  async function handleSaved(message: string) {
+    await completeLinkedActivities(context, user);
+    onSaved(message);
+  }
+
+  if (!activeLotes.length) {
+    return <p className="empty-state">No hay lotes activos para registrar pesaje.</p>;
+  }
+
+  return (
+    <section className="pesaje-record-shell">
+      <div className="form-context-stack">
+        <div className="form-context-card">
+          <span>Pesaje para</span>
+          <strong>{selectedLote?.CodigoLote ?? 'Selecciona un lote'}</strong>
+          <small>{lockedByAgenda ? 'Seleccionado desde Hoy.' : 'Cambia solo si vas a pesar otro lote.'}</small>
+        </div>
+        {!lockedByAgenda && activeLotes.length > 1 && (
+          <label className="field">
+            <span>Lote</span>
+            <select value={loteId} onChange={(event) => setLoteId(event.target.value)} required>
+              {activeLotes.map((lote) => (
+                <option key={lote.LoteID} value={lote.LoteID}>
+                  {lote.CodigoLote}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+      {selectedLote ? <PesajeForm lote={selectedLote} user={user} onSaved={handleSaved} /> : <p className="empty-state">Selecciona un lote activo.</p>}
+    </section>
   );
 }
 

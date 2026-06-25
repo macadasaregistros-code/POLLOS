@@ -1,4 +1,5 @@
 import { addDays, getDiaLote, getSemanaLote, nowISO, todayISO } from '../lib/date';
+import { buildPesajeActivityTemplates } from '../services/pesajeScheduleService';
 import { isRoutineScheduledForDate, isRoutineTemplate } from '../services/routineService';
 import type {
   ActividadLote,
@@ -101,8 +102,9 @@ const defaultRoutineDaysById: Record<string, DiaSemana[]> = {
   act_rutina_control_plagas: routineTuesday,
 };
 
-const baseActivities: ActividadProgramada[] = baseActivityRows.map(
-  ([ActividadProgramadaID, NombreActividad, Categoria, TipoFrecuencia, DiaLote, HoraSugerida, AplicaDesdeDia, AplicaHastaDia]) => {
+const baseActivities: ActividadProgramada[] = [
+  ...baseActivityRows.map(
+    ([ActividadProgramadaID, NombreActividad, Categoria, TipoFrecuencia, DiaLote, HoraSugerida, AplicaDesdeDia, AplicaHastaDia]) => {
     const activityId = String(ActividadProgramadaID);
     const isPestControl = activityId === 'act_rutina_control_plagas';
     const isWaterTreatment = activityId === 'act_rutina_medir_cloro_ph';
@@ -121,8 +123,10 @@ const baseActivities: ActividadProgramada[] = baseActivityRows.map(
       RequiereFoto: false,
       Activa: true,
     };
-  },
-);
+    },
+  ),
+  ...buildPesajeActivityTemplates(),
+];
 
 export function createDemoData(): DemoData {
   const today = todayISO();

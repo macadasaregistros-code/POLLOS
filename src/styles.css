@@ -7419,7 +7419,7 @@ th {
 
 /* Ultra-compact six-card fit */
 .farm-shed--compact {
-  min-height: 212px;
+  min-height: 270px;
   border-radius: 18px;
   padding: 6px;
 }
@@ -7494,7 +7494,7 @@ th {
 .farm-shed--compact .farm-shed__compact-main {
   grid-template-columns: 43px minmax(92px, 1fr) 58px;
   gap: 4px;
-  min-height: 92px;
+  min-height: 142px;
 }
 
 .farm-shed--compact .farm-shed__compact-day small,
@@ -7525,7 +7525,7 @@ th {
 }
 
 .farm-shed--compact .farm-shed__compact-bird {
-  min-height: 92px;
+  min-height: 142px;
 }
 
 .farm-shed--compact .farm-shed__compact-bird::after {
@@ -7536,21 +7536,22 @@ th {
 }
 
 .farm-shed--compact .farm-shed__compact-bird-image {
-  height: 94px;
-  max-width: 138px;
+  width: 150%;
+  height: 141px;
+  max-width: 207px;
 }
 
 .farm-shed--compact .farm-shed__compact-bird-image--day-1,
 .farm-shed--compact .farm-shed__compact-bird-image--day-8 {
-  height: 84px;
+  height: 126px;
 }
 
 .farm-shed--compact .farm-shed__compact-bird-image--day-36,
 .farm-shed--compact .farm-shed__compact-bird-image--day-43,
 .farm-shed--compact .farm-shed__compact-bird-image--day-50,
 .farm-shed--compact .farm-shed__compact-bird-image--day-57 {
-  height: 106px;
-  max-width: 154px;
+  height: 159px;
+  max-width: 231px;
 }
 
 .farm-shed--compact .farm-shed__compact-progress {
@@ -7601,6 +7602,20 @@ th {
 
 .farm-shed--compact .farm-shed__compact-metric em {
   font-size: 0.42rem;
+}
+
+@media (max-width: 719px) {
+  .farm-map__group,
+  .farm-map__group--horizontal,
+  .farm-map__group--vertical {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto repeat(2, auto);
+  }
+
+  .farm-map__group-label,
+  .farm-map__group--horizontal .farm-map__group-label {
+    grid-column: 1;
+  }
 }
 
 @media (orientation: landscape) and (min-width: 720px) and (max-height: 820px) {
@@ -7722,7 +7737,7 @@ th {
   }
 
   .page-shell--galpones .farm-shed--compact {
-    min-height: 178px;
+    min-height: 244px;
     border-radius: 16px;
     padding: 5px;
   }
@@ -7770,7 +7785,7 @@ th {
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-main {
     grid-template-columns: 42px minmax(82px, 1fr) 62px;
-    min-height: 82px;
+    min-height: 132px;
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-day small,
@@ -7787,25 +7802,26 @@ th {
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird {
-    min-height: 82px;
+    min-height: 132px;
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird-image {
-    height: 88px;
-    max-width: 150px;
+    width: 150%;
+    height: 132px;
+    max-width: 225px;
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird-image--day-1,
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird-image--day-8 {
-    height: 78px;
+    height: 117px;
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird-image--day-36,
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird-image--day-43,
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird-image--day-50,
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-bird-image--day-57 {
-    height: 100px;
-    max-width: 170px;
+    height: 150px;
+    max-width: 255px;
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-progress > span {
@@ -14676,5 +14692,199 @@ body:has(.native-record-screen--pest) {
 
   .lote-history-identity__meta {
     justify-content: flex-start;
+  }
+}
+
+.record-launch-card--weight .record-launch-card__icon {
+  background: #0f766e;
+}
+
+.native-record-screen--weight {
+  --record-a: #0f766e;
+  --record-b: #1d4ed8;
+  --record-soft: #e6f6f4;
+}
+
+.pesaje-record-shell,
+.pesaje-form {
+  display: grid;
+  gap: 14px;
+}
+
+.pesaje-entry-card,
+.pesaje-detail-card,
+.pesaje-stats-box {
+  border: 1px solid #d8e5df;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.pesaje-entry-card {
+  display: grid;
+  grid-template-columns: minmax(132px, 0.9fr) minmax(150px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+}
+
+.pesaje-sex-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+  border-radius: 8px;
+  background: #edf4ef;
+}
+
+.pesaje-sex-toggle button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #33443d;
+  font-weight: 900;
+}
+
+.pesaje-sex-toggle button.is-selected {
+  background: #ffffff;
+  color: #0f766e;
+  box-shadow: 0 1px 5px rgb(20 33 29 / 14%);
+}
+
+.pesaje-weight-field input {
+  min-height: 48px;
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.pesaje-entry-card .secondary-action,
+.pesaje-detail-card header button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #c9d9d2;
+  border-radius: 8px;
+  background: #f8fbf9;
+  color: #18352c;
+  font-weight: 900;
+}
+
+.pesaje-entry-card .secondary-action {
+  padding: 0 14px;
+}
+
+.pesaje-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pesaje-summary-grid div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #d8e5df;
+  border-radius: 8px;
+  background: #f8faf9;
+}
+
+.pesaje-summary-grid span,
+.pesaje-detail-card header span,
+.pesaje-weight-list span {
+  color: #64746e;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.pesaje-summary-grid strong {
+  color: #14211d;
+  font-size: 1.05rem;
+  font-weight: 950;
+}
+
+.pesaje-detail-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.pesaje-detail-card header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.pesaje-detail-card header strong {
+  color: #14211d;
+  font-size: 0.98rem;
+}
+
+.pesaje-weight-list {
+  display: grid;
+  gap: 7px;
+}
+
+.pesaje-weight-list div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 34px;
+  gap: 8px;
+  align-items: center;
+  min-height: 42px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: #f3f7f4;
+}
+
+.pesaje-weight-list strong {
+  color: #14211d;
+  font-weight: 950;
+}
+
+.pesaje-weight-list button {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.pesaje-stats-box {
+  padding: 12px;
+}
+
+.pesaje-form > .primary-action {
+  width: 100%;
+}
+
+.form-error {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+@media (max-width: 700px) {
+  .pesaje-entry-card,
+  .pesaje-detail-card header {
+    grid-template-columns: 1fr;
+  }
+
+  .pesaje-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pesaje-entry-card .secondary-action {
+    width: 100%;
   }
 }

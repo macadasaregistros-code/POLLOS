@@ -4,6 +4,7 @@ import { db } from './localDbService';
 import { enqueueSync } from './syncService';
 import { construirCierreLote, construirCierreSemanal } from './adminAnalyticsService';
 import { getProgramacionActivityCategory, getProgramacionTemplateCategory, getProgramacionTemplateOrder } from './programmingCatalogService';
+import { isPesajeActivity } from './pesajeScheduleService';
 import { isRoutineScheduledForDate, normalizeRoutineWeekdays } from './routineService';
 import type {
   ActividadLote,
@@ -468,7 +469,7 @@ function buildFutureActivitiesForLote(lote: { LoteID: string; FechaLlegada: stri
       .map((day): ActividadLote => ({
         ActividadLoteID: createId('act_lote'),
         LoteID: lote.LoteID,
-        GalponID: galponId,
+        GalponID: isPesajeActivity(template) ? '' : galponId,
         FechaProgramada: addDays(lote.FechaLlegada, day - 1),
         DiaLote: day,
         NombreActividad: template.NombreActividad,

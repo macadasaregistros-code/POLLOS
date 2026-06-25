@@ -3,6 +3,7 @@ import { db } from './localDbService';
 import { enqueueSync } from './syncService';
 import { getMissingDailyRegisterDates } from './dailyRegisterService';
 import { getProgramacionTemplateCategory } from './programmingCatalogService';
+import { isPesajeActivity } from './pesajeScheduleService';
 import { addDays, getDiaLote, getSemanaLote, nowISO, todayISO } from '../lib/date';
 import { createId } from '../lib/id';
 import type {
@@ -218,7 +219,7 @@ async function buildActivitiesForLote(lote: Lote, galponId: string): Promise<Act
       activities.push({
         ActividadLoteID: createId('act_lote'),
         LoteID: lote.LoteID,
-        GalponID: galponId,
+        GalponID: isPesajeActivity(template) ? '' : galponId,
         FechaProgramada: addDays(lote.FechaLlegada, day - 1),
         DiaLote: day,
         NombreActividad: template.NombreActividad,
