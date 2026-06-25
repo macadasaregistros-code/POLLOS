@@ -6989,7 +6989,7 @@ th {
 
 /* Six-shed overview density */
 .farm-map-card {
-  padding: 14px;
+  padding: 0;
 }
 
 .farm-map-card__header {
@@ -7239,7 +7239,7 @@ th {
 
 @media (max-width: 719px) {
   .farm-map-card {
-    padding: 10px;
+    padding: 0;
   }
 
   .farm-map-card__header {
