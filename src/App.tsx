@@ -48,6 +48,21 @@ function getErrorMessage(error: unknown): string {
   return 'No se pudo iniciar la app.';
 }
 
+async function prepareRemoteUser(session: SupabaseSession): Promise<Usuario> {
+  const sessionUser = await getOrCreateSupabaseUser(session);
+  if (navigator.onLine) {
+    const syncResult = await processSyncQueue(sessionUser);
+    if (syncResult.failed > 0) {
+      throw new Error(`${syncResult.failed} registro(s) locales no se pudieron enviar antes de cargar Supabase.`);
+    }
+
+    const bootstrapResult = await bootstrapFromRemote(sessionUser);
+    if (bootstrapResult.error) throw new Error(`Bootstrap remoto fallo: ${bootstrapResult.error}`);
+  }
+
+  return getOrCreateSupabaseUser(session);
+}
+
 export function App() {
   const [user, setUser] = useState<Usuario>();
   const [booting, setBooting] = useState(true);
@@ -72,7 +87,8 @@ export function App() {
         if (supabaseRequired) {
           await prepareRemoteLocalData();
           if (!supabaseSession) throw new Error('Inicia sesion en Supabase.');
-          if (!cancelled) setUser(await getOrCreateSupabaseUser(supabaseSession));
+          const remoteUser = await prepareRemoteUser(supabaseSession);
+          if (!cancelled) setUser(remoteUser);
         } else {
           await seedDemoDataIfNeeded();
           if (!cancelled) setUser(await getCurrentUser());
@@ -193,7 +209,6 @@ function AuthenticatedApp({
 }) {
   const [toast, setToast] = useState('');
   const [syncing, setSyncing] = useState(false);
-  const [bootstrappedRemote, setBootstrappedRemote] = useState(false);
   const [activeRoleView, setActiveRoleView] = useState<Role>(() => user.Rol);
   const [activeView, setActiveView] = useState<MainView>(() => getDefaultViewForRole(user.Rol));
   const online = useOnlineStatus();
@@ -220,15 +235,6 @@ function AuthenticatedApp({
     }
   }, [online, user, pendingCount, failedCount]);
 
-  useEffect(() => {
-    if (!online || !user || bootstrappedRemote) return;
-    setBootstrappedRemote(true);
-    bootstrapFromRemote(user).then((result) => {
-      if (result.error) setToast(`Bootstrap remoto falló: ${result.error}`);
-      else if (!result.skipped && result.updatedRows > 0) setToast(`Bootstrap remoto: ${result.updatedRows} fila(s) actualizada(s).`);
-    });
-  }, [bootstrappedRemote, online, user]);
-
   async function handleRoleChange(role: Role) {
     if (user.Rol === 'ADMIN') {
       setActiveRoleView(role);
@@ -242,7 +248,6 @@ function AuthenticatedApp({
     setUser(nextUser);
     setActiveRoleView(nextUser.Rol);
     handleViewChange(getDefaultViewForRole(nextUser.Rol));
-    setBootstrappedRemote(false);
   }
 
   function handleViewChange(view: MainView) {

@@ -2,7 +2,7 @@ import { addDays, getDiaLote } from '../lib/date';
 import { getNextRequiredDailyRegisterDate } from './dailyRegisterService';
 import { getNextPrepTask } from './preparationService';
 import { isPesajeActivity } from './pesajeScheduleService';
-import { getAgendaToneOrder, getProgramacionActivityCategory, getProgramacionActivityOrder, isPestRoutineLike, isProgramacionActivityActive, isWaterRoutineLike, type AgendaTone } from './programmingCatalogService';
+import { getAgendaToneOrder, getProgramacionActivityCategory, getProgramacionActivityOrder, isPestRoutineLike, isProgramacionActivityVisibleOnDate, isWaterRoutineLike, type AgendaTone } from './programmingCatalogService';
 import { cleanActivityName, getRoutineDefinition } from './routineService';
 import type { ActividadLote, ActividadProgramada, Galpon, Lote, LoteGalpon, Perro, RegistroDiarioLote, VacunaLote } from '../types/entities';
 
@@ -85,13 +85,15 @@ export function buildAgenda(input: BuildAgendaInput): AgendaModel {
   }
 
   const activeLoteIds = new Set(activeLotes.map((lote) => lote.LoteID));
-  const activeProgrammedActivities = input.actividades.filter((actividad) => isProgramacionActivityActive(actividad, input.actividadesProgramadas));
-  const dueActivities = activeProgrammedActivities.filter(
+  const visibleProgrammedActivities = input.actividades.filter((actividad) =>
+    isProgramacionActivityVisibleOnDate(actividad, input.actividadesProgramadas, actividad.FechaProgramada),
+  );
+  const dueActivities = visibleProgrammedActivities.filter(
     (actividad) =>
       actividad.FechaProgramada <= input.today &&
       (actividad.Estado === 'PENDIENTE' || actividad.Estado === 'VENCIDA'),
   );
-  const routineActivities = activeProgrammedActivities.filter(
+  const routineActivities = visibleProgrammedActivities.filter(
     (actividad) =>
       actividad.FechaProgramada === input.today &&
       (actividad.Estado === 'PENDIENTE' || actividad.Estado === 'VENCIDA') &&

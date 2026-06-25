@@ -1,5 +1,5 @@
 import type { ActividadLote, ActividadProgramada } from '../types/entities';
-import { getRoutineDefinition, getRoutineOrder, isRoutineActivity, isRoutineTemplate, normalizeText } from './routineService';
+import { getRoutineDefinition, getRoutineOrder, getRoutineWeekdays, getWeekdayFromISO, isRoutineActivity, isRoutineTemplate, normalizeText } from './routineService';
 
 export type ProgramacionCategoryKey = 'daily' | 'lote' | 'routine' | 'prep' | 'other';
 export type AgendaTone = 'daily' | 'lote' | 'routine' | 'prep' | 'dog' | 'vaccine';
@@ -76,6 +76,17 @@ export function isProgramacionActivityActive(actividad: ActividadLote, templates
   return true;
 }
 
+export function isProgramacionActivityVisibleOnDate(actividad: ActividadLote, templates: ActividadProgramada[] = [], dateISO = actividad.FechaProgramada): boolean {
+  const exactTemplate = findExactMatchingTemplate(actividad, templates);
+  if (exactTemplate) return isTemplateVisibleOnDate(exactTemplate, dateISO);
+
+  const routineTemplates = findRoutineMatchingTemplates(actividad, templates);
+  if (routineTemplates.length > 0) return routineTemplates.some((template) => isTemplateVisibleOnDate(template, dateISO));
+  if (isRoutineActivity(actividad) || isOperationalRoutineLike(actividad)) return false;
+
+  return true;
+}
+
 export function isPreparationLike(item: Pick<ActividadProgramada | ActividadLote, 'Categoria' | 'NombreActividad' | 'DiaLote'>): boolean {
   const text = normalizeText(`${item.Categoria} ${item.NombreActividad}`);
   return ['retiro', 'desinfeccion', 'instalacion', 'recibimiento', 'alistamiento'].some((word) => text.includes(word)) || item.DiaLote <= 0;
@@ -101,7 +112,8 @@ function isOperationalRoutineLike(item: Pick<ActividadProgramada | ActividadLote
 }
 
 function findMatchingTemplate(actividad: ActividadLote, templates: ActividadProgramada[]): ActividadProgramada | undefined {
-  return findExactMatchingTemplate(actividad, templates) ?? findRoutineMatchingTemplates(actividad, templates)[0];
+  const routineTemplates = findRoutineMatchingTemplates(actividad, templates);
+  return findExactMatchingTemplate(actividad, templates) ?? routineTemplates.find((template) => template.Activa) ?? routineTemplates[0];
 }
 
 function findExactMatchingTemplate(actividad: ActividadLote, templates: ActividadProgramada[]): ActividadProgramada | undefined {
@@ -113,6 +125,12 @@ function findRoutineMatchingTemplates(actividad: ActividadLote, templates: Activ
   const routineKey = getRoutineDefinition(actividad)?.key;
   if (!routineKey) return [];
   return templates.filter((template) => getRoutineDefinition(template)?.key === routineKey);
+}
+
+function isTemplateVisibleOnDate(template: ActividadProgramada, dateISO: string): boolean {
+  if (!template.Activa) return false;
+  if (getProgramacionTemplateCategory(template) !== 'routine') return true;
+  return getRoutineWeekdays(template).includes(getWeekdayFromISO(dateISO));
 }
 
 function getActivityMatchKey(item: Pick<ActividadProgramada | ActividadLote, 'Categoria' | 'NombreActividad'>): string {

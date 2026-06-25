@@ -252,15 +252,6 @@ async function upsertRemoteRecord(table: RemoteTable, payload: unknown): Promise
   });
 }
 
-async function updateRemoteRecord(table: RemoteTable, id: string, payload: unknown): Promise<void> {
-  if (table.readonly) throw new Error(`La tabla ${table.table} pertenece a core y es solo lectura para POLLOS.`);
-
-  const record = normalizeForSupabase(payload, table);
-  await writeRemoteRecordWithColumnRetry(table, 'PATCH', record, `${encodeURIComponent(table.idField)}=eq.${encodeURIComponent(id)}`, {
-    Prefer: 'return=minimal',
-  });
-}
-
 export async function bootstrap(user: Usuario): Promise<ApiResponse<BootstrapResponse>> {
   if (!isSupabaseConfigured()) return { ok: true, data: undefined };
 
@@ -300,8 +291,7 @@ export async function sync(items: SyncQueueItem[], _user: Usuario): Promise<ApiR
     const table = SYNC_TABLES[item.Tabla];
     try {
       if (!table) throw new Error(`Tabla no configurada en Supabase: ${item.Tabla}`);
-      if (item.Operacion === 'CREATE') await upsertRemoteRecord(table, item.Payload);
-      else if (item.Operacion === 'UPDATE') await updateRemoteRecord(table, item.RegistroID, item.Payload);
+      if (item.Operacion === 'CREATE' || item.Operacion === 'UPDATE') await upsertRemoteRecord(table, item.Payload);
       else throw new Error(`Operacion no soportada: ${item.Operacion}`);
 
       syncedIds.push(item.SyncID);

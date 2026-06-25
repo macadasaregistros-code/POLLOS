@@ -16,7 +16,7 @@ import { getProgramacionActivityCategory, programacionCategories, type Programac
 import { enqueueSync } from '../../services/syncService';
 import { addDays, diffDays, getDiaLote, todayISO } from '../../lib/date';
 import { fmtCurrency, fmtKg, fmtNumber, fmtPercent } from '../../lib/format';
-import type { ActividadLote, ActividadProgramada, EntradaAlimento, EntradaMaterial, EstadoSync, Galpon, Lote, LoteResumen, RegistroDiarioLote, TipoAlimento, Usuario } from '../../types/entities';
+import type { ActividadLote, ActividadProgramada, EntradaAlimento, EntradaMaterial, EstadoSync, Galpon, Lote, LoteResumen, Pesaje, RegistroDiarioLote, TipoAlimento, Usuario } from '../../types/entities';
 import type { MainView } from '../../types/navigation';
 import { AdminAdvancedModules } from './AdminAdvancedModules';
 import { CrearLoteForm } from './CrearLoteForm';
@@ -119,6 +119,18 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
           general: pesaje.PesoPromedioGeneral,
         })) ?? [],
     [pesajes, selectedLote],
+  );
+  const selectedLotePesajes = useMemo(
+    () =>
+      (pesajes ?? [])
+        .filter((pesaje) => pesaje.LoteID === selectedLote?.LoteID)
+        .slice()
+        .sort((left, right) =>
+          right.Fecha.localeCompare(left.Fecha) ||
+          right.DiaLote - left.DiaLote ||
+          right.FechaHoraRegistro.localeCompare(left.FechaHoraRegistro),
+        ),
+    [pesajes, selectedLote?.LoteID],
   );
 
   const prediction = useMemo(() => {
@@ -261,6 +273,7 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
                 </MobileCard>
                 <PredictionCard prediction={prediction} pesoObjetivo={pesoObjetivo} onPesoObjetivoChange={setPesoObjetivo} />
               </div>
+              <PesajesHistoryCard pesajes={selectedLotePesajes} today={today} />
             </>
           )}
         </>
@@ -762,6 +775,10 @@ function getSyncLabel(sync: EstadoSync): string {
   return labels[sync];
 }
 
+function SyncStateBadge({ sync }: { sync: EstadoSync }) {
+  return <span className={`activity-history-sync activity-history-sync--${sync.toLowerCase()}`}>{getSyncLabel(sync)}</span>;
+}
+
 function SelectedLoteStats({ selectedSummary, salidas }: { selectedSummary: LoteResumen; salidas: Array<{ EstadoAdministrativo: string }> }) {
   return (
     <div className="stats-grid">
@@ -1230,6 +1247,68 @@ function PredictionCard({
           ))}
         </div>
       </div>
+    </MobileCard>
+  );
+}
+
+function PesajesHistoryCard({ pesajes, today }: { pesajes: Pesaje[]; today: string }) {
+  const latest = pesajes[0];
+  const previous = pesajes[1];
+  const recentGain = latest && previous
+    ? gananciaDiaria(latest.PesoPromedioGeneral, previous.PesoPromedioGeneral, Math.max(1, latest.DiaLote - previous.DiaLote))
+    : 0;
+  const totalPesados = latest ? latest.CantidadMachosPesados + latest.CantidadHembrasPesadas : 0;
+
+  return (
+    <MobileCard title="Pesajes realizados" subtitle="Historial del lote seleccionado">
+      {latest ? (
+        <section className="pesajes-admin-view">
+          <div className="pesajes-admin-summary">
+            <div>
+              <span>Ultimo peso</span>
+              <strong>{fmtNumber(latest.PesoPromedioGeneral, 0)} g</strong>
+              <small>Dia {latest.DiaLote} - {formatActivityDate(latest.Fecha, today)}</small>
+            </div>
+            <div>
+              <span>Aves pesadas</span>
+              <strong>{fmtNumber(totalPesados)}</strong>
+              <small>{fmtNumber(latest.CantidadMachosPesados)} M / {fmtNumber(latest.CantidadHembrasPesadas)} H</small>
+            </div>
+            <div>
+              <span>Ganancia reciente</span>
+              <strong>{previous ? `${fmtNumber(recentGain, 1)} g/dia` : 'Sin base'}</strong>
+              <small>{previous ? `vs dia ${previous.DiaLote}` : 'Falta otro pesaje'}</small>
+            </div>
+          </div>
+
+          <div className="pesajes-admin-list">
+            {pesajes.map((pesaje) => (
+              <article className="pesaje-admin-row" key={pesaje.PesajeID}>
+                <div className="pesaje-admin-row__date">
+                  <span>Dia {pesaje.DiaLote}</span>
+                  <strong>{formatActivityDate(pesaje.Fecha, today)}</strong>
+                  <small>{formatActivityTime(pesaje.FechaHoraRegistro)}</small>
+                </div>
+                <div className="pesaje-admin-row__weights">
+                  <strong>{fmtNumber(pesaje.PesoPromedioGeneral, 0)} g</strong>
+                  <span>M {fmtNumber(pesaje.PesoPromedioMachos, 0)} g / H {fmtNumber(pesaje.PesoPromedioHembras, 0)} g</span>
+                </div>
+                <div className="pesaje-admin-row__sample">
+                  <strong>{fmtNumber(pesaje.CantidadMachosPesados + pesaje.CantidadHembrasPesadas)}</strong>
+                  <span>pollos</span>
+                </div>
+                <div className="pesaje-admin-row__uniformity">
+                  <span>Uniformidad</span>
+                  <strong>M {fmtPercent(pesaje.UniformidadMachos)} / H {fmtPercent(pesaje.UniformidadHembras)}</strong>
+                </div>
+                <SyncStateBadge sync={pesaje.EstadoSync} />
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <p className="empty-state">Todavia no hay pesajes guardados para este lote.</p>
+      )}
     </MobileCard>
   );
 }
