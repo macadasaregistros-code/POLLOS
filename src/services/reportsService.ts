@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import { buildLoteResumen } from './calculationsService';
 import { calcularEconomiaLote, calcularPrediccionSalida } from './adminAnalyticsService';
 import { db } from './localDbService';
+import { makeLiquidationCostId } from './loteLiquidationService';
 import { enqueueSync } from './syncService';
 import { createId } from '../lib/id';
 import { nowISO, todayISO } from '../lib/date';
@@ -147,6 +148,147 @@ export async function generarReporteLotePDF(lote: Lote, user: Usuario): Promise<
     LoteID: lote.LoteID,
     FechaGeneracion: nowISO(),
     TipoReporte: 'COMPLETO',
+    URLArchivo: url,
+    GeneradoPor: user.UsuarioID,
+  };
+  await db.reportesPDF.add(reporte);
+  await enqueueSync('ReportesPDF', reporte.ReporteID, 'CREATE', reporte);
+  return reporte;
+}
+
+export async function generarReporteLiquidacionLotePDF(lote: Lote, user: Usuario): Promise<ReportePDF> {
+  const [registros, tipos, costos, salidas, cierres] = await Promise.all([
+    db.registroDiarioLote.where('LoteID').equals(lote.LoteID).toArray(),
+    db.tiposAlimento.toArray(),
+    db.costosLote.where('LoteID').equals(lote.LoteID).toArray(),
+    db.salidasPollo.where('LoteID').equals(lote.LoteID).toArray(),
+    db.cierreLote.where('LoteID').equals(lote.LoteID).toArray(),
+  ]);
+  const cierre = cierres.sort((left, right) => right.FechaCierre.localeCompare(left.FechaCierre))[0];
+  const tiposById = new Map(tipos.map((tipo) => [tipo.TipoAlimentoID, tipo]));
+  const costoById = new Map(costos.map((costo) => [costo.CostoID, costo]));
+  const feedRows = [...new Set(registros.map((registro) => registro.TipoAlimentoID).filter(Boolean))]
+    .map((tipoAlimentoId) => {
+      const tipo = tiposById.get(tipoAlimentoId);
+      const registrosTipo = registros.filter((registro) => registro.TipoAlimentoID === tipoAlimentoId);
+      const bultos = registrosTipo.reduce((sum, registro) => sum + registro.BultosConsumidos, 0);
+      const kg = registrosTipo.reduce((sum, registro) => sum + registro.KgConsumidos, 0);
+      const costo = costoById.get(makeLiquidationCostId(lote.LoteID, `alimento_${tipoAlimentoId}`));
+      return {
+        nombre: tipo?.Nombre ?? tipoAlimentoId,
+        bultos,
+        kg,
+        precioBulto: costo?.ValorUnitario ?? 0,
+        total: costo?.ValorTotal ?? 0,
+      };
+    })
+    .sort((left, right) => left.nombre.localeCompare(right.nombre));
+  const materialRows = (['CISCO', 'GAS'] as const).map((tipoMaterial) => {
+    const costo = costoById.get(makeLiquidationCostId(lote.LoteID, `material_${tipoMaterial}`));
+    return {
+      nombre: tipoMaterial === 'CISCO' ? 'Cisco' : 'Gas',
+      cantidad: costo?.Cantidad ?? 0,
+      unidad: costo?.Unidad ?? (tipoMaterial === 'CISCO' ? 'PACAS' : 'CILINDROS'),
+      precioUnitario: costo?.ValorUnitario ?? 0,
+      total: costo?.ValorTotal ?? 0,
+    };
+  });
+  const totalCostos = costos.reduce((sum, costo) => sum + costo.ValorTotal, 0);
+  const totalIngresos = salidas.reduce((sum, salida) => sum + salida.ValorTotal, 0);
+  const utilidad = totalIngresos - totalCostos;
+  const kgCanal = salidas.reduce((sum, salida) => sum + salida.PesoTotalKg, 0);
+  const avesSalida = salidas.reduce((sum, salida) => sum + salida.CantidadAves, 0);
+  const muertos = registros.reduce((sum, registro) => sum + registro.MuertosMachos + registro.MuertosHembras + registro.MuertosSinClasificar, 0);
+  const consumoKg = registros.reduce((sum, registro) => sum + registro.KgConsumidos, 0);
+  const conversion = kgCanal > 0 ? consumoKg / kgCanal : 0;
+
+  const doc = new jsPDF();
+  let y = 18;
+  const addLine = (text: string, indent = 14) => {
+    if (y > 278) {
+      doc.addPage();
+      y = 18;
+    }
+    doc.text(text, indent, y, { maxWidth: 180 });
+    y += 7;
+  };
+  const addSection = (title: string, lines: string[]) => {
+    y += 4;
+    if (y > 270) {
+      doc.addPage();
+      y = 18;
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    addLine(title);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    lines.forEach((line) => addLine(line));
+  };
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text(`POLLOS - Liquidacion ${lote.CodigoLote}`, 14, y);
+  y += 8;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  addLine(`Generado: ${new Date().toLocaleString('es-CO')}`);
+  addLine(`Estado lote: ${lote.EstadoLote}`);
+  addLine(`Fecha cierre: ${cierre?.FechaCierre ?? 'Sin cierre guardado'}`);
+
+  addSection('1. Resultado', [
+    `Aves iniciales: ${fmtNumber(lote.CantidadInicialTotal)}`,
+    `Aves salidas: ${fmtNumber(avesSalida)}`,
+    `Muertos: ${fmtNumber(muertos)} (${fmtPercent(lote.CantidadInicialTotal > 0 ? muertos / lote.CantidadInicialTotal : 0)})`,
+    `Kg canal: ${fmtKg(kgCanal)}`,
+    `Conversion final: ${fmtNumber(cierre?.ConversionFinal ?? conversion, 2)}`,
+    `Ingresos: ${fmtCurrency(totalIngresos)}`,
+    `Costos: ${fmtCurrency(totalCostos)}`,
+    `Utilidad: ${fmtCurrency(cierre?.UtilidadBruta ?? utilidad)}`,
+    `Margen: ${fmtPercent(totalIngresos > 0 ? utilidad / totalIngresos : 0)}`,
+  ]);
+
+  addSection(
+    '2. Alimento',
+    feedRows.length
+      ? feedRows.map((row) => `${row.nombre}: ${fmtNumber(row.bultos, 1)} bultos / ${fmtKg(row.kg)} x ${fmtCurrency(row.precioBulto)} = ${fmtCurrency(row.total)}`)
+      : ['Sin consumo de alimento registrado.'],
+  );
+
+  addSection(
+    '3. Cisco y gas',
+    materialRows.map((row) => `${row.nombre}: ${fmtNumber(row.cantidad, 1)} ${row.unidad.toLowerCase()} x ${fmtCurrency(row.precioUnitario)} = ${fmtCurrency(row.total)}`),
+  );
+
+  addSection(
+    '4. Salidas a matadero',
+    salidas.length
+      ? salidas
+        .slice()
+        .sort((left, right) => left.Fecha.localeCompare(right.Fecha))
+        .map((salida) =>
+          `${salida.Fecha}: ${fmtNumber(salida.CantidadAves)} aves, ${fmtKg(salida.PesoTotalKg)}, ${fmtCurrency(salida.PrecioKg)}/kg = ${fmtCurrency(salida.ValorTotal)} (${salida.EstadoAdministrativo})`,
+        )
+      : ['Sin salidas registradas.'],
+  );
+
+  addSection(
+    '5. Otros costos',
+    costos.filter((costo) => !['ALIMENTO', 'CISCO', 'GAS'].includes(costo.CategoriaCosto)).length
+      ? costos
+        .filter((costo) => !['ALIMENTO', 'CISCO', 'GAS'].includes(costo.CategoriaCosto))
+        .map((costo) => `${costo.CategoriaCosto} - ${costo.Concepto}: ${fmtCurrency(costo.ValorTotal)}`)
+        .slice(0, 20)
+      : ['Sin otros costos registrados.'],
+  );
+
+  const blob = doc.output('blob');
+  const url = URL.createObjectURL(blob);
+  const reporte: ReportePDF = {
+    ReporteID: createId('reporte'),
+    LoteID: lote.LoteID,
+    FechaGeneracion: nowISO(),
+    TipoReporte: 'ECONOMICO',
     URLArchivo: url,
     GeneradoPor: user.UsuarioID,
   };

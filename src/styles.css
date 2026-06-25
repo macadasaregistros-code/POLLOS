@@ -8061,9 +8061,11 @@ body {
   background: rgb(255 255 255 / 98%);
   box-shadow: 0 -8px 22px rgb(20 33 29 / 10%);
   backdrop-filter: blur(12px);
+  overflow-x: auto;
 }
 
 .app-main-nav button {
+  min-width: 60px;
   min-height: 50px;
   border-radius: 10px;
   font-size: 0.66rem;
@@ -14979,6 +14981,384 @@ body:has(.native-record-screen--pest) {
   }
 
   .pesaje-entry-card .secondary-action {
+    width: 100%;
+  }
+}
+
+.lotes-table-view {
+  display: grid;
+  gap: 12px;
+}
+
+.lotes-table-filter,
+.liquidation-buckets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.lotes-table-filter button,
+.liquidation-buckets button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: var(--text);
+  font-weight: 850;
+}
+
+.lotes-table-filter button strong,
+.liquidation-buckets button strong {
+  min-width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #edf2ed;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.lotes-table-filter button.is-active,
+.liquidation-buckets button.is-active {
+  border-color: rgb(19 111 99 / 28%);
+  background: #e8f6f1;
+  color: var(--brand-strong);
+}
+
+.lotes-table-filter button.is-active strong,
+.liquidation-buckets button.is-active strong {
+  background: #ffffff;
+  color: var(--brand-strong);
+}
+
+.liquidation-view {
+  display: grid;
+  gap: 14px;
+}
+
+.liquidation-layout {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.36fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.liquidation-lote-list {
+  display: grid;
+  gap: 8px;
+  position: sticky;
+  top: 84px;
+}
+
+.liquidation-lote-card {
+  display: grid;
+  gap: 4px;
+  min-height: 92px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  background: #ffffff;
+  color: var(--text);
+  text-align: left;
+}
+
+.liquidation-lote-card span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.liquidation-lote-card strong {
+  color: var(--brand-strong);
+  font-size: 1rem;
+}
+
+.liquidation-lote-card small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.liquidation-lote-card em {
+  color: #875314;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.liquidation-lote-card.is-active {
+  border-color: rgb(19 111 99 / 34%);
+  background: #f0faf5;
+  box-shadow: 0 8px 18px rgb(20 33 29 / 8%);
+}
+
+.liquidation-detail {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.liquidation-summary-card .lote-history-identity {
+  margin-bottom: 12px;
+}
+
+.liquidation-stats.stats-grid--wide {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.liquidation-panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgb(20 33 29 / 6%);
+}
+
+.liquidation-panel > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.liquidation-panel > header div {
+  display: grid;
+  gap: 2px;
+}
+
+.liquidation-panel > header span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.liquidation-panel > header h2 {
+  margin: 0;
+  color: var(--brand-strong);
+  font-size: 1rem;
+}
+
+.liquidation-panel > header > strong {
+  color: #875314;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.liquidation-feed-grid,
+.liquidation-material-grid,
+.liquidation-output-list {
+  display: grid;
+  gap: 8px;
+}
+
+.liquidation-feed-row,
+.liquidation-material-row,
+.liquidation-output-row {
+  display: grid;
+  gap: 10px;
+  align-items: end;
+  border: 1px solid rgb(20 33 29 / 9%);
+  border-radius: 8px;
+  padding: 10px;
+  background: #f9fbfa;
+}
+
+.liquidation-feed-row {
+  grid-template-columns: minmax(150px, 1.1fr) minmax(130px, 0.55fr) minmax(110px, auto);
+}
+
+.liquidation-material-row {
+  grid-template-columns: minmax(90px, 0.7fr) minmax(95px, 0.5fr) minmax(110px, 0.55fr) minmax(110px, 0.55fr) minmax(100px, auto);
+}
+
+.liquidation-output-row {
+  grid-template-columns: minmax(150px, 1.2fr) minmax(100px, 0.52fr) minmax(110px, 0.55fr) minmax(120px, 0.7fr) minmax(100px, auto);
+}
+
+.liquidation-feed-row > div,
+.liquidation-output-row__main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.liquidation-feed-row strong,
+.liquidation-material-row > strong,
+.liquidation-output-row strong {
+  color: var(--text);
+}
+
+.liquidation-feed-row span,
+.liquidation-output-row span,
+.liquidation-output-row small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 760;
+}
+
+.liquidation-input {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.liquidation-input span {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.liquidation-input input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgb(20 33 29 / 14%);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+}
+
+.liquidation-input input:focus {
+  border-color: var(--brand);
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(19 111 99 / 14%);
+}
+
+.liquidation-extra-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.liquidation-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.liquidation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+  justify-content: flex-end;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  background: #f7faf8;
+}
+
+.liquidation-actions button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: var(--text);
+  font-weight: 850;
+}
+
+.liquidation-actions .primary-action {
+  grid-column: auto;
+  border-color: transparent;
+  background: var(--brand);
+  color: #ffffff;
+}
+
+.liquidation-actions button:disabled {
+  opacity: 0.64;
+}
+
+.liquidation-date-input {
+  width: min(170px, 100%);
+  margin-right: auto;
+}
+
+.liquidation-history-card {
+  overflow: hidden;
+}
+
+@media (max-width: 920px) {
+  .liquidation-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .liquidation-lote-list {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .liquidation-stats.stats-grid--wide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .liquidation-feed-row,
+  .liquidation-material-row,
+  .liquidation-output-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .liquidation-output-row__main {
+    grid-column: 1 / -1;
+  }
+
+  .liquidation-extra-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .liquidation-buckets,
+  .lotes-table-filter {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .liquidation-buckets button,
+  .lotes-table-filter button {
+    justify-content: center;
+    padding: 0 8px;
+  }
+
+  .liquidation-lote-list {
+    grid-template-columns: 1fr;
+  }
+
+  .liquidation-stats.stats-grid--wide,
+  .liquidation-feed-row,
+  .liquidation-material-row,
+  .liquidation-output-row,
+  .liquidation-extra-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .liquidation-panel > header {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .liquidation-actions {
+    justify-content: stretch;
+  }
+
+  .liquidation-actions button,
+  .liquidation-date-input {
     width: 100%;
   }
 }

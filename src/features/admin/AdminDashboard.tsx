@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Activity, BarChart3, CalendarClock, ChevronDown, ClipboardList, FileText, Home, Map as MapIcon, Package, Save, Truck } from 'lucide-react';
+import { Activity, BarChart3, CalendarClock, ChevronDown, ClipboardList, FileText, Home, Map as MapIcon, Package, ReceiptText, Save, Truck } from 'lucide-react';
 import { AlertBadge } from '../../components/AlertBadge';
 import { buildGalponDashboardModel, GalponMap, GalponPremiumDashboardCard, getMaxGalponCapacity } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
@@ -20,6 +20,7 @@ import type { ActividadLote, ActividadProgramada, EntradaAlimento, EntradaMateri
 import type { MainView } from '../../types/navigation';
 import { AdminAdvancedModules } from './AdminAdvancedModules';
 import { CrearLoteForm } from './CrearLoteForm';
+import { LiquidarLotesView } from './LiquidarLotesView';
 import { ProgramacionView } from './ProgramacionView';
 
 interface AdminDashboardProps {
@@ -276,6 +277,13 @@ export function AdminDashboard({ user, activeView, onToast }: AdminDashboardProp
               <PesajesHistoryCard pesajes={selectedLotePesajes} today={today} />
             </>
           )}
+        </>
+      )}
+
+      {activeView === 'liquidarLotes' && (
+        <>
+          <AdminTitle eyebrow="CIERRE" title="Liquidar lotes" icon={<ReceiptText size={34} />} />
+          <LiquidarLotesView user={user} onToast={onToast} />
         </>
       )}
 
@@ -805,48 +813,87 @@ function LotesTable({
   onSelect: (loteId: string) => void;
   onGeneratePdf: (lote: Lote) => void;
 }) {
+  const [filter, setFilter] = useState<'activos' | 'historial' | 'todos'>('activos');
+  const filteredSummaries = summaries.filter((summary) => {
+    const lote = lotes.find((item) => item.LoteID === summary.LoteID);
+    if (filter === 'activos') return lote?.EstadoLote === 'ACTIVO';
+    if (filter === 'historial') return lote?.EstadoLote !== 'ACTIVO';
+    return true;
+  });
+  const counts = {
+    activos: summaries.filter((summary) => lotes.find((lote) => lote.LoteID === summary.LoteID)?.EstadoLote === 'ACTIVO').length,
+    historial: summaries.filter((summary) => lotes.find((lote) => lote.LoteID === summary.LoteID)?.EstadoLote !== 'ACTIVO').length,
+    todos: summaries.length,
+  };
+
   return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Lote</th>
-            <th>Dia</th>
-            <th>Aves vivas</th>
-            <th>Mortalidad</th>
-            <th>Consumo</th>
-            <th>Conversion</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {summaries.map((summary) => {
-            const lote = lotes.find((item) => item.LoteID === summary.LoteID);
-            return (
-              <tr className={selectedLoteId === summary.LoteID ? 'is-selected' : ''} key={summary.LoteID}>
-                <td data-label="Lote">
-                  <button className="text-button" type="button" onClick={() => onSelect(summary.LoteID)}>
-                    {summary.CodigoLote}
-                  </button>
-                </td>
-                <td data-label="Dia">{summary.DiaLote}</td>
-                <td data-label="Aves vivas">{fmtNumber(summary.AvesVivasTotal)}</td>
-                <td data-label="Mortalidad">{fmtPercent(summary.MortalidadAcumulada)}</td>
-                <td data-label="Consumo">{fmtKg(summary.ConsumoAcumuladoKg)}</td>
-                <td data-label="Conversion">{fmtNumber(summary.ConversionAlimenticia, 2)}</td>
-                <td data-label="Accion">
-                  {lote && (
-                    <button className="small-button" type="button" onClick={() => onGeneratePdf(lote)}>
-                      PDF
-                    </button>
-                  )}
-                </td>
+    <section className="lotes-table-view">
+      <div className="lotes-table-filter" role="group" aria-label="Filtrar lotes">
+        {[
+          ['activos', 'Activos'],
+          ['historial', 'Historial'],
+          ['todos', 'Todos'],
+        ].map(([key, label]) => (
+          <button
+            className={filter === key ? 'is-active' : ''}
+            type="button"
+            key={key}
+            onClick={() => setFilter(key as 'activos' | 'historial' | 'todos')}
+          >
+            <span>{label}</span>
+            <strong>{fmtNumber(counts[key as keyof typeof counts])}</strong>
+          </button>
+        ))}
+      </div>
+
+      {filteredSummaries.length ? (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Lote</th>
+                <th>Estado</th>
+                <th>Dia</th>
+                <th>Aves vivas</th>
+                <th>Mortalidad</th>
+                <th>Consumo</th>
+                <th>Conversion</th>
+                <th></th>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+            </thead>
+            <tbody>
+              {filteredSummaries.map((summary) => {
+                const lote = lotes.find((item) => item.LoteID === summary.LoteID);
+                return (
+                  <tr className={selectedLoteId === summary.LoteID ? 'is-selected' : ''} key={summary.LoteID}>
+                    <td data-label="Lote">
+                      <button className="text-button" type="button" onClick={() => onSelect(summary.LoteID)}>
+                        {summary.CodigoLote}
+                      </button>
+                    </td>
+                    <td data-label="Estado">{lote?.EstadoLote ?? 'Sin estado'}</td>
+                    <td data-label="Dia">{summary.DiaLote}</td>
+                    <td data-label="Aves vivas">{fmtNumber(summary.AvesVivasTotal)}</td>
+                    <td data-label="Mortalidad">{fmtPercent(summary.MortalidadAcumulada)}</td>
+                    <td data-label="Consumo">{fmtKg(summary.ConsumoAcumuladoKg)}</td>
+                    <td data-label="Conversion">{fmtNumber(summary.ConversionAlimenticia, 2)}</td>
+                    <td data-label="Accion">
+                      {lote && (
+                        <button className="small-button" type="button" onClick={() => onGeneratePdf(lote)}>
+                          PDF
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="empty-state">No hay lotes en esta vista.</p>
+      )}
+    </section>
   );
 }
 
