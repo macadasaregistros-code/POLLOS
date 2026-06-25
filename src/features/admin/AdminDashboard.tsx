@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Activity, BarChart3, CalendarClock, ChevronDown, ClipboardList, FileText, Flame, Home, Map as MapIcon, Package, PackagePlus, Save, Truck, Warehouse } from 'lucide-react';
+import { Activity, BarChart3, CalendarClock, ChevronDown, ClipboardList, FileText, Home, Map as MapIcon, Package, Save, Truck } from 'lucide-react';
 import { AlertBadge } from '../../components/AlertBadge';
 import { buildGalponDashboardModel, GalponMap, GalponPremiumDashboardCard, getMaxGalponCapacity } from '../../components/GalponMap';
 import { MobileCard } from '../../components/MobileCard';
@@ -899,8 +899,7 @@ function LoteDailyHistoryView({
     () => registros.filter((registro) => registro.LoteID === lote.LoteID).sort((left, right) => left.Fecha.localeCompare(right.Fecha)),
     [lote.LoteID, registros],
   );
-  const loteRecordsDesc = useMemo(() => [...loteRecordsAsc].reverse(), [loteRecordsAsc]);
-  const tiposById = useMemo(() => new Map(tipos.map((tipo) => [tipo.TipoAlimentoID, tipo.Nombre])), [tipos]);
+  const tiposById = useMemo(() => new Map(tipos.map((tipo) => [tipo.TipoAlimentoID, tipo])), [tipos]);
   const historyEndDate = lote.EstadoLote === 'ACTIVO' ? today : loteRecordsAsc.at(-1)?.Fecha ?? lote.FechaLlegada;
   const missingDates = useMemo(
     () => getMissingDailyRegisterDates(lote.FechaLlegada, historyEndDate, loteRecordsAsc),
@@ -947,13 +946,14 @@ function LoteDailyHistoryView({
         </div>
       )}
 
-      {loteRecordsDesc.length ? (
+      {loteRecordsAsc.length ? (
         <div className="table-wrap lote-history-table">
           <table>
             <thead>
               <tr>
                 <th>Fecha</th>
                 <th>Dia</th>
+                <th>Tipo</th>
                 <th>Alimento</th>
                 <th>Bultos</th>
                 <th>Muertos M/H</th>
@@ -963,7 +963,9 @@ function LoteDailyHistoryView({
               </tr>
             </thead>
             <tbody>
-              {loteRecordsDesc.map((registro) => {
+              {loteRecordsAsc.map((registro) => {
+                const tipoAlimento = tiposById.get(registro.TipoAlimentoID);
+                const alimentoLabel = tipoAlimento?.Nombre ?? registro.TipoAlimentoID;
                 const muertosTotal = registro.MuertosMachos + registro.MuertosHembras + registro.MuertosSinClasificar;
                 const muertosDetalle = registro.MuertosSinClasificar > 0
                   ? `${fmtNumber(registro.MuertosMachos)} M + ${fmtNumber(registro.MuertosHembras)} H + ${fmtNumber(registro.MuertosSinClasificar)} sin clasificar`
@@ -973,7 +975,10 @@ function LoteDailyHistoryView({
                   <tr key={registro.RegistroDiarioID}>
                     <td data-label="Fecha">{registro.Fecha}</td>
                     <td data-label="Dia">{registro.DiaLote}</td>
-                    <td data-label="Alimento">{tiposById.get(registro.TipoAlimentoID) ?? registro.TipoAlimentoID}</td>
+                    <td data-label="Tipo">
+                      <FeedTypeThumb tipo={tipoAlimento} fallbackLabel={alimentoLabel} />
+                    </td>
+                    <td data-label="Alimento">{alimentoLabel}</td>
                     <td data-label="Bultos">{fmtNumber(registro.BultosConsumidos, 1)}</td>
                     <td data-label="Muertos M/H">{muertosDetalle}</td>
                     <td data-label="Muertos total">{fmtNumber(muertosTotal)}</td>
@@ -994,6 +999,59 @@ function LoteDailyHistoryView({
   );
 }
 
+type FeedTypeVisual = {
+  imageSrc: string;
+  imageAlt: string;
+};
+
+function FeedTypeThumb({ tipo, fallbackLabel }: { tipo?: TipoAlimento; fallbackLabel: string }) {
+  const visual = tipo ? getFeedTypeVisual(tipo) : undefined;
+  if (visual) {
+    return (
+      <span className="lote-history-feed-thumb">
+        <img src={visual.imageSrc} alt={visual.imageAlt} draggable="false" />
+      </span>
+    );
+  }
+
+  return (
+    <span className="lote-history-feed-thumb lote-history-feed-thumb--fallback" aria-label={fallbackLabel}>
+      {getFeedInitials(fallbackLabel)}
+    </span>
+  );
+}
+
+function getFeedTypeVisual(tipo: TipoAlimento): FeedTypeVisual | undefined {
+  const normalized = normalizeFeedTypeText(`${tipo.TipoAlimentoID} ${tipo.Nombre}`);
+  if (normalized.includes('preiniciador')) {
+    return { imageSrc: '/feed-types/preiniciador.png', imageAlt: 'Bulto de alimento preiniciador' };
+  }
+  if (normalized.includes('iniciacion') || normalized.includes('iniciador')) {
+    return { imageSrc: '/feed-types/iniciacion.png', imageAlt: 'Bulto de alimento iniciacion' };
+  }
+  if (normalized.includes('engorde')) {
+    return { imageSrc: '/feed-types/engorde.png', imageAlt: 'Bulto de alimento engorde' };
+  }
+  return undefined;
+}
+
+function normalizeFeedTypeText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function getFeedInitials(label: string): string {
+  return label
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('') || 'A';
+}
+
 type EntryHistoryKind = 'alimento' | 'cisco' | 'gas';
 
 interface EntryHistoryItem {
@@ -1003,6 +1061,7 @@ interface EntryHistoryItem {
   timestamp: number;
   typeLabel: string;
   name: string;
+  tipoAlimento?: TipoAlimento;
   quantity: number;
   unit: string;
   note: string;
@@ -1040,7 +1099,11 @@ function EntradasHistoryView({
             {history.map((item) => (
               <article className={`entry-history-row entry-history-row--${item.kind}`} key={item.id}>
                 <span className="entry-history-row__image" aria-label={item.typeLabel}>
-                  {getEntryHistoryIcon(item.kind)}
+                  {item.kind === 'alimento' ? (
+                    <FeedTypeThumb tipo={item.tipoAlimento} fallbackLabel={item.name} />
+                  ) : (
+                    <img src={getEntryHistoryImageSrc(item.kind)} alt="" draggable="false" />
+                  )}
                 </span>
                 <div className="entry-history-row__main">
                   <span className="entry-history-row__date">
@@ -1074,18 +1137,22 @@ function buildEntryHistory({
   entradasMaterial: EntradaMaterial[];
   tipos: TipoAlimento[];
 }): EntryHistoryItem[] {
-  const tiposById = new Map(tipos.map((tipo) => [tipo.TipoAlimentoID, tipo.Nombre]));
-  const foodEntries: EntryHistoryItem[] = entradasAlimento.map((entrada) => ({
-    id: entrada.EntradaAlimentoID,
-    kind: 'alimento',
-    date: entrada.Fecha,
-    timestamp: getTimestamp(`${entrada.Fecha}T12:00:00`),
-    typeLabel: 'Alimento',
-    name: tiposById.get(entrada.TipoAlimentoID) ?? 'Alimento sin tipo',
-    quantity: entrada.CantidadBultos,
-    unit: 'bultos',
-    note: entrada.Observaciones.trim(),
-  }));
+  const tiposById = new Map(tipos.map((tipo) => [tipo.TipoAlimentoID, tipo]));
+  const foodEntries: EntryHistoryItem[] = entradasAlimento.map((entrada) => {
+    const tipoAlimento = tiposById.get(entrada.TipoAlimentoID);
+    return {
+      id: entrada.EntradaAlimentoID,
+      kind: 'alimento',
+      date: entrada.Fecha,
+      timestamp: getTimestamp(`${entrada.Fecha}T12:00:00`),
+      typeLabel: 'Alimento',
+      name: tipoAlimento?.Nombre ?? 'Alimento sin tipo',
+      tipoAlimento,
+      quantity: entrada.CantidadBultos,
+      unit: 'bultos',
+      note: entrada.Observaciones.trim(),
+    };
+  });
   const materialEntries: EntryHistoryItem[] = entradasMaterial.map((entrada) => {
     const kind: EntryHistoryKind = entrada.TipoMaterial === 'GAS' ? 'gas' : 'cisco';
     return {
@@ -1130,10 +1197,10 @@ function getEntryHistoryUnit(unit: string, kind: EntryHistoryKind): string {
   return 'bultos';
 }
 
-function getEntryHistoryIcon(kind: EntryHistoryKind): ReactNode {
-  if (kind === 'alimento') return <PackagePlus size={28} />;
-  if (kind === 'cisco') return <Warehouse size={28} />;
-  return <Flame size={28} />;
+function getEntryHistoryImageSrc(kind: EntryHistoryKind): string {
+  if (kind === 'cisco') return '/entry-types/cisco.png';
+  if (kind === 'gas') return '/entry-types/gas.png';
+  return '';
 }
 
 function PredictionCard({

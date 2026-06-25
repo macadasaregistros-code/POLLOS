@@ -401,7 +401,7 @@ export function GalponDashboardCard({
         </div>
 
         <div className="farm-shed__compact-metrics">
-          <CompactMetric icon={<Package size={26} />} label="Consumo en btos" value={empty ? '-' : `${fmtNumber(data.consumoBultos, 1)} btos`} detail="Alimento" />
+          <CompactMetric icon={<Package size={26} />} label="Consumo" value={empty ? '-' : `${fmtNumber(data.consumoBultos, 1)} btos`} />
           <CompactMetric icon={<Scale size={26} />} label="Conversión" value={empty ? '-' : fmtNumber(data.conversionCA, 2)} />
           <CompactMetric icon={<HeartPulse size={26} />} label="Mortalidad" value={empty ? '-' : `${fmtNumber(data.mortalidadPct, 1)}%`} />
         </div>

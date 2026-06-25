@@ -491,10 +491,10 @@
   --entry-accent: 20 102 94;
 
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) minmax(92px, auto);
+  grid-template-columns: 72px minmax(0, 1fr) minmax(92px, auto);
   gap: 10px;
   align-items: center;
-  min-height: 70px;
+  min-height: 86px;
   border: 1px solid rgb(20 33 29 / 10%);
   border-left: 6px solid rgb(var(--entry-accent));
   border-radius: 8px;
@@ -517,13 +517,29 @@
 }
 
 .entry-history-row__image {
-  width: 46px;
-  height: 46px;
+  width: 64px;
+  height: 64px;
   display: grid;
   place-items: center;
+  overflow: hidden;
   border-radius: 8px;
   background: rgb(var(--entry-accent) / 0.14);
   color: rgb(var(--entry-accent));
+}
+
+.entry-history-row__image > img,
+.entry-history-row__image .lote-history-feed-thumb {
+  width: 100%;
+  height: 100%;
+}
+
+.entry-history-row__image > img {
+  object-fit: contain;
+}
+
+.entry-history-row__image .lote-history-feed-thumb {
+  border: 0;
+  background: transparent;
 }
 
 .entry-history-row__main {
@@ -5002,14 +5018,14 @@ th {
   }
 
   .entry-history-row {
-    grid-template-columns: 48px minmax(0, 1fr);
+    grid-template-columns: 60px minmax(0, 1fr);
     gap: 8px 10px;
     padding: 10px;
   }
 
   .entry-history-row__image {
-    width: 42px;
-    height: 42px;
+    width: 56px;
+    height: 56px;
   }
 
   .entry-history-row__main strong {
@@ -6722,6 +6738,9 @@ th {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   padding: 2px 2px 0;
 }
 
@@ -6733,6 +6752,9 @@ th {
   align-content: center;
   align-items: center;
   gap: 8px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   padding: 6px 0;
   color: #5d7f38;
   text-align: left;
@@ -7407,7 +7429,7 @@ th {
 }
 
 .farm-shed--compact .farm-shed__compact-top {
-  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-columns: 30px minmax(0, 1fr) 62px;
   gap: 6px;
 }
 
@@ -7431,7 +7453,40 @@ th {
 }
 
 .farm-shed--compact .farm-shed__compact-capacity {
-  display: none;
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: end;
+  align-content: start;
+  align-self: start;
+  justify-self: end;
+  gap: 0 4px;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: right;
+}
+
+.farm-shed--compact .farm-shed__compact-capacity small {
+  grid-column: 1 / -1;
+  color: #6b746e;
+  font-size: 0.48rem;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.farm-shed--compact .farm-shed__compact-capacity strong {
+  color: #5d8b52;
+  font-size: 1.12rem;
+  line-height: 0.92;
+}
+
+.farm-shed--compact .farm-shed__compact-capacity span {
+  align-self: end;
+  color: #5d8b52;
+  font-size: 0.64rem;
+  line-height: 1;
 }
 
 .farm-shed--compact .farm-shed__compact-main {
@@ -7660,7 +7715,7 @@ th {
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-top {
-    grid-template-columns: 27px minmax(0, 1fr);
+    grid-template-columns: 27px minmax(0, 1fr) 58px;
     gap: 5px;
   }
 
@@ -7676,6 +7731,18 @@ th {
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-title strong {
     font-size: clamp(0.82rem, 1.3vw, 1rem);
+  }
+
+  .page-shell--galpones .farm-shed--compact .farm-shed__compact-capacity small {
+    font-size: 0.42rem;
+  }
+
+  .page-shell--galpones .farm-shed--compact .farm-shed__compact-capacity strong {
+    font-size: 1.06rem;
+  }
+
+  .page-shell--galpones .farm-shed--compact .farm-shed__compact-capacity span {
+    font-size: 0.58rem;
   }
 
   .page-shell--galpones .farm-shed--compact .farm-shed__compact-title span {
@@ -14547,9 +14614,36 @@ body:has(.native-record-screen--pest) {
   width: max-content;
 }
 
-.lote-history-table tbody tr:first-child td {
+.lote-history-table table {
+  min-width: 800px;
+}
+
+.lote-history-feed-thumb {
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #d8e5df;
+  border-radius: 8px;
+  background: #f8faf9;
+}
+
+.lote-history-feed-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.lote-history-feed-thumb--fallback {
+  color: var(--brand-strong);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.lote-history-table tbody tr:last-child td {
   background: #f0fdf7;
-  border-top: 2px solid var(--brand);
+  border-bottom: 2px solid var(--brand);
 }
 
 @media (max-width: 700px) {
