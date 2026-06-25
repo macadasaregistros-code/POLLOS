@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { ArrowDown, BarChart3, Bird, CalendarDays, Check, ClipboardList, HeartPulse, House, Leaf, Package, Scale, ShieldPlus, UsersRound } from 'lucide-react';
 import { addDays, todayISO } from '../lib/date';
 import { fmtKg, fmtNumber, fmtPercent } from '../lib/format';
+import { getCompletedPrepTaskIds, preparationTasks } from '../services/preparationService';
 import type { FechaISO, Galpon, Lote, LoteGalpon, LoteResumen, RegistroDiarioLote } from '../types/entities';
 
 interface GalponMapProps {
@@ -103,12 +104,8 @@ export function GalponMap({ galpones, loteGalpones, lotes, summaries, registrosD
 
   return (
     <section className="farm-map-card" aria-label="Plano visual de galpones">
-      <header className="farm-map-card__header">
-        <div>
-          <span>Vista principal</span>
-          <h2>Mapa vivo de galpones</h2>
-        </div>
-        <div className="farm-map-card__stats" aria-label="Resumen general de galpones">
+      <header className="farm-map-card__header" aria-label="Resumen general de galpones">
+        <div className="farm-map-card__stats">
           <span>
             <strong>{fmtNumber(totalBirds)}</strong>
             Aves
@@ -237,7 +234,7 @@ export function buildGalponDashboardModel({
   const latestDates = latestRegistroDatesByLoteId ?? (registrosDiarios ? buildLatestRegistroDateMap(registrosDiarios) : undefined);
   const staleData = latestDates ? !empty && isGalponRegistroStale(assignments, latestDates, today) : false;
   const growth = getGrowthState(summary?.DiaLote ?? 0);
-  const emptyState = getEmptyState(galpon.EstadoActual);
+  const emptyState = getEmptyState(galpon);
 
   return {
     data: {
@@ -736,15 +733,28 @@ function isGalponRegistroStale(assignments: LoteGalpon[], latestByLote: Map<stri
   });
 }
 
-function getEmptyState(estado: Galpon['EstadoActual']) {
+function getEmptyState(galponOrEstado: Galpon | Galpon['EstadoActual']) {
+  const estado = typeof galponOrEstado === 'string' ? galponOrEstado : galponOrEstado.EstadoActual;
   const index = emptyStateFlow.findIndex((step) => step.key === estado);
   const stageIndex = index >= 0 ? index : 0;
+  const progress = typeof galponOrEstado === 'string'
+    ? getStageProgress(stageIndex)
+    : getPrepTaskProgress(galponOrEstado);
 
   return {
     ...emptyStateFlow[stageIndex],
     index: stageIndex,
-    progress: emptyStateFlow.length <= 1 ? 1 : stageIndex / (emptyStateFlow.length - 1),
+    progress,
   };
+}
+
+function getStageProgress(stageIndex: number) {
+  return emptyStateFlow.length <= 1 ? 1 : stageIndex / (emptyStateFlow.length - 1);
+}
+
+function getPrepTaskProgress(galpon: Galpon) {
+  if (preparationTasks.length === 0) return 1;
+  return Math.min(1, Math.max(0, getCompletedPrepTaskIds(galpon).length / preparationTasks.length));
 }
 
 function StatBubble({

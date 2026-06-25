@@ -65,6 +65,11 @@ export function getProgramacionActivityCategory(actividad: ActividadLote, templa
   return 'other';
 }
 
+export function isProgramacionActivityActive(actividad: ActividadLote, templates: ActividadProgramada[] = []): boolean {
+  const template = findMatchingTemplate(actividad, templates);
+  return template ? template.Activa : true;
+}
+
 export function isPreparationLike(item: Pick<ActividadProgramada | ActividadLote, 'Categoria' | 'NombreActividad' | 'DiaLote'>): boolean {
   const text = normalizeText(`${item.Categoria} ${item.NombreActividad}`);
   return ['retiro', 'desinfeccion', 'instalacion', 'recibimiento', 'alistamiento'].some((word) => text.includes(word)) || item.DiaLote <= 0;
