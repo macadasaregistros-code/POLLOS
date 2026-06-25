@@ -1,5 +1,5 @@
 import type { ActividadLote, ActividadProgramada } from '../types/entities';
-import { getRoutineOrder, isRoutineActivity, isRoutineTemplate, normalizeText } from './routineService';
+import { getRoutineDefinition, getRoutineOrder, isRoutineActivity, isRoutineTemplate, normalizeText } from './routineService';
 
 export type ProgramacionCategoryKey = 'daily' | 'lote' | 'routine' | 'prep' | 'other';
 export type AgendaTone = 'daily' | 'lote' | 'routine' | 'prep' | 'dog' | 'vaccine';
@@ -66,8 +66,14 @@ export function getProgramacionActivityCategory(actividad: ActividadLote, templa
 }
 
 export function isProgramacionActivityActive(actividad: ActividadLote, templates: ActividadProgramada[] = []): boolean {
-  const template = findMatchingTemplate(actividad, templates);
-  return template ? template.Activa : true;
+  const exactTemplate = findExactMatchingTemplate(actividad, templates);
+  if (exactTemplate) return exactTemplate.Activa;
+
+  const routineTemplates = findRoutineMatchingTemplates(actividad, templates);
+  if (routineTemplates.length > 0) return routineTemplates.some((template) => template.Activa);
+  if (isRoutineActivity(actividad) || isOperationalRoutineLike(actividad)) return false;
+
+  return true;
 }
 
 export function isPreparationLike(item: Pick<ActividadProgramada | ActividadLote, 'Categoria' | 'NombreActividad' | 'DiaLote'>): boolean {
@@ -95,8 +101,18 @@ function isOperationalRoutineLike(item: Pick<ActividadProgramada | ActividadLote
 }
 
 function findMatchingTemplate(actividad: ActividadLote, templates: ActividadProgramada[]): ActividadProgramada | undefined {
+  return findExactMatchingTemplate(actividad, templates) ?? findRoutineMatchingTemplates(actividad, templates)[0];
+}
+
+function findExactMatchingTemplate(actividad: ActividadLote, templates: ActividadProgramada[]): ActividadProgramada | undefined {
   const activityKey = getActivityMatchKey(actividad);
   return templates.find((template) => getActivityMatchKey(template) === activityKey);
+}
+
+function findRoutineMatchingTemplates(actividad: ActividadLote, templates: ActividadProgramada[]): ActividadProgramada[] {
+  const routineKey = getRoutineDefinition(actividad)?.key;
+  if (!routineKey) return [];
+  return templates.filter((template) => getRoutineDefinition(template)?.key === routineKey);
 }
 
 function getActivityMatchKey(item: Pick<ActividadProgramada | ActividadLote, 'Categoria' | 'NombreActividad'>): string {
