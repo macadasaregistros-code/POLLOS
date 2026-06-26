@@ -15098,6 +15098,27 @@ body:has(.native-record-screen--pest) {
   box-shadow: 0 8px 18px rgb(20 33 29 / 8%);
 }
 
+.liquidation-empty-bucket {
+  display: grid;
+  gap: 5px;
+  min-height: 92px;
+  align-content: center;
+  border: 1px dashed rgb(20 33 29 / 18%);
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8faf8;
+  color: var(--muted);
+}
+
+.liquidation-empty-bucket strong {
+  color: var(--brand-strong);
+}
+
+.liquidation-empty-bucket span {
+  font-size: 0.82rem;
+  font-weight: 780;
+}
+
 .liquidation-detail {
   display: grid;
   gap: 12px;
@@ -15115,11 +15136,26 @@ body:has(.native-record-screen--pest) {
 .liquidation-panel {
   display: grid;
   gap: 12px;
-  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgb(20 33 29 / 10%);
+  border-left: 5px solid var(--brand);
   border-radius: 8px;
-  padding: 12px;
-  background: #ffffff;
-  box-shadow: 0 8px 18px rgb(20 33 29 / 6%);
+  padding: 14px;
+  background: #fbfcfb;
+  box-shadow: 0 10px 22px rgb(20 33 29 / 7%);
+}
+
+.liquidation-panel--materials {
+  border-left-color: #c47a1d;
+}
+
+.liquidation-panel--outputs {
+  border-left-color: #2563a7;
+}
+
+.liquidation-panel--extra {
+  border-left-color: #6b7280;
 }
 
 .liquidation-panel > header {
@@ -15127,6 +15163,8 @@ body:has(.native-record-screen--pest) {
   justify-content: space-between;
   gap: 12px;
   align-items: flex-end;
+  border-bottom: 1px solid rgb(20 33 29 / 8%);
+  padding-bottom: 10px;
 }
 
 .liquidation-panel > header div {
@@ -15148,6 +15186,12 @@ body:has(.native-record-screen--pest) {
 }
 
 .liquidation-panel > header > strong {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: #fff7e7;
   color: #875314;
   font-size: 1rem;
   white-space: nowrap;
@@ -15166,10 +15210,23 @@ body:has(.native-record-screen--pest) {
   display: grid;
   gap: 10px;
   align-items: end;
-  border: 1px solid rgb(20 33 29 / 9%);
+  border: 1px solid rgb(20 33 29 / 8%);
   border-radius: 8px;
-  padding: 10px;
-  background: #f9fbfa;
+  padding: 11px;
+  background: #ffffff;
+  box-shadow: 0 5px 14px rgb(20 33 29 / 5%);
+}
+
+.liquidation-feed-row {
+  border-left: 4px solid rgb(19 111 99 / 42%);
+}
+
+.liquidation-material-row {
+  border-left: 4px solid rgb(196 122 29 / 44%);
+}
+
+.liquidation-output-row {
+  border-left: 4px solid rgb(37 99 167 / 42%);
 }
 
 .liquidation-feed-row {
@@ -15207,8 +15264,12 @@ body:has(.native-record-screen--pest) {
 
 .liquidation-input {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
+  border: 1px solid rgb(20 33 29 / 10%);
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: #f4f7f5;
 }
 
 .liquidation-input span {
@@ -15220,19 +15281,26 @@ body:has(.native-record-screen--pest) {
 
 .liquidation-input input {
   width: 100%;
-  min-height: 38px;
-  border: 1px solid rgb(20 33 29 / 14%);
-  border-radius: 8px;
-  padding: 0 10px;
-  background: #ffffff;
+  min-height: 28px;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
   color: var(--text);
   font: inherit;
+  font-size: 1rem;
+  font-weight: 850;
 }
 
 .liquidation-input input:focus {
-  border-color: var(--brand);
   outline: none;
-  box-shadow: 0 0 0 3px rgb(19 111 99 / 14%);
+  box-shadow: none;
+}
+
+.liquidation-input:focus-within {
+  border-color: rgb(19 111 99 / 32%);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgb(19 111 99 / 12%);
 }
 
 .liquidation-extra-grid {
@@ -15254,10 +15322,11 @@ body:has(.native-record-screen--pest) {
   gap: 8px;
   align-items: end;
   justify-content: flex-end;
-  border: 1px solid var(--border);
+  border: 1px solid rgb(20 33 29 / 10%);
   border-radius: 8px;
-  padding: 10px;
-  background: #f7faf8;
+  padding: 12px;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgb(20 33 29 / 6%);
 }
 
 .liquidation-actions button {

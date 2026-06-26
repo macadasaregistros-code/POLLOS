@@ -16,7 +16,7 @@ import { MobileCard } from '../../components/MobileCard';
 import { buildAgenda } from '../../services/agendaService';
 import type { AgendaModel, AgendaRecordContext, AgendaTask } from '../../services/agendaService';
 import { buildLoteResumen } from '../../services/calculationsService';
-import { actualizarActividad, actualizarEstadoGalpon } from '../../services/domainService';
+import { actualizarActividad, actualizarEstadoGalpon, registrarMaterialLote } from '../../services/domainService';
 import { db } from '../../services/localDbService';
 import {
   getCompletedPrepTaskRecords,
@@ -214,7 +214,7 @@ export function GalponeroHome({ user, activeView, onViewChange, onToast }: Galpo
           </MobileCard>
         ) : (
           <MobileCard className="native-view-card">
-            <GalponPreparationPanel galpon={selectedGalpon} onSaved={onToast} />
+            <GalponPreparationPanel galpon={selectedGalpon} user={user} onSaved={onToast} />
           </MobileCard>
         )}
       </main>
@@ -362,7 +362,7 @@ function GalponDetailHeader({ galpon, lote, mode, onBack }: { galpon: Galpon; lo
   );
 }
 
-function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: (message: string) => void }) {
+function GalponPreparationPanel({ galpon, user, onSaved }: { galpon: Galpon; user: Usuario; onSaved: (message: string) => void }) {
   const [saving, setSaving] = useState(false);
   const completedTaskRecords = getCompletedPrepTaskRecords(galpon);
   const completedTaskIds = completedTaskRecords.map((record) => record.id);
@@ -383,6 +383,11 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
 
   async function handleAdvance() {
     if (!currentTask) return;
+    const ciscoPacas = currentTask.id === 'cisco_nuevo' ? Number(window.prompt('Pacas de cisco usadas en este galpon') ?? 0) : undefined;
+    if (currentTask.id === 'cisco_nuevo' && (!ciscoPacas || ciscoPacas <= 0)) {
+      onSaved('Registra las pacas de cisco para marcar esta actividad.');
+      return;
+    }
     setSaving(true);
     try {
       const nextCompleted = normalizePrepTaskRecords([...completedTaskRecords, { id: currentTask.id, fecha: todayISO() }]);
@@ -391,6 +396,20 @@ function GalponPreparationPanel({ galpon, onSaved }: { galpon: Galpon; onSaved: 
         getGalponStateForPrepProgress(nextCompleted.map((record) => record.id)),
         writePrepProgressRecords(galpon.Observaciones, nextCompleted),
       );
+      if (ciscoPacas) {
+        await registrarMaterialLote(
+          {
+            Fecha: todayISO(),
+            LoteID: '',
+            GalponID: galpon.GalponID,
+            TipoMaterial: 'CISCO',
+            Cantidad: ciscoPacas,
+            Unidad: 'PACAS',
+            Observaciones: 'Cisco usado en alistamiento del galpon',
+          },
+          user,
+        );
+      }
       onSaved('Avance de alistamiento guardado en este dispositivo.');
     } finally {
       setSaving(false);

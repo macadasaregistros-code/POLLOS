@@ -13,7 +13,7 @@ import {
   type LiquidationDraftInput,
 } from '../../services/loteLiquidationService';
 import { generarReporteLiquidacionLotePDF } from '../../services/reportsService';
-import { getDiaLote, todayISO } from '../../lib/date';
+import { addDays, getDiaLote, todayISO } from '../../lib/date';
 import { fmtCurrency, fmtKg, fmtNumber, fmtPercent } from '../../lib/format';
 import type {
   CierreLote,
@@ -21,6 +21,7 @@ import type {
   EntradaAlimento,
   EntradaMaterial,
   Lote,
+  LoteGalpon,
   MaterialLote,
   RegistroDiarioLote,
   SalidaPollo,
@@ -41,6 +42,7 @@ interface LoteStatusRow {
   bucket: LiquidationBucket;
   statusLabel: string;
   cierre?: CierreLote;
+  avesRestantes: number;
   bultos: number;
   kgCanal: number;
   ingresos: number;
@@ -117,17 +119,18 @@ export function LiquidarLotesView({ user, onToast }: LiquidarLotesViewProps) {
   const materiales = useLiveQuery(() => db.materialesLote.toArray(), []) ?? [];
   const entradasAlimento = useLiveQuery(() => db.entradasAlimento.toArray(), []) ?? [];
   const entradasMaterial = useLiveQuery(() => db.entradasMaterial.toArray(), []) ?? [];
+  const loteGalpones = useLiveQuery(() => db.loteGalpones.toArray(), []) ?? [];
   const [selectedBucket, setSelectedBucket] = useState<LiquidationBucket>('pendientes');
   const [selectedLoteId, setSelectedLoteId] = useState('');
   const [form, setForm] = useState<LiquidationFormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
   const rows = useMemo(
-    () => buildLoteStatusRows({ lotes, registros, salidas, costos, cierres, today }),
-    [cierres, costos, lotes, registros, salidas, today],
+    () => buildLoteStatusRows({ lotes, registros, salidas, costos, cierres }),
+    [cierres, costos, lotes, registros, salidas],
   );
   const bucketRows = useMemo(() => rows.filter((row) => row.bucket === selectedBucket), [rows, selectedBucket]);
-  const selectedRow = rows.find((row) => row.lote.LoteID === selectedLoteId) ?? bucketRows[0] ?? rows[0];
+  const selectedRow = bucketRows.find((row) => row.lote.LoteID === selectedLoteId) ?? bucketRows[0];
   const selectedLote = selectedRow?.lote;
   const selectedRegistros = useMemo(
     () => registros.filter((registro) => registro.LoteID === selectedLote?.LoteID),
@@ -146,8 +149,8 @@ export function LiquidarLotesView({ user, onToast }: LiquidarLotesViewProps) {
     [entradasAlimento, selectedCostos, selectedLote?.LoteID, selectedRegistros, tipos],
   );
   const materialUsage = useMemo(
-    () => buildMaterialUsage(selectedLote?.LoteID ?? '', materiales, selectedCostos, entradasMaterial),
-    [entradasMaterial, materiales, selectedCostos, selectedLote?.LoteID],
+    () => buildMaterialUsage(selectedLote, loteGalpones, materiales, selectedCostos, entradasMaterial),
+    [entradasMaterial, loteGalpones, materiales, selectedCostos, selectedLote],
   );
   const formDefaults = useMemo(
     () => selectedLote
@@ -165,9 +168,9 @@ export function LiquidarLotesView({ user, onToast }: LiquidarLotesViewProps) {
   );
 
   useEffect(() => {
-    if (selectedLoteId && rows.some((row) => row.lote.LoteID === selectedLoteId)) return;
-    setSelectedLoteId(bucketRows[0]?.lote.LoteID ?? rows[0]?.lote.LoteID ?? '');
-  }, [bucketRows, rows, selectedLoteId]);
+    if (selectedLoteId && bucketRows.some((row) => row.lote.LoteID === selectedLoteId)) return;
+    setSelectedLoteId(bucketRows[0]?.lote.LoteID ?? '');
+  }, [bucketRows, selectedLoteId]);
 
   useEffect(() => {
     setForm(formDefaults);
@@ -175,7 +178,7 @@ export function LiquidarLotesView({ user, onToast }: LiquidarLotesViewProps) {
 
   function handleBucketChange(bucket: LiquidationBucket) {
     setSelectedBucket(bucket);
-    const next = rows.find((row) => row.bucket === bucket) ?? rows[0];
+    const next = rows.find((row) => row.bucket === bucket);
     setSelectedLoteId(next?.lote.LoteID ?? '');
   }
 
@@ -262,19 +265,26 @@ export function LiquidarLotesView({ user, onToast }: LiquidarLotesViewProps) {
 
       <section className="liquidation-layout">
         <aside className="liquidation-lote-list" aria-label="Lotes">
-          {(bucketRows.length ? bucketRows : rows).map((row) => (
-            <button
-              className={selectedRow?.lote.LoteID === row.lote.LoteID ? 'liquidation-lote-card is-active' : 'liquidation-lote-card'}
-              type="button"
-              key={row.lote.LoteID}
-              onClick={() => setSelectedLoteId(row.lote.LoteID)}
-            >
-              <span>{row.statusLabel}</span>
-              <strong>{row.lote.CodigoLote}</strong>
-              <small>Dia {getDiaLote(row.lote.FechaLlegada, today)} - {row.lote.EstadoLote}</small>
-              <em>{fmtCurrency(row.utilidad)}</em>
-            </button>
-          ))}
+          {bucketRows.length ? (
+            bucketRows.map((row) => (
+              <button
+                className={selectedRow?.lote.LoteID === row.lote.LoteID ? 'liquidation-lote-card is-active' : 'liquidation-lote-card'}
+                type="button"
+                key={row.lote.LoteID}
+                onClick={() => setSelectedLoteId(row.lote.LoteID)}
+              >
+                <span>{row.statusLabel}</span>
+                <strong>{row.lote.CodigoLote}</strong>
+                <small>Dia {getDiaLote(row.lote.FechaLlegada, today)} - {fmtNumber(row.avesRestantes)} aves restantes</small>
+                <em>{fmtCurrency(row.utilidad)}</em>
+              </button>
+            ))
+          ) : (
+            <div className="liquidation-empty-bucket">
+              <strong>{getBucketLabel(selectedBucket)}</strong>
+              <span>Sin lotes en esta bandeja.</span>
+            </div>
+          )}
         </aside>
 
         {selectedLote && selectedRow && preview ? (
@@ -305,7 +315,7 @@ export function LiquidarLotesView({ user, onToast }: LiquidarLotesViewProps) {
               </section>
             </MobileCard>
 
-            <section className="liquidation-panel">
+            <section className="liquidation-panel liquidation-panel--feed">
               <header>
                 <div>
                   <span>Costos</span>
@@ -339,7 +349,7 @@ export function LiquidarLotesView({ user, onToast }: LiquidarLotesViewProps) {
               </div>
             </section>
 
-            <section className="liquidation-panel">
+            <section className="liquidation-panel liquidation-panel--materials">
               <header>
                 <div>
                   <span>Costos</span>
@@ -384,7 +394,7 @@ export function LiquidarLotesView({ user, onToast }: LiquidarLotesViewProps) {
               </div>
             </section>
 
-            <section className="liquidation-panel">
+            <section className="liquidation-panel liquidation-panel--outputs">
               <header>
                 <div>
                   <span>Matadero</span>
@@ -439,7 +449,7 @@ export function LiquidarLotesView({ user, onToast }: LiquidarLotesViewProps) {
               )}
             </section>
 
-            <section className="liquidation-panel">
+            <section className="liquidation-panel liquidation-panel--extra">
               <header>
                 <div>
                   <span>Costos</span>
@@ -487,7 +497,7 @@ export function LiquidarLotesView({ user, onToast }: LiquidarLotesViewProps) {
           </section>
         ) : (
           <MobileCard title="Liquidar lotes">
-            <p className="empty-state">Todavia no hay lotes para liquidar.</p>
+            <p className="empty-state">No hay lotes en la bandeja {getBucketLabel(selectedBucket).toLowerCase()}.</p>
           </MobileCard>
         )}
       </section>
@@ -501,7 +511,6 @@ function buildLoteStatusRows(input: {
   salidas: SalidaPollo[];
   costos: CostoLote[];
   cierres: CierreLote[];
-  today: string;
 }): LoteStatusRow[] {
   const cierreByLote = new Map<string, CierreLote>();
   input.cierres
@@ -521,12 +530,15 @@ function buildLoteStatusRows(input: {
       const kgCanal = loteSalidas.reduce((sum, salida) => sum + salida.PesoTotalKg, 0);
       const ingresos = loteSalidas.reduce((sum, salida) => sum + salida.ValorTotal, 0);
       const costos = loteCostos.reduce((sum, costo) => sum + costo.ValorTotal, 0);
-      const bucket: LiquidationBucket = cierre ? 'liquidados' : lote.EstadoLote === 'ACTIVO' ? 'sinFinalizar' : 'pendientes';
+      const avesRestantes = getEstimatedRemainingBirds(lote, loteRegistros, loteSalidas);
+      const finished = lote.EstadoLote !== 'ACTIVO' || avesRestantes <= 0;
+      const bucket: LiquidationBucket = cierre ? 'liquidados' : finished ? 'pendientes' : 'sinFinalizar';
       return {
         lote,
         bucket,
         statusLabel: getBucketLabel(bucket),
         cierre,
+        avesRestantes,
         bultos,
         kgCanal,
         ingresos,
@@ -538,6 +550,17 @@ function buildLoteStatusRows(input: {
       const bucketOrder: Record<LiquidationBucket, number> = { pendientes: 0, sinFinalizar: 1, liquidados: 2 };
       return bucketOrder[left.bucket] - bucketOrder[right.bucket] || right.lote.FechaLlegada.localeCompare(left.lote.FechaLlegada);
     });
+}
+
+function getEstimatedRemainingBirds(lote: Lote, registros: RegistroDiarioLote[], salidas: SalidaPollo[]): number {
+  const muertos = registros.reduce((sum, registro) => sum + registro.MuertosMachos + registro.MuertosHembras + registro.MuertosSinClasificar, 0);
+  const salidasHoja = registros.reduce(
+    (sum, registro) => sum + registro.SacrificadosMachos + registro.SacrificadosHembras + registro.VendidosMachos + registro.VendidosHembras,
+    0,
+  );
+  const salidasMatadero = salidas.reduce((sum, salida) => sum + salida.CantidadAves, 0);
+  const avesRetiradas = muertos + Math.max(salidasHoja, salidasMatadero);
+  return Math.max(0, lote.CantidadInicialTotal - avesRetiradas);
 }
 
 function buildFeedUsage(
@@ -579,13 +602,16 @@ function buildFeedUsage(
 }
 
 function buildMaterialUsage(
-  loteId: string,
+  lote: Lote | undefined,
+  loteGalpones: LoteGalpon[],
   materiales: MaterialLote[],
   costos: CostoLote[],
   entradasMaterial: EntradaMaterial[],
 ): MaterialUsageRow[] {
+  const loteId = lote?.LoteID ?? '';
+  const relatedGalponIds = new Set(loteGalpones.filter((item) => item.LoteID === loteId).map((item) => item.GalponID));
   return MATERIAL_KINDS.map((tipoMaterial) => {
-    const loteMateriales = materiales.filter((material) => material.LoteID === loteId && material.TipoMaterial === tipoMaterial);
+    const loteMateriales = materiales.filter((material) => isMaterialRelatedToLote(material, tipoMaterial, lote, relatedGalponIds));
     const existingCost = costos.find((costo) => costo.CostoID === makeLiquidationCostId(loteId, `material_${tipoMaterial}`));
     const defaultUnit = tipoMaterial === 'CISCO' ? 'PACAS' : 'CILINDROS';
     return {
@@ -596,6 +622,20 @@ function buildMaterialUsage(
       defaultPrice: existingCost?.ValorUnitario ?? getLatestMaterialPrice(tipoMaterial, entradasMaterial),
     };
   });
+}
+
+function isMaterialRelatedToLote(
+  material: MaterialLote,
+  tipoMaterial: MaterialKind,
+  lote: Lote | undefined,
+  relatedGalponIds: Set<string>,
+): boolean {
+  if (!lote || material.TipoMaterial !== tipoMaterial) return false;
+  if (material.LoteID === lote.LoteID) return true;
+  if (material.LoteID) return false;
+  if (!relatedGalponIds.has(material.GalponID)) return false;
+  const prepWindowStart = addDays(lote.FechaLlegada, -30);
+  return material.Fecha >= prepWindowStart && material.Fecha <= lote.FechaLlegada;
 }
 
 function buildFormDefaults(

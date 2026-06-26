@@ -117,6 +117,16 @@ export interface EntradaMaterialInput {
   Observaciones: string;
 }
 
+export interface MaterialLoteInput {
+  Fecha: string;
+  LoteID: string;
+  GalponID: string;
+  TipoMaterial: TipoMaterialInventario;
+  Cantidad: number;
+  Unidad: string;
+  Observaciones: string;
+}
+
 export interface AplicarVacunaInput {
   Producto: string;
   Laboratorio: string;
@@ -857,6 +867,54 @@ export async function registrarEntradaMaterial(input: EntradaMaterialInput, user
   });
 
   return entrada;
+}
+
+export async function registrarMaterialLote(input: MaterialLoteInput, user: Usuario): Promise<MaterialLote> {
+  if (!Number.isFinite(input.Cantidad) || input.Cantidad <= 0) throw new Error('La cantidad de material debe ser mayor a cero.');
+
+  const material: MaterialLote = {
+    MaterialLoteID: createId('mat_lote'),
+    Fecha: input.Fecha,
+    LoteID: input.LoteID,
+    GalponID: input.GalponID,
+    TipoMaterial: input.TipoMaterial,
+    Cantidad: input.Cantidad,
+    Unidad: input.Unidad,
+    ProveedorID: '',
+    PrecioUnitario: 0,
+    FacturaID: '',
+    EstadoAdmin: 'PENDIENTE_PRECIO',
+    RegistradoPor: user.UsuarioID,
+    Observaciones: input.Observaciones,
+    EstadoSync: 'PENDIENTE',
+  };
+  const movimiento: MovimientoInventarioMaterial = {
+    MovimientoMaterialID: createId('mov_mat'),
+    Fecha: input.Fecha,
+    TipoMovimiento: 'CONSUMO_LOTE',
+    TipoMaterial: input.TipoMaterial,
+    Cantidad: input.Cantidad,
+    Unidad: input.Unidad,
+    LoteID: input.LoteID,
+    GalponID: input.GalponID,
+    ProveedorID: '',
+    FacturaID: '',
+    Origen: 'INVENTARIO',
+    Destino: input.GalponID,
+    RegistradoPor: user.UsuarioID,
+    Observacion: input.Observaciones,
+  };
+
+  await db.transaction('rw', [db.materialesLote, db.inventarioMaterial, db.movimientosInventarioMaterial, db.syncQueue], async () => {
+    await db.materialesLote.add(material);
+    const inventorySync = await updateMaterialInventory(input.TipoMaterial, input.Unidad, -input.Cantidad);
+    await db.movimientosInventarioMaterial.add(movimiento);
+    await enqueueSync('MaterialesLote', material.MaterialLoteID, 'CREATE', material);
+    await enqueueSync('InventarioMaterial', inventorySync.inventario.InventarioMaterialID, inventorySync.operation, inventorySync.inventario);
+    await enqueueSync('MovimientosInventarioMaterial', movimiento.MovimientoMaterialID, 'CREATE', movimiento);
+  });
+
+  return material;
 }
 
 export async function registrarSalida(input: SalidaInput, user: Usuario): Promise<SalidaPollo> {
